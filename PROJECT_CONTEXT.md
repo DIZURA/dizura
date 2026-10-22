@@ -118,6 +118,14 @@ Costs: image 5 (influencer 8); video 8 cr/s (WAN Prime 12 cr/s), 1–15 s.
 - Security advisor: 0 findings. Performance advisor: 0 findings.
 - `.env.local` has URL + publishable key. **`SUPABASE_SERVICE_ROLE_KEY` must be added by the owner** (switches credits to the real ledger).
 
+## 8c. Pre-PR leak audit (2026-10-22) — all clean
+- **Git (all branches/history):** only `.env.example` ever committed (non-secret defaults); no key patterns, JWTs, or local secret values in any commit; `.mcp.json` holds no credentials. Remote branch == local HEAD.
+- **Browser bundle:** built with canary secrets in every server var → 0 canary values, 0 secret var names, no `server-only` code in `.next/static` or prerendered HTML/RSC. No client component imports server modules.
+- **API runtime:** with canary provider keys, no response body/header or server log contained a key; errors are generic (`provider_error`, `not_found`, …); no `x-powered-by`; client-sent prices ignored; forged webhook → 401, forged job token → 404, oversized body → 400; failed generations refunded.
+- **Supabase (anon/authenticated):** no table grants, no EXECUTE on any public function; RLS on; advisors clean. Note: `authenticated` has **no SELECT grant** on credit tables (project doesn't auto-expose tables), so the select-own policies are dormant — add `grant select … to authenticated` only if the browser must read balances directly.
+- **CI:** first GitHub Actions run (secret scan + check + build) passed.
+- `APP_SECRET` rotated locally after its prefix appeared in a session log (never committed).
+
 ## 9. Open items / things to VERIFY before launch
 - [ ] **Higgsfield** REST paths + auth header format (`lib/higgsfield/client.ts`) — confirm against current API docs.
 - [ ] **WAN 3.0** host & payload shape (`lib/wan/client.ts`).
