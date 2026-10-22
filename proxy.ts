@@ -1,10 +1,30 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { GUEST_ONLY, PROTECTED_PREFIXES, matchesPrefix } from "@/lib/auth/redirect";
+import { refreshSession } from "@/lib/supabase/proxy";
 
 /**
- * Per-request nonce-based Content-Security-Policy.
- * Next.js reads the nonce from the request CSP header and applies it to its own scripts.
+ * 1. Refresh the Supabase session cookie (Server Components can't write cookies).
+ * 2. Redirect guests away from protected pages / signed-in users away from /login (UX only —
+ *    Server Actions and API routes always re-verify the user themselves).
+ * 3. Per-request nonce Content-Security-Policy.
  */
-export function proxy(req: NextRequest) {
+export async function proxy(req: NextRequest) {
+  const session = await refreshSession(req);
+  const path = req.nextUrl.pathname;
+
+  if (!session.userId && matchesPrefix(path, PROTECTED_PREFIXES)) {
+    const login = new URL("/login", req.url);
+    login.searchParams.set("next", `${path}${req.nextUrl.search}`);
+    const res = NextResponse.redirect(login);
+    session.apply(res);
+    return res;
+  }
+  if (session.userId && matchesPrefix(path, GUEST_ONLY)) {
+    const res = NextResponse.redirect(new URL("/ads-studio", req.url));
+    session.apply(res);
+    return res;
+  }
+
   const nonce = Buffer.from(crypto.randomUUID()).toString("base64");
   const isDev = process.env.NODE_ENV === "development";
   const supabase = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
@@ -25,17 +45,19 @@ export function proxy(req: NextRequest) {
     ...(isDev ? [] : ["upgrade-insecure-requests"]),
   ].join("; ");
 
+  // req.headers already carries any refreshed session cookie (set by refreshSession).
   const requestHeaders = new Headers(req.headers);
   requestHeaders.set("x-nonce", nonce);
   requestHeaders.set("Content-Security-Policy", csp);
 
   const res = NextResponse.next({ request: { headers: requestHeaders } });
   res.headers.set("Content-Security-Policy", csp);
+  session.apply(res);
   return res;
 }
 
 export const config = {
-  // Skip API routes (JSON only), static assets and prefetches.
+  // Skip API routes (they verify auth themselves), static assets and prefetches.
   matcher: [
     {
       source: "/((?!api|_next/static|_next/image|favicon.ico|.*\\.(?:png|jpg|svg|webp|ico|txt)$).*)",
