@@ -1,0 +1,42 @@
+@import "tailwindcss";
+
+/*
+ * DIZURA design tokens — deep charcoal + warm orange.
+ * Dark is the brand default. Use only these tokens in components (no raw hex) so the
+ * palette stays consistent. Use logical utilities (ms/me/ps/pe/start/end) for RTL safety.
+ */
+@theme {
+  --color-ink-950: #0e0e10;   /* page background */
+  --color-ink-900: #151517;   /* surfaces */
+  --color-ink-850: #1b1b1e;   /* raised surfaces */
+  --color-ink-800: #232327;   /* inputs, hover */
+  --color-ink-700: #2e2e33;   /* borders */
+  --color-ink-500: #6b6b74;   /* muted text */
+  --color-ink-300: #a9a9b2;   /* secondary text */
+  --color-ink-100: #ececf0;   /* primary text */
+
+  --color-ember-300: #ffb37a;
+  --color-ember-400: #ff9446;
+  --color-ember-500: #ff7a1a; /* primary accent */
+  --color-ember-600: #e9620a;
+  --color-ember-700: #b84a06;
+
+  --color-success: #3ecf8e;
+  --color-danger: #ff5a5f;
+
+  --font-sans: var(--font-plex-arabic), var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --radius-card: 1.25rem;
+}
+
+@layer base {
+  :root { color-scheme: dark; }
+  html { background: var(--color-ink-950); color: var(--color-ink-100); }
+  body { font-family: var(--font-sans); -webkit-font-smoothing: antialiased; min-height: 100dvh; }
+  ::selection { background: color-mix(in oklab, var(--color-ember-500) 40%, transparent); }
+  :focus-visible { outline: 2px solid var(--color-ember-500); outline-offset: 2px; border-radius: 6px; }
+  [dir="rtl"] .flip-rtl { transform: scaleX(-1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+}
