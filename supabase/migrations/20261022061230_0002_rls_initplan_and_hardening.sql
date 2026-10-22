@@ -4,4 +4,11 @@
 --    via /rest/v1/rpc. Event triggers fire without EXECUTE grants, so revoking is safe.
 alter policy "own ledger"  on public.credit_ledger   to authenticated using ((select auth.uid()) = user_id);
 alter policy "own balance" on public.credit_balances to authenticated using ((select auth.uid()) = user_id);
-revoke execute on function public.rls_auto_enable() from public, anon, authenticated;
+-- Guarded: rls_auto_enable() is project-level and may not exist on fresh preview branches.
+do $$
+begin
+  if to_regprocedure('public.rls_auto_enable()') is not null then
+    revoke execute on function public.rls_auto_enable() from public, anon, authenticated;
+  end if;
+end
+$$;

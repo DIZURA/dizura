@@ -7,7 +7,7 @@ import { ApiError } from "@/lib/http";
 /**
  * Credit ledger. All mutations are idempotent on (userId, reason, referenceId) so
  * webhook retries and double-submits can never double-credit or double-charge.
- * Production implementation: supabase/migrations/0001_credits.sql (`apply_credit_delta` RPC).
+ * Production implementation: supabase/migrations/20261022060100_0001_credits.sql (`apply_credit_delta` RPC).
  */
 export interface CreditStore {
   getBalance(userId: string): Promise<number>;

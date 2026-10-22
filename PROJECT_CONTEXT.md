@@ -57,8 +57,8 @@ lib/
 types/           ai.ts, credits.ts, payments.ts, session.ts, index.ts
 .mcp.json        Project-scoped Supabase MCP (project_ref=mxzeeyqektwdncsryhyk); each dev authenticates via `claude /mcp`
 .agents/skills/  Supabase agent skills (supabase, supabase-postgres-best-practices), symlinked into .claude/skills; pinned in skills-lock.json
-supabase/migrations/0001_credits.sql   Ledger + balances + RLS + apply_credit_delta RPC (APPLIED)
-supabase/migrations/0002_rls_initplan_and_hardening.sql   RLS initplan fix + revoke rls_auto_enable() from API roles (APPLIED)
+supabase/migrations/20261022060100_0001_credits.sql   Ledger + balances + RLS + apply_credit_delta RPC (APPLIED)
+supabase/migrations/20261022061230_0002_rls_initplan_and_hardening.sql   RLS initplan fix + revoke rls_auto_enable() (guarded) (APPLIED)
 scripts/scan-secrets.mjs  Zero-dep secret scanner (pre-commit hook in .githooks/, CI in .github/workflows/security.yml)
 proxy.ts         Per-request nonce CSP (Next 16 "proxy" = former middleware)
 ```
@@ -84,6 +84,7 @@ proxy.ts         Per-request nonce CSP (Next 16 "proxy" = former middleware)
 | 16 | Dev fallback user only when `development` + no bearer + no service-role key (ledger in memory) | Local studio works before login UI exists; never in prod, never against the real ledger. |
 | 17 | Secret scanning at 3 layers: pre-commit hook, `npm run check`, GitHub Actions CI | Owner's rule: scan before every commit/push. No third-party scanner dependency. |
 | 18 | Mandatory security rules recorded in `CLAUDE.md` | Owner-set; apply to all sessions. |
+| 19 | Migration files named `<remote version>_<name>.sql`, matching `supabase_migrations.schema_migrations` exactly. New migrations: apply via MCP/CLI, then name the file with the version Supabase records. Migrations must also replay cleanly on a fresh preview branch (guard project-specific objects). | Supabase GitHub integration (Preview check) fails when remote versions are missing locally. |
 
 ## 5. API routes
 | Method | Route | Auth | Limit | Purpose |
