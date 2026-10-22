@@ -3,6 +3,7 @@ import { randomUUID } from "node:crypto";
 import type { CreditLedgerEntry, CreditReason } from "@/types";
 import { env, NotConfiguredError } from "@/lib/env";
 import { ApiError } from "@/lib/http";
+import { WELCOME_CREDITS } from "./pricing";
 
 /**
  * Credit ledger. All mutations are idempotent on (userId, reason, referenceId) so
@@ -20,7 +21,7 @@ class MemoryCreditStore implements CreditStore {
   private ledger = new Map<string, CreditLedgerEntry>();
 
   async getBalance(userId: string) {
-    return this.balances.get(userId) ?? 250; // dev starting balance
+    return this.balances.get(userId) ?? WELCOME_CREDITS; // mirrors the production welcome bonus
   }
 
   async apply({ userId, delta, reason, referenceId }: Parameters<CreditStore["apply"]>[0]) {
