@@ -6,7 +6,7 @@
 
 ## 1. Product
 AI creative studio for GCC brands, Arabic-first (RTL) with English (LTR).
-Workspaces: **Ads Studio**, **AI Influencer**, **WAN 3.0 Prime** (video), **Free GEO Audit**, **Scheduler**, **B2B**.
+Studios (one page each, Higgsfield-style): **AI Influencer**, **Motion**, **Image**, **Video** (WAN 3.0 Prime), **Ads Studio**. Business tools: **Free GEO Audit**, **Scheduler**, **B2B**.
 Monetisation: prepaid **credits** bought via **Tap Payments** (KWD default).
 
 ## 2. Stack
@@ -17,7 +17,7 @@ Monetisation: prepaid **credits** bought via **Tap Payments** (KWD default).
 | Validation | Zod 4 — every env var, request body and provider response |
 | 3D | three.js + @react-three/fiber, lazy-loaded client-only |
 | Auth / DB | Supabase project `mxzeeyqektwdncsryhyk` ("DIZURA's Project", ap-south-1, Postgres 17). Cookie-based Supabase Auth via `@supabase/ssr` 0.12.7 + `@supabase/supabase-js` 2.117.3 (exact pins) |
-| AI | Higgsfield (Ads, Influencer), WAN 3.0 Prime (video), GSC via MCP (audit) |
+| AI | Higgsfield API (`api.higgsfield.ai`) for all generation: images = `higgsfield-ai/soul/v2/standard`, video = `alibaba/wan-3.0-prime/text-to-video` (WAN is hosted by Higgsfield). GSC via MCP (audit) |
 | Payments | Tap Payments hosted charge page + webhook |
 
 Scripts: `npm run dev | build | start | lint | typecheck | scan:secrets | check` (`check` = typecheck + lint + secret scan).
@@ -27,8 +27,10 @@ Scripts: `npm run dev | build | start | lint | typecheck | scan:secrets | check`
 app/
   layout.tsx                 html lang/dir from locale cookie, fonts, I18nProvider
   page.tsx                   Landing (3D hero + bento grid)
-  (workspaces)/layout.tsx    TopBar + Sidebar shell
-  (workspaces)/{ads-studio,ai-influencer,wan-prime,geo-audit,b2b,scheduler}/page.tsx
+  (workspaces)/layout.tsx    TopBar with tool nav (no sidebar), full-width main
+  (workspaces)/{ai-influencer,motion,image,video,ads-studio}/page.tsx   ToolHero + studio (ideas from components/studio/ideas.ts)
+  (workspaces)/{geo-audit,b2b,scheduler}/page.tsx   WorkspaceHeader + tool UI
+  (/wan-prime -> 308 /video via next.config redirects)
   (auth)/{login,forgot-password,reset-password}/page.tsx   Login (?mode=signup, ?next=), reset request, new password
   auth/callback/route.ts     Email-link target: PKCE ?code= or ?token_hash=&type= -> session -> safe redirect
   actions/auth.ts            Server Actions: signIn, signUp, requestPasswordReset, updatePassword, signOut
@@ -38,9 +40,11 @@ app/
 components/
   ui/            Button (+buttonClass), Card, Modal (<dialog>), cn
   dashboard/     BentoGrid, BentoCard
-  layout/        TopBar, Sidebar, CreditsBadge, nav.ts (single nav config)
+  layout/        TopBar (nav prop), NavLinks (active state, mobile scroll row), CreditsBadge, nav.ts (TOOLS + EXTRAS)
   landing/       Hero3D (reduced-motion aware) -> Hero3DScene (R3F)
-  workspace/     GenerationPanel (shared prompt->job->poll flow), WorkspaceHeader
+  studio/        Studio (results canvas + floating prompt bar, generate/poll, session history, ideas), ToolHero,
+                 InfluencerStudio (trait builder -> composeInfluencerPrompt), MotionStudio (10 CSS-animated camera presets -> MOTIONS), ideas.ts
+  workspace/     WorkspaceHeader (geo-audit, b2b, scheduler)
   geo/           GeoAuditForm
   i18n/          I18nProvider/useI18n, LanguageToggle
   auth/          AuthForms (SignIn/SignUp/ForgotPassword/ResetPassword, useActionState), AuthCard, fields (TextField, PasswordField w/ show-hide), FormStatus
@@ -50,8 +54,8 @@ lib/
   app-url.ts     resolveAppUrl() — build-time origin (explicit > Netlify URL/DEPLOY_PRIME_URL > localhost); used by next.config.ts
   http.ts        ApiError, ok/fail, route() wrapper, parseJson (size-capped), providerFetch
   api-client.ts  Browser fetch for our own API (typed ApiResult)
-  ai/index.ts    Provider router (workspace -> higgsfield | wan)
-  higgsfield/client.ts, wan/client.ts   Provider SDK wrappers
+  ai/index.ts    Provider facade (Higgsfield only)
+  higgsfield/client.ts   Higgsfield API: MODELS, buildSubmission, submitGeneration (Idempotency-Key), getJob (/requests/{id}/status)
   gsc/mcp.ts     MCP Streamable-HTTP client (initialize -> tools/call), degrades to null
   geo/audit.ts   GEO checks (AI crawlers in robots.txt, llms.txt, JSON-LD, meta, depth…)
   tap/client.ts  createCharge, retrieveCharge, verifyWebhookHash (HMAC hashstring)
@@ -67,6 +71,8 @@ types/           ai.ts, credits.ts, payments.ts, session.ts, index.ts
 .agents/skills/  Supabase agent skills (supabase, supabase-postgres-best-practices), symlinked into .claude/skills; pinned in skills-lock.json
 supabase/migrations/20261022060100_0001_credits.sql   Ledger + balances + RLS + apply_credit_delta RPC (APPLIED)
 supabase/migrations/20261022061230_0002_rls_initplan_and_hardening.sql   RLS initplan fix + revoke rls_auto_enable() (guarded) (APPLIED)
+supabase/migrations/20261022080434_0003_welcome_credits.sql   private.grant_welcome_credits() trigger on auth.users: welcome bonus on email confirmation (APPLIED)
+supabase/migrations/20261022083415_0004_welcome_credits_30.sql   welcome bonus 10 -> 30 (APPLIED)
 scripts/scan-secrets.mjs  Zero-dep secret scanner (pre-commit hook in .githooks/, CI in .github/workflows/security.yml)
 proxy.ts         Session refresh + page guards (guest -> /login?next=, signed-in away from /login) + per-request nonce CSP
 ```
@@ -97,7 +103,12 @@ proxy.ts         Session refresh + page guards (guest -> /login?next=, signed-in
 | 22 | CSRF: cookie-authenticated non-GET API calls require same-origin `Origin` (or `Sec-Fetch-Site: same-origin`) → else 403; plus SameSite=Lax cookies; Server Actions have Next's built-in origin check. | Cookie auth makes CSRF relevant. |
 | 23 | Redirect targets pass through `safeNext()` (relative paths only); email links land on `/auth/callback` which handles PKCE code and token_hash. | Prevents open redirects / phishing via `?next=`. |
 | 24 | **App URL resolved at build time** (`lib/app-url.ts` → `next.config.ts` `env`, inlined into server + client). `NEXT_PUBLIC_APP_URL` is set for Netlify **Production only**; previews/branch deploys use `DEPLOY_PRIME_URL`, production falls back to `URL`. Never derived from the request `Host` header. | One config value; correct auth-email + Tap redirect URLs per deploy; Host-header injection can't redirect reset links. |
+| 25 | **Welcome bonus = 30 credits** (was 10; migration 0004), granted by a DB trigger when the email is confirmed** (or on insert if pre-confirmed, e.g. OAuth); never for anonymous users; idempotent (`promo`/`welcome_bonus`). Trigger fn lives in non-exposed `private` schema, `SECURITY DEFINER`, `search_path=''`, EXECUTE revoked; failures only warn (never block signup). Amount mirrored in `WELCOME_CREDITS`. | Lets new users try the product; confirmation gate stops throwaway-account farming; works even if the app is down. |
+| 26 | **Higgsfield API per official docs** (docs.higgsfield.ai): `POST /{model-id}` with top-level params + `Idempotency-Key` = our credit reservation id; poll `GET /requests/{id}/status` (queued → in_progress → completed / failed / nsfw / canceled); outputs `images[].url` / `video.url`. WAN 3.0 Prime via Higgsfield (separate WAN provider + env vars removed). Aspect ratios limited to 1:1, 9:16, 16:9, 3:4 (supported by both models). | Previous endpoints were unverified guesses (generation failed). Idempotency key means a retried submit is never billed twice. |
+| 27 | **Studio UI = one page per tool** with a top nav (sidebar removed), `ToolHero` banner, shared `Studio` (results canvas, floating prompt bar with type/ratio/duration/cost chips, idea cards). Guided studios compose an English `basePrompt` from controls (influencer traits, motion preset); user text is appended. Motion previews are pure CSS keyframes (`.motion-scene .m-*`), still for reduced-motion. Image upload for Motion is marked *Coming soon* (needs image-to-video models). | Matches the Higgsfield-style per-tool layout the owner asked for; ships UI before wiring more models. English prompts give the models the most reliable results. |
+| 28 | **Video price unified at 8 credits/s** (3–15 s, default 3 s = 24 credits) since every video runs on WAN 3.0 Prime. | A new user's 30 welcome credits cover a first video. |
 | 19 | Migration files named `<remote version>_<name>.sql`, matching `supabase_migrations.schema_migrations` exactly. New migrations: apply via MCP/CLI, then name the file with the version Supabase records. Migrations must also replay cleanly on a fresh preview branch (guard project-specific objects). | Supabase GitHub integration (Preview check) fails when remote versions are missing locally. |
+| 20 | `APP_SECRET` optional at boot; `signed-token.ts` enforces presence + ≥32 chars at use (→ 503 `not_configured`); `/api/ai/generate` checks it before reserving credits | `lib/env.ts` is evaluated during `next build` (page-data collection), so a missing/short secret was failing Netlify builds. |
 
 ## 5. API routes
 | Method | Route | Auth | Limit | Purpose |
@@ -117,7 +128,7 @@ Error codes → HTTP: bad_request 400, unauthorized 401, insufficient_credits 40
 
 ## 6. Environment variables
 Template: `.env.example` (committed). Real values: `.env.local` (gitignored via `.env.*`, chmod 600; `APP_SECRET` auto-generated).
-Server-only: `APP_SECRET`, `DATABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `HIGGSFIELD_API_KEY/SECRET/BASE_URL`, `WAN_API_BASE_URL/KEY/MODEL`, `GSC_MCP_ENDPOINT/TOKEN`, `TAP_SECRET_KEY`, `TAP_API_BASE_URL`.
+Server-only: `APP_SECRET`, `DATABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `HIGGSFIELD_API_KEY` + `HIGGSFIELD_API_SECRET` (or combined `KEY_ID:KEY_SECRET` in the key), optional `HIGGSFIELD_API_BASE_URL` (default `https://api.higgsfield.ai`), `GSC_MCP_ENDPOINT/TOKEN`, `TAP_SECRET_KEY`, `TAP_API_BASE_URL`.
 Public: `NEXT_PUBLIC_APP_URL` (optional; see ADR 24), `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, `NEXT_PUBLIC_TAP_PUBLIC_KEY`.
 Rule: never add a secret with the `NEXT_PUBLIC_` prefix; add every new var to `.env.example` + `lib/env.ts` schema.
 
@@ -128,15 +139,16 @@ Rule: never add a secret with the `NEXT_PUBLIC_` prefix; add every new var to `.
 - **Supabase → Authentication → URL Configuration** (owner): Site URL `https://sparkly-swan-cf292e.netlify.app` (or custom domain); Redirect URLs: `http://localhost:3000/**`, `https://sparkly-swan-cf292e.netlify.app/**`, `https://*--sparkly-swan-cf292e.netlify.app/**` (single `*` — never `**` before the host, which could match an attacker-controlled host).
 
 ## 7. Credit economy (`lib/credits/pricing.ts`)
+Welcome bonus: **30 credits** on email confirmation (ADR 25).
 Packs: starter 100cr/5 KWD · pro 500cr/20 KWD · studio 2000cr/65 KWD.
-Costs: image 5 (influencer 8); video 8 cr/s (WAN Prime 12 cr/s), 1–15 s.
+Costs: image 5 (influencer 8); video **8 cr/s** for every studio, 3–15 s, default 3 s (= 24).
 
 ## 8. Verified status (2026-10-22)
 - `typecheck`, `lint`, `build` all clean. All pages 200, no browser console errors, RTL/LTR + mobile screenshots checked.
 - Prod mode: unauthenticated API → 503 not_configured. SSRF probes (127.0.0.1, 169.254.169.254, [::1], :8080) blocked. Unsigned Tap webhook → 401. Forged job token → 404. Failed submit → credits refunded. Rate limit → 429.
 
 ## 8b. Supabase state (2026-10-22)
-- Migrations applied: `0001_credits`, `0002_rls_initplan_and_hardening`. Tables: `credit_ledger`, `credit_balances` (RLS on, select-own policies for `authenticated`).
+- Migrations applied: `0001_credits`, `0002_rls_initplan_and_hardening`, `0003_welcome_credits`, `0004_welcome_credits_30` (30 verified in a rolled-back transaction) (trigger tested in a rolled-back transaction: unconfirmed 0 → confirmed 10 → re-confirm still 10; OAuth insert 10; anonymous 0). Advisors clean after 0003. Tables: `credit_ledger`, `credit_balances` (RLS on, select-own policies for `authenticated`).
 - `apply_credit_delta` / `get_credit_balance`: SECURITY DEFINER, EXECUTE revoked from anon/authenticated (service role only).
 - Security advisor: 0 findings. Performance advisor: 0 findings.
 - `.env.local` has URL + publishable key. Owner added `SUPABASE_SERVICE_ROLE_KEY` on their machine (credits use the real ledger there).
@@ -151,14 +163,15 @@ Costs: image 5 (influencer 8); video 8 cr/s (WAN Prime 12 cr/s), 1–15 s.
 - `APP_SECRET` rotated locally after its prefix appeared in a session log (never committed).
 
 ## 9. Open items / things to VERIFY before launch
-- [ ] **Higgsfield** REST paths + auth header format (`lib/higgsfield/client.ts`) — confirm against current API docs.
-- [ ] **WAN 3.0** host & payload shape (`lib/wan/client.ts`).
+- [x] **Higgsfield** paths/auth/response shape now match the official docs; verified against a mock of the documented API (request path, `Key` header, Idempotency-Key, body, status polling, image/video/nsfw results). **Still to do: one live generation with real keys** (sandbox can't reach api.higgsfield.ai).
+- [x] **WAN 3.0 Prime** = Higgsfield model `alibaba/wan-3.0-prime/text-to-video` (duration 2–30 s, resolution 480p/720p/1080p, aspect incl. 3:4).
 - [ ] **GSC MCP** tool name/args (`search_analytics`) — confirm via the server's `tools/list`.
 - [ ] Tap: confirm `hashstring` field order for the account's API version; register webhook URL in Tap dashboard.
 
 ## 10. Roadmap
-1. ~~Login UI~~ ✅ (email/password, confirm, reset). Next: `profiles` (plan via `app_metadata`/table), welcome credits decision, Google OAuth, custom SMTP (Supabase built-in email is rate-limited).
+1. ~~Login UI~~ ✅ (email/password, confirm, reset). Next: `profiles` (plan via `app_metadata`/table), ~~welcome credits~~ ✅ (10), Google OAuth, custom SMTP (Supabase built-in email is rate-limited).
 2. Pricing/checkout UI (Modal + packs) wired to `/api/payments/checkout`.
+2b. Wire full models: Motion image upload + image-to-video (`alibaba/wan-3.0-prime/image-to-video`, verify params), consistent AI-influencer character (reference/character model), real example thumbnails for idea cards.
 3. Persist generation jobs (history gallery per workspace) + media upload for reference images.
 4. Shared rate limiter (Upstash Redis or Postgres) before multi-instance deploy.
 5. Scheduler: posts table, channel OAuth (TikTok/Instagram/X), cron publisher.

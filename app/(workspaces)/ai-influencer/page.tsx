@@ -1,16 +1,18 @@
 import type { Metadata } from "next";
-import { GenerationPanel } from "@/components/workspace/GenerationPanel";
-import { WorkspaceHeader } from "@/components/workspace/WorkspaceHeader";
+import { InfluencerStudio } from "@/components/studio/InfluencerStudio";
+import { ideasFor } from "@/components/studio/ideas";
+import { ToolHero } from "@/components/studio/ToolHero";
 import { getI18n } from "@/lib/i18n/server";
 
-export const metadata: Metadata = { title: "AI Influencer" };
+export const metadata: Metadata = { title: "AI Influencer Studio" };
 
 export default async function Page() {
-  const { t } = await getI18n();
+  const { t, locale } = await getI18n();
+  const ideas = ideasFor("aiInfluencer", locale);
   return (
     <>
-      <WorkspaceHeader title={t.nav.aiInfluencer} description={t.workspaces.aiInfluencer} />
-      <GenerationPanel workspace="ai-influencer" kinds={["image", "video"]} />
+      <ToolHero eyebrow={t.heroes.aiInfluencer.eyebrow} title={t.heroes.aiInfluencer.title} description={t.workspaces.aiInfluencer} model={t.heroes.aiInfluencer.model} />
+      <InfluencerStudio ideas={ideas} />
     </>
   );
 }

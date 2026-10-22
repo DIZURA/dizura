@@ -17,8 +17,13 @@ export async function AccountMenu() {
         {label.slice(0, 1)}
       </span>
       <form action={signOut}>
-        <button type="submit" className="rounded-full border border-ink-700 px-3 py-1.5 text-sm text-ink-300 transition hover:border-ember-500 hover:text-ink-100">
-          {t.auth.signOut}
+        <button
+          type="submit"
+          aria-label={t.auth.signOut}
+          className="rounded-full border border-ink-700 px-2.5 py-1.5 text-sm text-ink-300 transition hover:border-ember-500 hover:text-ink-100 sm:px-3"
+        >
+          <span aria-hidden className="sm:hidden">⎋</span>
+          <span className="hidden sm:inline">{t.auth.signOut}</span>
         </button>
       </form>
     </div>

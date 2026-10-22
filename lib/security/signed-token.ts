@@ -1,13 +1,24 @@
 import "server-only";
 import { createHmac, timingSafeEqual } from "node:crypto";
-import { env } from "@/lib/env";
+import { APP_SECRET_MIN_LENGTH, NotConfiguredError, requireEnv } from "@/lib/env";
 
 /**
  * Compact HMAC-signed tokens (payload.sig, base64url). Used to hand the client an opaque,
  * tamper-proof job handle without a DB round-trip. Not encrypted — don't put secrets inside.
  */
+/** Throws NotConfiguredError (→ 503) unless APP_SECRET is set and long enough. Call before side effects. */
+export function assertSigningConfigured(): void {
+  secret();
+}
+
+function secret(): string {
+  const { APP_SECRET } = requireEnv("APP_SECRET");
+  if (APP_SECRET.length < APP_SECRET_MIN_LENGTH) throw new NotConfiguredError(["APP_SECRET"]);
+  return APP_SECRET;
+}
+
 function sign(data: string, purpose: string) {
-  return createHmac("sha256", env.APP_SECRET).update(`${purpose}.${data}`).digest("base64url");
+  return createHmac("sha256", secret()).update(`${purpose}.${data}`).digest("base64url");
 }
 
 export function seal<T extends object>(purpose: string, payload: T, ttlSec = 60 * 60 * 24): string {
