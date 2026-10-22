@@ -44,7 +44,7 @@ export function GeoAuditForm() {
               value={url}
               onChange={(e) => setUrl(e.target.value)}
               placeholder="example.com"
-              className="rounded-xl border border-ink-700 bg-ink-800 px-3 py-2.5 text-ink-100 placeholder:text-ink-500 focus:border-ember-500 focus:outline-none"
+              className="rounded-xl border border-ink-700 bg-ink-800 px-3 py-2.5 text-ink-100 placeholder:text-ink-500 focus:border-mint-500 focus:outline-none"
             />
           </label>
           <Button type="submit" disabled={loading}>{loading ? t.geo.running : t.geo.run}</Button>
@@ -56,7 +56,7 @@ export function GeoAuditForm() {
         <div className="grid gap-4 lg:grid-cols-[16rem_1fr]" aria-live="polite">
           <Card className="flex flex-col items-center justify-center text-center">
             <span className="text-sm text-ink-300">{t.geo.score}</span>
-            <span className={cn("mt-2 text-6xl font-black tabular-nums", report.score >= 70 ? "text-success" : "text-ember-400")}>
+            <span className={cn("mt-2 text-6xl font-black tabular-nums", report.score >= 70 ? "text-success" : "text-mint-400")}>
               {nf.format(report.score)}
             </span>
             <span dir="ltr" className="mt-3 max-w-full truncate text-xs text-ink-500">{report.url}</span>
@@ -65,7 +65,7 @@ export function GeoAuditForm() {
             <ul className="divide-y divide-ink-700/60">
               {report.checks.map((c) => (
                 <li key={c.id} className="flex items-start gap-3 px-6 py-3.5">
-                  <span aria-hidden className={cn("mt-0.5", c.passed ? "text-success" : "text-ember-400")}>{c.passed ? "✓" : "!"}</span>
+                  <span aria-hidden className={cn("mt-0.5", c.passed ? "text-success" : "text-mint-400")}>{c.passed ? "✓" : "!"}</span>
                   <div className="min-w-0 flex-1">
                     <p className="font-medium text-ink-100">
                       {c.label} <span className="sr-only">— {c.passed ? t.geo.passed : t.geo.failed}</span>

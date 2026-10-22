@@ -4,8 +4,8 @@ import { cn } from "./cn";
 type Variant = "primary" | "secondary" | "ghost";
 
 const styles: Record<Variant, string> = {
-  primary: "bg-ember-500 text-ink-950 hover:bg-ember-400 shadow-[0_0_24px_-6px_var(--color-ember-500)]",
-  secondary: "border border-ink-700 bg-ink-850 text-ink-100 hover:border-ember-500",
+  primary: "bg-mint-500 text-ink-950 hover:bg-mint-400 shadow-[0_0_24px_-6px_var(--color-mint-500)]",
+  secondary: "border border-ink-700 bg-ink-850 text-ink-100 hover:border-mint-500",
   ghost: "text-ink-300 hover:bg-ink-800 hover:text-ink-100",
 };
 

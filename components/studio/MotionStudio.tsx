@@ -46,11 +46,11 @@ export function MotionStudio({ ideas }: { ideas: Idea[] }) {
               onClick={() => setMotion(key)}
               className={cn(
                 "group overflow-hidden rounded-2xl border text-start transition",
-                motion === key ? "border-ember-500 ring-2 ring-ember-500/30" : "border-ink-700/60 hover:border-ink-500",
+                motion === key ? "border-mint-500 ring-2 ring-mint-500/30" : "border-ink-700/60 hover:border-ink-500",
               )}
             >
               <MotionPreview motion={key} className="aspect-video" />
-              <span className={cn("block px-3 py-2 text-sm", motion === key ? "text-ember-300" : "text-ink-300 group-hover:text-ink-100")}>
+              <span className={cn("block px-3 py-2 text-sm", motion === key ? "text-mint-300" : "text-ink-300 group-hover:text-ink-100")}>
                 {t.motion.presets[key]}
               </span>
             </button>
@@ -73,7 +73,7 @@ export function MotionStudio({ ideas }: { ideas: Idea[] }) {
         basePrompt={MOTIONS[motion]}
         ideas={ideas}
         chip={
-          <span className="inline-flex items-center gap-2 rounded-full border border-ember-500/40 bg-ember-500/10 py-0.5 pe-3 ps-0.5 text-xs text-ember-300">
+          <span className="inline-flex items-center gap-2 rounded-full border border-mint-500/40 bg-mint-500/10 py-0.5 pe-3 ps-0.5 text-xs text-mint-300">
             <MotionPreview motion={motion} className="size-6 rounded-full" />
             {t.motion.presets[motion]}
           </span>

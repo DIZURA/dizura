@@ -19,6 +19,11 @@ export interface GenerationRequest {
   aspectRatio: AspectRatio;
   /** Seconds, video only. */
   durationSec?: number;
+  /**
+   * First frame for image-to-video. Set ONLY by the server, from one of the caller's own
+   * completed image jobs (never from client input).
+   */
+  sourceImageUrl?: string;
 }
 
 export interface GenerationJob {

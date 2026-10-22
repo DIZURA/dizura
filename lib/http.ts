@@ -90,7 +90,11 @@ export async function providerFetch(provider: string, url: string, init: Request
   }
   if (!res.ok) {
     const body = await res.text().catch(() => "");
-    console.error(`[${provider}] ${res.status} ${url}`, body.slice(0, 500));
+    const correlation = res.headers.get("x-correlation-id") ?? "-";
+    // Higgsfield: 403 = *our* provider account is out of credits (operator alert), 400 may mean concurrency limit.
+    const hint = res.status === 403 ? " [provider account out of credits?]" : "";
+    console.error(`[${provider}] ${res.status}${hint} ${url} correlation=${correlation}`, body.slice(0, 500));
+    if (res.status === 400 && /concurren/i.test(body)) throw new ApiError("rate_limited", "Too many generations running. Please wait a moment.");
     throw new ApiError("provider_error", `${provider} request failed (${res.status}).`);
   }
   return res;

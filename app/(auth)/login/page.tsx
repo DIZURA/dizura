@@ -25,7 +25,7 @@ export default async function LoginPage({ searchParams }: Props) {
       footer={
         <>
           {mode === "signin" ? t.auth.noAccount : t.auth.haveAccount}{" "}
-          <Link href={tab(mode === "signin" ? "signup" : "signin")} className="font-semibold text-ember-300 hover:text-ember-400">
+          <Link href={tab(mode === "signin" ? "signup" : "signin")} className="font-semibold text-mint-300 hover:text-mint-400">
             {mode === "signin" ? t.auth.signUp : t.auth.signIn}
           </Link>
         </>
@@ -47,7 +47,7 @@ export default async function LoginPage({ searchParams }: Props) {
         ))}
       </nav>
       {mode === "signup" && (
-        <p className="mb-5 flex items-center gap-2 rounded-xl border border-ember-500/30 bg-ember-500/10 px-3 py-2.5 text-sm text-ember-300">
+        <p className="mb-5 flex items-center gap-2 rounded-xl border border-mint-500/30 bg-mint-500/10 px-3 py-2.5 text-sm text-mint-300">
           <span aria-hidden>◆</span>
           {t.auth.welcomeBonus.replace("{n}", WELCOME_CREDITS.toLocaleString(locale))}
         </p>

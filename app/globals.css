@@ -1,12 +1,13 @@
 @import "tailwindcss";
 
 /*
- * DIZURA design tokens — deep charcoal + warm orange.
+ * DIZURA design tokens — deep charcoal + neon mint (from the DIZURA globe mark),
+ * warm orange as the secondary accent (credits, focus glow).
  * Dark is the brand default. Use only these tokens in components (no raw hex) so the
  * palette stays consistent. Use logical utilities (ms/me/ps/pe/start/end) for RTL safety.
  */
 @theme {
-  --color-ink-950: #0e0e10;   /* page background */
+  --color-ink-950: #0a0a0b;   /* page background */
   --color-ink-900: #151517;   /* surfaces */
   --color-ink-850: #1b1b1e;   /* raised surfaces */
   --color-ink-800: #232327;   /* inputs, hover */
@@ -15,6 +16,16 @@
   --color-ink-300: #a9a9b2;   /* secondary text */
   --color-ink-100: #ececf0;   /* primary text */
 
+  /* Primary brand accent — neon mint #00E599 */
+  --color-mint-200: #a6fbdb;
+  --color-mint-300: #63f3c0;
+  --color-mint-400: #26eba8;
+  --color-mint-500: #00e599;
+  --color-mint-600: #00bf80;
+  --color-mint-700: #008f60;
+  --color-mint-900: #00331f;
+
+  /* Secondary accent — warm orange (credits, CTA focus glow) */
   --color-ember-300: #ffb37a;
   --color-ember-400: #ff9446;
   --color-ember-500: #ff7a1a; /* primary accent */
@@ -32,9 +43,17 @@
   :root { color-scheme: dark; }
   html { background: var(--color-ink-950); color: var(--color-ink-100); }
   body { font-family: var(--font-sans); -webkit-font-smoothing: antialiased; min-height: 100dvh; }
-  ::selection { background: color-mix(in oklab, var(--color-ember-500) 40%, transparent); }
-  :focus-visible { outline: 2px solid var(--color-ember-500); outline-offset: 2px; border-radius: 6px; }
+  ::selection { background: color-mix(in oklab, var(--color-mint-500) 35%, transparent); }
+  :focus-visible { outline: 2px solid var(--color-ember-400); outline-offset: 2px; border-radius: 6px; box-shadow: 0 0 18px -2px var(--color-ember-500); }
   [dir="rtl"] .flip-rtl { transform: scaleX(-1); }
+}
+
+/* Glassmorphic panel with a faint neon-mint edge. */
+@utility glass {
+  background: color-mix(in oklab, var(--color-ink-900) 62%, transparent);
+  backdrop-filter: blur(18px) saturate(140%);
+  border: 1px solid color-mix(in oklab, var(--color-mint-500) 20%, transparent);
+  box-shadow: 0 0 0 1px color-mix(in oklab, var(--color-ink-950) 40%, transparent), 0 24px 60px -32px color-mix(in oklab, var(--color-mint-500) 35%, transparent);
 }
 
 @media (prefers-reduced-motion: reduce) {

@@ -4,7 +4,7 @@ import { useId, useState, type InputHTMLAttributes } from "react";
 import { useI18n } from "@/components/i18n/I18nProvider";
 
 const inputClass =
-  "w-full rounded-xl border border-ink-700 bg-ink-800 px-3 py-2.5 text-ink-100 placeholder:text-ink-500 transition focus:border-ember-500 focus:outline-none aria-[invalid=true]:border-danger";
+  "w-full rounded-xl border border-ink-700 bg-ink-800 px-3 py-2.5 text-ink-100 placeholder:text-ink-500 transition focus:border-mint-500 focus:outline-none aria-[invalid=true]:border-danger";
 
 export function TextField({ label, hint, ...props }: InputHTMLAttributes<HTMLInputElement> & { label: string; hint?: string }) {
   const id = useId();
@@ -39,7 +39,7 @@ export function PasswordField({ label, hint, ...props }: InputHTMLAttributes<HTM
           aria-controls={id}
           aria-pressed={visible}
           aria-label={visible ? t.auth.hidePassword : t.auth.showPassword}
-          className="absolute inset-y-0 end-0 px-3 text-xs text-ink-300 hover:text-ember-300"
+          className="absolute inset-y-0 end-0 px-3 text-xs text-ink-300 hover:text-mint-300"
         >
           <svg aria-hidden viewBox="0 0 24 24" className="size-5" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
             <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z" />

@@ -15,7 +15,7 @@ export default async function LandingPage() {
         <section className="grid items-center gap-10 py-16 lg:grid-cols-2 lg:py-24">
           <div>
             <h1 className="text-balance text-4xl font-black leading-tight sm:text-6xl">
-              <span className="text-ember-500">{t.brand}</span>
+              <span className="text-mint-500">{t.brand}</span>
               <br />
               {t.tagline}
             </h1>
