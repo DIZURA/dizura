@@ -1,0 +1,10 @@
+# Netlify build config for DIZURA (Next.js 16, App Router, server-rendered).
+# Publishing `.next` makes Netlify use its Next.js runtime (OpenNext), which turns
+# server pages, route handlers, Server Actions and proxy.ts into Functions.
+# Without it the site deploys as static files only and every page 404s.
+[build]
+  command = "npm run build"
+  publish = ".next"
+
+[build.environment]
+  NODE_VERSION = "22"
