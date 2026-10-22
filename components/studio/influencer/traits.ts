@@ -73,3 +73,16 @@ export const ANIMATIONS = {
   orbit: "slow cinematic camera orbit around the subject",
 } as const;
 export type AnimationKey = keyof typeof ANIMATIONS;
+
+/** Gender-neutral outfit wording for Soul ID characters (identity comes from the reference). */
+const NEUTRAL_OUTFIT: Record<string, string> = { modest: "elegant modest attire", traditional: "traditional Gulf attire" };
+
+/** Prompt for a trained Soul ID character: scene + outfit only, no identity traits. */
+export function composeSoulIdPrompt(t: Traits): string {
+  const outfit = NEUTRAL_OUTFIT[t.outfit] ?? OUTFIT[t.outfit];
+  return `Photorealistic photo of the character as a social media influencer, wearing ${outfit}, ${SETTING[t.setting]}. Natural skin texture, sharp focus, 85mm lens`;
+}
+
+/** Trait fields shown when a Soul ID character supplies the identity. */
+export const SOUL_ID_FIELDS: (keyof Traits)[] = ["outfit", "setting"];
+

@@ -19,3 +19,17 @@ export function generationCost(req: Pick<GenerationRequest, "workspace" | "kind"
   const seconds = Math.max(VIDEO_DURATION.min, Math.min(req.durationSec ?? VIDEO_DURATION.default, VIDEO_DURATION.max));
   return seconds * VIDEO_CREDITS_PER_SECOND;
 }
+
+/**
+ * Soul ID (consistent character) training. Higgsfield lists it at ~$2.50/request; at pack prices a
+ * credit is ~$0.16, so 40 credits (~$6.50) covers provider cost + margin. Owner can tune here.
+ */
+export const SOUL_ID = {
+  trainingCredits: 40,
+  minPhotos: 5,
+  maxPhotos: 30,
+  maxCharacters: 5,
+  defaultStrength: 0.8,
+  /** Uploaded photo size cap (client downsizes to ~1.5 MB first; Netlify functions accept ≤ 6 MB). */
+  maxUploadBytes: 5 * 1024 * 1024,
+} as const;

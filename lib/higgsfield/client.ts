@@ -2,7 +2,7 @@ import "server-only";
 import { z } from "zod";
 import type { GenerationJob, GenerationRequest, JobStatus } from "@/types";
 import { env, NotConfiguredError } from "@/lib/env";
-import { providerFetch } from "@/lib/http";
+import { ApiError, providerFetch } from "@/lib/http";
 
 /**
  * Higgsfield API client (all AI workspaces, incl. WAN 3.0 Prime which Higgsfield hosts).
@@ -79,7 +79,13 @@ export function buildSubmission(req: GenerationRequest): { model: string; body: 
       body: { prompt: req.prompt, aspect_ratio: req.aspectRatio, duration: req.durationSec ?? 5, resolution: "1080p" },
     };
   }
-  return { model: MODELS.image, body: { prompt: req.prompt, aspect_ratio: req.aspectRatio } };
+  const body: Record<string, unknown> = { prompt: req.prompt, aspect_ratio: req.aspectRatio };
+  if (req.soulReference) {
+    body.custom_reference_id = req.soulReference.providerId;
+    // Must be > 0 with a character reference (0 is accepted by the schema but fails at runtime).
+    body.custom_reference_strength = Math.min(1, Math.max(0.1, req.soulReference.strength));
+  }
+  return { model: MODELS.image, body };
 }
 
 /**
@@ -116,4 +122,89 @@ export async function getJob(providerJobId: string): Promise<Pick<GenerationJob,
     outputs,
     error: raw === "nsfw" ? "nsfw" : raw === "failed" ? "failed" : null,
   };
+}
+
+/* ------------------------------------------------------------------------------------------
+ * File uploads + Soul ID (custom references) — docs.higgsfield.ai/docs/concepts/file-uploads,
+ * open.higgsfield.ai/models/soul-id/api-reference
+ * ---------------------------------------------------------------------------------------- */
+
+export const UPLOAD_TYPES = ["image/jpeg", "image/png", "image/webp"] as const;
+export type UploadType = (typeof UPLOAD_TYPES)[number];
+
+const uploadUrlSchema = z.object({
+  upload_url: z.url({ protocol: /^https$/ }),
+  public_url: z.url({ protocol: /^https$/ }),
+  upload_headers: z.record(z.string(), z.string()).optional().default({}),
+});
+
+/**
+ * Uploads bytes to Higgsfield storage and returns the public https URL.
+ * The signed upload URL is never logged; our API key is NOT sent to the storage host.
+ */
+export async function uploadMedia(bytes: Uint8Array<ArrayBuffer>, contentType: UploadType): Promise<string> {
+  const { base, headers } = auth();
+  const res = await providerFetch("Higgsfield", `${base}/files/generate-upload-url`, {
+    method: "POST",
+    headers,
+    body: JSON.stringify({ content_type: contentType }),
+  });
+  const target = uploadUrlSchema.parse(await res.json());
+  const put = await fetch(target.upload_url, {
+    method: "PUT",
+    // Send the provider's signed headers exactly; add Content-Type only if they don't include it
+    // (duplicates would be merged into "a, b" and break the storage signature).
+    headers: Object.keys(target.upload_headers).some((k) => k.toLowerCase() === "content-type")
+      ? target.upload_headers
+      : { ...target.upload_headers, "content-type": contentType },
+    body: bytes,
+    signal: AbortSignal.timeout(60_000),
+    cache: "no-store",
+  }).catch(() => null);
+  if (!put?.ok) {
+    console.error("[Higgsfield] storage upload failed", put?.status ?? "network");
+    throw new ApiError("provider_error", "Upload failed. Please try again.");
+  }
+  return target.public_url;
+}
+
+export type ReferenceStatus = "not_ready" | "queued" | "in_progress" | "completed" | "failed";
+
+const referenceSchema = z.object({
+  id: z.string().min(1),
+  status: z.enum(["not_ready", "queued", "in_progress", "completed", "failed"]),
+  thumbnail_url: z.string().nullish(),
+  fail_reason: z.string().nullish(),
+});
+export type SoulReference = z.infer<typeof referenceSchema>;
+
+const refPath = (id: string) => {
+  if (!/^[A-Za-z0-9_-]{1,128}$/.test(id)) throw new Error("Invalid reference id");
+  return `/v1/custom-references/${id}`;
+};
+
+/** Starts Soul ID training from 1–100 public https image URLs. */
+export async function createSoulReference(name: string, imageUrls: string[], idempotencyKey: string): Promise<SoulReference> {
+  const { base, headers } = auth();
+  const res = await providerFetch("Higgsfield", `${base}/v1/custom-references`, {
+    method: "POST",
+    headers: { ...headers, "idempotency-key": idempotencyKey },
+    body: JSON.stringify({
+      name: name.slice(0, 100),
+      model_version: "v2", // must match the Soul 2 family we generate with
+      input_images: imageUrls.map((url) => ({ type: "image_url", image_url: url })),
+    }),
+  });
+  return referenceSchema.parse(await res.json());
+}
+
+export async function getSoulReference(id: string): Promise<SoulReference> {
+  const { base, headers } = auth();
+  const res = await providerFetch("Higgsfield", `${base}${refPath(id)}`, { headers });
+  return referenceSchema.parse(await res.json());
+}
+
+export async function deleteSoulReference(id: string): Promise<void> {
+  const { base, headers } = auth();
+  await providerFetch("Higgsfield", `${base}${refPath(id)}`, { method: "DELETE", headers });
 }

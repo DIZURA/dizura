@@ -4,12 +4,17 @@ import { useMemo, useRef, useState, type FormEvent, type ReactNode } from "react
 import { useI18n } from "@/components/i18n/I18nProvider";
 import { Button } from "@/components/ui/Button";
 import { cn } from "@/components/ui/cn";
-import { generationCost, VIDEO_DURATION } from "@/lib/credits/pricing";
+import { generationCost, SOUL_ID, VIDEO_DURATION } from "@/lib/credits/pricing";
 import type { AspectRatio } from "@/types";
 import type { Idea } from "../Studio";
 import { isBusy, useGenerator, type Creation } from "../useGenerator";
+import { SoulIdPanel } from "./SoulIdPanel";
 import { TraitBuilder } from "./TraitBuilder";
-import { ANIMATIONS, composeInfluencerPrompt, DEFAULT_TRAITS, STYLES, withTrait, type AnimationKey, type StyleKey, type Traits } from "./traits";
+import {
+  ANIMATIONS, composeInfluencerPrompt, composeSoulIdPrompt, DEFAULT_TRAITS, SOUL_ID_FIELDS, STYLES, withTrait,
+  type AnimationKey, type StyleKey, type Traits,
+} from "./traits";
+import { useCharacters } from "./useCharacters";
 
 const RATIOS: AspectRatio[] = ["9:16", "3:4", "1:1", "16:9"];
 const RATIO_CLASS: Record<AspectRatio, string> = { "9:16": "aspect-[9/16]", "1:1": "aspect-square", "3:4": "aspect-[3/4]", "16:9": "aspect-video" };
@@ -25,12 +30,20 @@ export function InfluencerWorkspace({ templates }: { templates: Idea[] }) {
   const { creations, error, generate, busy } = useGenerator("ai-influencer");
   const [errorAt, setErrorAt] = useState<"create" | "animate">("create");
 
+  // Soul ID characters
+  const soul = useCharacters();
+  const readyCharacters = soul.list.filter((c) => c.state === "ready");
+  const [identity, setIdentity] = useState<string>("new"); // "new" = traits, else a character id
+  const soulCharacter = readyCharacters.find((c) => c.id === identity);
+  const [strength, setStrength] = useState<number>(SOUL_ID.defaultStrength);
+
   // Step 1 state
   const [style, setStyle] = useState<StyleKey>("editorial");
   const [traits, setTraits] = useState<Traits>(DEFAULT_TRAITS);
   const [details, setDetails] = useState("");
   const [ratio, setRatio] = useState<AspectRatio>("9:16");
-  const characterPrompt = [composeInfluencerPrompt(traits), STYLES[style], details.trim()].filter(Boolean).join(". ");
+  const base = soulCharacter ? composeSoulIdPrompt(traits) : composeInfluencerPrompt(traits);
+  const characterPrompt = [base, STYLES[style], details.trim()].filter(Boolean).join(". ");
   const imageCost = generationCost({ workspace: "ai-influencer", kind: "image" });
 
   // Step 2 state
@@ -48,7 +61,14 @@ export function InfluencerWorkspace({ templates }: { templates: Idea[] }) {
     e.preventDefault();
     if (busy) return;
     setErrorAt("create");
-    void generate({ prompt: characterPrompt, kind: "image", ratio, cost: imageCost });
+    void generate({
+      prompt: characterPrompt,
+      kind: "image",
+      ratio,
+      cost: imageCost,
+      characterId: soulCharacter?.id,
+      characterStrength: soulCharacter ? strength : undefined,
+    });
   }
 
   function animate() {
@@ -66,9 +86,63 @@ export function InfluencerWorkspace({ templates }: { templates: Idea[] }) {
   return (
     <div id="create" className="grid scroll-mt-24 items-start gap-5 lg:grid-cols-[minmax(0,1fr)_23rem]">
       <div className="flex min-w-0 flex-col gap-5">
+        {/* ---------------- Soul ID (optional) ---------------- */}
+        <SoulIdPanel
+          characters={soul.list}
+          onTrained={(c) => soul.add(c)}
+          onDeleted={(id) => {
+            soul.removeLocal(id);
+            if (identity === id) setIdentity("new");
+          }}
+        />
+
         {/* ---------------- Step 1 ---------------- */}
         <section aria-labelledby="step1-title" className="glass rounded-[var(--radius-card)] p-5 sm:p-7">
           <StepHeader badge={s.step1.badge} id="step1-title" title={s.step1.title} subtitle={s.step1.subtitle} model="Soul 2" cost={`${nf.format(imageCost)}`} creditsLabel={t.gen.credits} />
+
+          {readyCharacters.length > 0 && (
+            <>
+              <Label>{t.soulId.useWith}</Label>
+              <div role="radiogroup" aria-label={t.soulId.useWith} className="mb-6 flex flex-wrap gap-2">
+                {[{ id: "new", name: t.soulId.newLook, thumb: null as string | null }, ...readyCharacters.map((c) => ({ id: c.id, name: c.name, thumb: c.thumbnailUrl }))].map((o) => (
+                  <button
+                    key={o.id}
+                    type="button"
+                    role="radio"
+                    aria-checked={identity === o.id}
+                    onClick={() => setIdentity(o.id)}
+                    className={cn(
+                      "inline-flex items-center gap-2 rounded-full border py-1 pe-3 ps-1 text-sm transition",
+                      identity === o.id ? "border-mint-500 bg-mint-500/10 text-mint-300 shadow-[0_0_16px_-6px_var(--color-mint-500)]" : "border-ink-700 text-ink-300 hover:text-ink-100",
+                    )}
+                  >
+                    {o.thumb ? (
+                      // eslint-disable-next-line @next/next/no-img-element -- provider CDN URL
+                      <img src={o.thumb} alt="" className="size-7 rounded-full object-cover" />
+                    ) : (
+                      <span aria-hidden className="grid size-7 place-items-center rounded-full bg-ink-800 text-xs">{o.id === "new" ? "✦" : o.name.slice(0, 1)}</span>
+                    )}
+                    <span dir="auto">{o.name}</span>
+                  </button>
+                ))}
+              </div>
+              {soulCharacter && (
+                <label className="-mt-3 mb-6 flex items-center gap-3 text-xs text-ink-300">
+                  {t.soulId.strength}
+                  <input
+                    type="range"
+                    min={0.1}
+                    max={1}
+                    step={0.05}
+                    value={strength}
+                    onChange={(e) => setStrength(Number(e.target.value))}
+                    className="w-40 accent-mint-500"
+                  />
+                  <span className="w-9 tabular-nums text-ink-100">{Math.round(strength * 100)}%</span>
+                </label>
+              )}
+            </>
+          )}
 
           <Label>{s.step1.styles}</Label>
           <div role="radiogroup" aria-label={s.step1.styles} className="grid grid-cols-3 gap-2 sm:grid-cols-6">
@@ -101,7 +175,11 @@ export function InfluencerWorkspace({ templates }: { templates: Idea[] }) {
               {s.step1.traits}
               <span aria-hidden className="text-ink-500 transition group-open:rotate-180">⌄</span>
             </summary>
-            <TraitBuilder traits={traits} onChange={(k, v) => setTraits((prev) => withTrait(prev, k, v))} />
+            <TraitBuilder
+              traits={traits}
+              only={soulCharacter ? SOUL_ID_FIELDS : undefined}
+              onChange={(k, v) => setTraits((prev) => withTrait(prev, k, v))}
+            />
           </details>
 
           {templates.length > 0 && (
