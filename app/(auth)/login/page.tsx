@@ -4,6 +4,7 @@ import { AuthCard } from "@/components/auth/AuthCard";
 import { SignInForm, SignUpForm } from "@/components/auth/AuthForms";
 import { cn } from "@/components/ui/cn";
 import { safeNext } from "@/lib/auth/redirect";
+import { WELCOME_CREDITS } from "@/lib/credits/pricing";
 import { getI18n } from "@/lib/i18n/server";
 
 export const metadata: Metadata = { title: "Sign in", robots: { index: false } };
@@ -11,7 +12,7 @@ export const metadata: Metadata = { title: "Sign in", robots: { index: false } }
 type Props = { searchParams: Promise<{ mode?: string; next?: string; error?: string }> };
 
 export default async function LoginPage({ searchParams }: Props) {
-  const { t } = await getI18n();
+  const { t, locale } = await getI18n();
   const sp = await searchParams;
   const mode = sp.mode === "signup" ? "signup" : "signin";
   const next = safeNext(sp.next);
@@ -45,6 +46,12 @@ export default async function LoginPage({ searchParams }: Props) {
           </Link>
         ))}
       </nav>
+      {mode === "signup" && (
+        <p className="mb-5 flex items-center gap-2 rounded-xl border border-ember-500/30 bg-ember-500/10 px-3 py-2.5 text-sm text-ember-300">
+          <span aria-hidden>◆</span>
+          {t.auth.welcomeBonus.replace("{n}", WELCOME_CREDITS.toLocaleString(locale))}
+        </p>
+      )}
       {mode === "signin" ? <SignInForm next={next} linkError={sp.error === "link"} /> : <SignUpForm next={next} />}
     </AuthCard>
   );

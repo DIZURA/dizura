@@ -58,6 +58,7 @@ const en = {
     welcomeBack: "Welcome back",
     createTitle: "Create your DIZURA account",
     subtitle: "Generate ads, influencers and video in Arabic and English.",
+    welcomeBonus: "Get {n} free credits when you confirm your email.",
     name: "Full name (optional)",
     email: "Email",
     password: "Password",
@@ -76,7 +77,7 @@ const en = {
     showPassword: "Show password",
     hidePassword: "Hide password",
     notices: {
-      checkEmail: "Check your inbox to confirm your email, then sign in.",
+      checkEmail: "Check your inbox to confirm your email — your free credits are added as soon as you do.",
       resetSent: "If an account exists for that email, a reset link is on its way.",
     },
     errors: {
@@ -153,6 +154,7 @@ const ar: Dictionary = {
     welcomeBack: "مرحباً بعودتك",
     createTitle: "أنشئ حسابك في ديزورا",
     subtitle: "أنشئ الإعلانات والمؤثرين والفيديو بالعربية والإنجليزية.",
+    welcomeBonus: "احصل على {n} رصيد مجاني عند تأكيد بريدك الإلكتروني.",
     name: "الاسم الكامل (اختياري)",
     email: "البريد الإلكتروني",
     password: "كلمة المرور",
@@ -171,7 +173,7 @@ const ar: Dictionary = {
     showPassword: "إظهار كلمة المرور",
     hidePassword: "إخفاء كلمة المرور",
     notices: {
-      checkEmail: "تحقق من بريدك لتأكيد حسابك، ثم سجّل الدخول.",
+      checkEmail: "تحقق من بريدك لتأكيد حسابك — سيُضاف رصيدك المجاني فور التأكيد.",
       resetSent: "إذا كان هناك حساب بهذا البريد، فسيصلك رابط إعادة التعيين قريباً.",
     },
     errors: {

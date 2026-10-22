@@ -1,5 +1,8 @@
 import type { CreditPack, GenerationRequest } from "@/types";
 
+/** Granted once when a user confirms their email (DB trigger in migration 0003 — keep in sync). */
+export const WELCOME_CREDITS = 10;
+
 /** Single source of truth for credit packs. Prices are server-side only — never trust client amounts. */
 export const CREDIT_PACKS: Record<CreditPack["id"], CreditPack> = {
   starter: { id: "starter", credits: 100, price: 5, currency: "KWD" },
