@@ -7,7 +7,7 @@ import { useSyncExternalStore } from "react";
 const Scene = dynamic(() => import("./Hero3DScene"), { ssr: false, loading: () => <Fallback /> });
 
 function Fallback() {
-  return <div className="size-full rounded-full bg-[radial-gradient(circle,var(--color-ember-500)_0%,transparent_60%)] opacity-30 blur-2xl" />;
+  return <div className="size-full rounded-full bg-[radial-gradient(circle,var(--color-mint-500)_0%,transparent_62%)] opacity-25 blur-2xl" />;
 }
 
 const query = "(prefers-reduced-motion: reduce)";

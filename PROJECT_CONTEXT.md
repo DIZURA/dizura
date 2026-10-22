@@ -17,7 +17,7 @@ Monetisation: prepaid **credits** bought via **Tap Payments** (KWD default).
 | Validation | Zod 4 — every env var, request body and provider response |
 | 3D | three.js + @react-three/fiber, lazy-loaded client-only |
 | Auth / DB | Supabase project `mxzeeyqektwdncsryhyk` ("DIZURA's Project", ap-south-1, Postgres 17). Cookie-based Supabase Auth via `@supabase/ssr` 0.12.7 + `@supabase/supabase-js` 2.117.3 (exact pins) |
-| AI | Higgsfield API (`api.higgsfield.ai`) for all generation: images = `higgsfield-ai/soul/v2/standard`, video = `alibaba/wan-3.0-prime/text-to-video` (WAN is hosted by Higgsfield). GSC via MCP (audit) |
+| AI | Higgsfield API (`api.higgsfield.ai`) for all generation: images = `higgsfield-ai/soul/v2/standard`, video = `alibaba/wan-3.0-prime/text-to-video`, animate-a-character = `alibaba/wan-3.0-prime/image-to-video` (WAN is hosted by Higgsfield). GSC via MCP (audit) |
 | Payments | Tap Payments hosted charge page + webhook |
 
 Scripts: `npm run dev | build | start | lint | typecheck | scan:secrets | check` (`check` = typecheck + lint + secret scan).
@@ -28,7 +28,9 @@ app/
   layout.tsx                 html lang/dir from locale cookie, fonts, I18nProvider
   page.tsx                   Landing (3D hero + bento grid)
   (workspaces)/layout.tsx    TopBar with tool nav (no sidebar), full-width main
-  (workspaces)/{ai-influencer,motion,image,video,ads-studio}/page.tsx   ToolHero + studio (ideas from components/studio/ideas.ts)
+  (workspaces)/ai-influencer/page.tsx   Brand hero (3D DIZURA globe) + InfluencerWorkspace (Step 1 create → Step 2 animate → workspace panel)
+  (workspaces)/{motion,image,video,ads-studio}/page.tsx   ToolHero + Studio (ideas from components/studio/ideas.ts)
+  icon.png / apple-icon.png   favicon + touch icon from the DIZURA mark
   (workspaces)/{geo-audit,b2b,scheduler}/page.tsx   WorkspaceHeader + tool UI
   (/wan-prime -> 308 /video via next.config redirects)
   (auth)/{login,forgot-password,reset-password}/page.tsx   Login (?mode=signup, ?next=), reset request, new password
@@ -41,9 +43,10 @@ components/
   ui/            Button (+buttonClass), Card, Modal (<dialog>), cn
   dashboard/     BentoGrid, BentoCard
   layout/        TopBar (nav prop), NavLinks (active state, mobile scroll row), CreditsBadge, nav.ts (TOOLS + EXTRAS)
-  landing/       Hero3D (reduced-motion aware) -> Hero3DScene (R3F)
+  landing/       Hero3D (reduced-motion aware) -> Hero3DScene (R3F): mint wireframe globe + DIZURA S-band emblem, orbit ring, pulse
   studio/        Studio (results canvas + floating prompt bar, generate/poll, session history, ideas), ToolHero,
-                 InfluencerStudio (trait builder -> composeInfluencerPrompt), MotionStudio (10 CSS-animated camera presets -> MOTIONS), ideas.ts
+                 useGenerator (shared submit → poll w/ 2→10 s backoff + jitter → result; keeps signed jobId per creation), MotionStudio (10 CSS camera presets), ideas.ts
+  studio/influencer/  InfluencerWorkspace (style presets, TraitBuilder, templates, prompt bar; Step 2 character picker + 6 animation presets; gallery with Animate/Download), traits.ts (composeInfluencerPrompt, STYLES, ANIMATIONS)
   workspace/     WorkspaceHeader (geo-audit, b2b, scheduler)
   geo/           GeoAuditForm
   i18n/          I18nProvider/useI18n, LanguageToggle
@@ -92,7 +95,7 @@ proxy.ts         Session refresh + page guards (guest -> /login?next=, signed-in
 | 10 | GEO audit fetches user URLs via `safeFetchText` (DNS-resolve + private-IP block per redirect hop, std ports, size/time caps) | SSRF protection on a public endpoint. |
 | 11 | Nonce CSP in `proxy.ts` + static headers (HSTS, XFO DENY, nosniff, COOP) in `next.config.ts` | XSS/clickjacking hardening. Forces dynamic rendering (accepted). |
 | 12 | Arabic default locale, cookie `dz_locale`, `<html dir>` server-rendered; **logical Tailwind utilities only** (`ms/me/ps/pe/start/end`) | No RTL flash; mirrored layouts for free. Use `.flip-rtl` for directional icons, `dir="ltr"` for URLs/ratios. |
-| 13 | Dark-only brand theme via tokens: `ink-*` (charcoal) + `ember-*` (orange). No raw hex in components | Colour consistency. |
+| 13 | Dark-only brand theme via tokens: `ink-*` (charcoal, page `#0A0A0B`) + **`mint-*` primary (`#00E599`, from the DIZURA globe mark)** + `ember-*` secondary (credits/cost chips, orange focus glow). `glass` utility = glassmorphic panel with a mint/20 edge. No raw hex in components (three.js scene constants are the documented exception). | Colour consistency; owner's brand brief (2026-10-22). |
 | 14 | In-memory rate limiter (fixed window) | Fine for single instance; replace before scaling (roadmap). |
 | 15 | Supabase **publishable key** (`sb_publishable_…`) instead of legacy anon JWT; env var `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | Independently rotatable; Supabase-recommended. |
 | 16 | ~~Dev fallback user~~ — **removed** (superseded by ADR 20). | |
@@ -108,6 +111,8 @@ proxy.ts         Session refresh + page guards (guest -> /login?next=, signed-in
 | 27 | **Studio UI = one page per tool** with a top nav (sidebar removed), `ToolHero` banner, shared `Studio` (results canvas, floating prompt bar with type/ratio/duration/cost chips, idea cards). Guided studios compose an English `basePrompt` from controls (influencer traits, motion preset); user text is appended. Motion previews are pure CSS keyframes (`.motion-scene .m-*`), still for reduced-motion. Image upload for Motion is marked *Coming soon* (needs image-to-video models). | Matches the Higgsfield-style per-tool layout the owner asked for; ships UI before wiring more models. English prompts give the models the most reliable results. |
 | 28 | **Video price unified at 8 credits/s** (3–15 s, default 3 s = 24 credits) since every video runs on WAN 3.0 Prime. | A new user's 30 welcome credits cover a first video. |
 | 30 | **Netlify must apply its Next.js runtime**: `[[plugins]] package = "@netlify/plugin-nextjs"` declared in `netlify.toml` (unpinned). Without it, deploys "succeed" with *No functions deployed* (plugin state none) → no SSR/API/Server Actions. Netlify's secret scanner then blocks deploys if any secret env value appears in build output — a short/common `APP_SECRET` value matches unrelated files (libvips, sha256.js), so every context needs a generated 64-char value. | Found 2026-10-22: production of `ee040cf` deployed without functions; PR #8 preview built the server handler but was blocked by the scanner. Canary build proves a real `APP_SECRET` never reaches build output. |
+| 31 | **Animate a character = image-to-video from the caller's own job.** `/api/ai/generate` accepts `sourceJob` (signed job handle); the server unseals it, checks ownership, polls the provider for that job's completed image and passes its https URL as `image_url` to `alibaba/wan-3.0-prime/image-to-video`. The client never sends an image URL. Resolved before credits are reserved. | No SSRF/abuse via arbitrary URLs; can only animate your own completed characters. |
+| 32 | Image cost unified at **5 credits** (influencer was 8). | Character (5) + shortest video (24) = 29 fits the 30 welcome credits — verified end-to-end (30 → 25 → 1). |
 | 19 | Migration files named `<remote version>_<name>.sql`, matching `supabase_migrations.schema_migrations` exactly. New migrations: apply via MCP/CLI, then name the file with the version Supabase records. Migrations must also replay cleanly on a fresh preview branch (guard project-specific objects). | Supabase GitHub integration (Preview check) fails when remote versions are missing locally. |
 | 29 | `APP_SECRET` optional at boot (Netlify agent, PR #4); `signed-token.ts` enforces presence + ≥32 chars at use (→ 503 `not_configured`); `/api/ai/generate` checks it before reserving credits | `lib/env.ts` is evaluated during `next build` (page-data collection), so a missing/short secret was failing Netlify builds. |
 
@@ -142,7 +147,7 @@ Rule: never add a secret with the `NEXT_PUBLIC_` prefix; add every new var to `.
 ## 7. Credit economy (`lib/credits/pricing.ts`)
 Welcome bonus: **30 credits** on email confirmation (ADR 25).
 Packs: starter 100cr/5 KWD · pro 500cr/20 KWD · studio 2000cr/65 KWD.
-Costs: image 5 (influencer 8); video **8 cr/s** for every studio, 3–15 s, default 3 s (= 24).
+Costs: image **5** (every studio); video **8 cr/s** for every studio, 3–15 s, default 3 s (= 24). Character + first video = 29 ≤ welcome 30.
 
 ## 8. Verified status (2026-10-22)
 - `typecheck`, `lint`, `build` all clean. All pages 200, no browser console errors, RTL/LTR + mobile screenshots checked.
@@ -163,6 +168,13 @@ Costs: image 5 (influencer 8); video **8 cr/s** for every studio, 3–15 s, defa
 - **CI:** first GitHub Actions run (secret scan + check + build) passed.
 - `APP_SECRET` rotated locally after its prefix appeared in a session log (never committed).
 
+## 8d. Higgsfield API facts (owner's cheat sheet, 2026-10-22)
+- **Soul ID (consistent character):** `POST /v1/custom-references` {name, input_images[1–100 public https], model_version v1|v2|cinema} → poll `GET /v1/custom-references/{id}` (not_ready/queued/in_progress/completed/failed). Then Soul 2 with `custom_reference_id` + `custom_reference_strength` (>0, ≤1). Not a generation request (no request_id).
+- **Soul 2 params:** aspect 9:16/16:9/4:3/3:4/1:1/2:3/3:2 (default 1:1 → we always send it), resolution 720p (default) | 1080p, batch_size 1|4, enhance_prompt, style_id (`GET /v1/text2image/soul-styles/v2`), seed 1–1e6 (never null).
+- **Alt animator:** Kling 2.5 Turbo Pro `POST /kling-video/v2.5-turbo/pro/image-to-video` {prompt, image_url, duration 5|10, cfg_scale, negative_prompt} — no aspect/sound. We use WAN 3.0 Prime i2v (owner spec).
+- **Errors:** 400 invalid / **concurrency reached** (never 429) · 401 creds · **403 = provider account out of credits** · 404 · 422 validation or Idempotency-Key reuse w/ different body · 423 model blocked · 503 model disabled. `X-Correlation-ID` on every response (we log it).
+- **Polling** 2 s → 10 s + jitter (implemented). **Webhooks** `?hf_webhook=` (retries 2 h). **Uploads** `POST /files/generate-upload-url` → PUT → `public_url`. **Cost** `POST /estimate/{model_path}`. Failed/nsfw/canceled not charged. **Outputs live ≥ 7 days → copy to our storage.**
+
 ## 9. Open items / things to VERIFY before launch
 - [x] **Higgsfield** paths/auth/response shape now match the official docs; verified against a mock of the documented API (request path, `Key` header, Idempotency-Key, body, status polling, image/video/nsfw results). **Still to do: one live generation with real keys** (sandbox can't reach api.higgsfield.ai).
 - [x] **WAN 3.0 Prime** = Higgsfield model `alibaba/wan-3.0-prime/text-to-video` (duration 2–30 s, resolution 480p/720p/1080p, aspect incl. 3:4).
@@ -172,7 +184,7 @@ Costs: image 5 (influencer 8); video **8 cr/s** for every studio, 3–15 s, defa
 ## 10. Roadmap
 1. ~~Login UI~~ ✅ (email/password, confirm, reset). Next: `profiles` (plan via `app_metadata`/table), ~~welcome credits~~ ✅ (10), Google OAuth, custom SMTP (Supabase built-in email is rate-limited).
 2. Pricing/checkout UI (Modal + packs) wired to `/api/payments/checkout`.
-2b. Wire full models: Motion image upload + image-to-video (`alibaba/wan-3.0-prime/image-to-video`, verify params), consistent AI-influencer character (reference/character model), real example thumbnails for idea cards.
+2b. ~~Influencer animate (i2v)~~ ✅. Next: **Soul ID** consistent characters (upload photos via `/files/generate-upload-url` → `/v1/custom-references` → `custom_reference_id`), Motion photo upload + i2v, copy outputs to Supabase Storage (provider URLs expire ≥7 d), price check via `/estimate`, real thumbnails for style/idea cards.
 3. Persist generation jobs (history gallery per workspace) + media upload for reference images.
 4. Shared rate limiter (Upstash Redis or Postgres) before multi-instance deploy.
 5. Scheduler: posts table, channel OAuth (TikTok/Instagram/X), cron publisher.

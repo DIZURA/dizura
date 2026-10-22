@@ -27,7 +27,7 @@ export function NavLinks() {
             >
               {t.nav[item.key]}
               {item.badge === "new" && (
-                <span className="rounded bg-ember-500/15 px-1.5 py-px text-[10px] font-semibold uppercase tracking-wide text-ember-300">
+                <span className="rounded bg-mint-500/15 px-1.5 py-px text-[10px] font-semibold uppercase tracking-wide text-mint-300">
                   {locale === "ar" ? "جديد" : "New"}
                 </span>
               )}

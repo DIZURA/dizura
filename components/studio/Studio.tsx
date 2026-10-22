@@ -1,30 +1,16 @@
 "use client";
 
-import { useEffect, useRef, useState, type CSSProperties, type FormEvent, type ReactNode } from "react";
+import { useRef, useState, type CSSProperties, type FormEvent, type ReactNode } from "react";
 import { useI18n } from "@/components/i18n/I18nProvider";
-import { CREDITS_CHANGED } from "@/components/layout/CreditsBadge";
 import { Button } from "@/components/ui/Button";
 import { cn } from "@/components/ui/cn";
-import { api, ClientApiError } from "@/lib/api-client";
 import { generationCost, VIDEO_DURATION } from "@/lib/credits/pricing";
-import type { AspectRatio, GeneratedMedia, GenerationJob, JobStatus, MediaKind, Workspace } from "@/types";
+import type { AspectRatio, MediaKind, Workspace } from "@/types";
+import { useGenerator } from "./useGenerator";
 
 export type Idea = { title: string; prompt: string; angle: number };
 
-type Creation = {
-  key: string;
-  prompt: string;
-  kind: MediaKind;
-  ratio: AspectRatio;
-  status: JobStatus | "submitting";
-  outputs: GeneratedMedia[];
-  error: string | null;
-};
-type PollState = { status: JobStatus; outputs: GeneratedMedia[]; error: string | null; creditsRefunded: boolean };
-
 const RATIOS: AspectRatio[] = ["9:16", "1:1", "3:4", "16:9"];
-const POLL_MS = 3_000;
-const MAX_POLLS = 200; // ~10 min
 const RATIO_CLASS: Record<AspectRatio, string> = { "9:16": "aspect-[9/16]", "1:1": "aspect-square", "3:4": "aspect-[3/4]", "16:9": "aspect-video" };
 
 /**
@@ -54,49 +40,17 @@ export function Studio({
   const [ratio, setRatio] = useState<AspectRatio>("9:16");
   const [duration, setDuration] = useState<number>(VIDEO_DURATION.default);
   const [prompt, setPrompt] = useState("");
-  const [creations, setCreations] = useState<Creation[]>([]);
-  const [error, setError] = useState<string | null>(null);
-  const mounted = useRef(true);
+  const { creations, error, generate, busy } = useGenerator(workspace);
   const textarea = useRef<HTMLTextAreaElement>(null);
-  useEffect(() => () => void (mounted.current = false), []);
 
   const finalPrompt = [basePrompt.trim(), prompt.trim()].filter(Boolean).join(". ");
-  const busy = creations.some((c) => c.status === "submitting" || c.status === "queued" || c.status === "processing");
   const cost = generationCost({ workspace, kind, durationSec: duration });
   const nf = new Intl.NumberFormat(locale);
 
-  const update = (key: string, patch: Partial<Creation>) =>
-    setCreations((list) => list.map((c) => (c.key === key ? { ...c, ...patch } : c)));
-
-  async function onSubmit(e: FormEvent) {
+  function onSubmit(e: FormEvent) {
     e.preventDefault();
     if (finalPrompt.length < 3 || busy) return;
-    setError(null);
-    const key = crypto.randomUUID();
-    setCreations((list) => [{ key, prompt: finalPrompt, kind, ratio, status: "submitting", outputs: [], error: null }, ...list]);
-    try {
-      const job = await api<GenerationJob>("/api/ai/generate", {
-        method: "POST",
-        body: JSON.stringify({ workspace, prompt: finalPrompt, kind, aspectRatio: ratio, durationSec: kind === "video" ? duration : undefined }),
-      });
-      window.dispatchEvent(new Event(CREDITS_CHANGED));
-      update(key, { status: job.status });
-      for (let i = 0; i < MAX_POLLS && mounted.current; i++) {
-        await new Promise((r) => setTimeout(r, POLL_MS));
-        const s = await api<PollState>(`/api/ai/jobs/${encodeURIComponent(job.id)}`);
-        if (s.status === "completed") return update(key, { status: "completed", outputs: s.outputs });
-        if (s.status === "failed" || s.status === "cancelled") {
-          if (s.creditsRefunded) window.dispatchEvent(new Event(CREDITS_CHANGED));
-          return update(key, { status: "failed", error: s.error === "nsfw" ? t.gen.errors.nsfw : t.gen.failedRefunded });
-        }
-        update(key, { status: s.status });
-      }
-    } catch (err) {
-      const code = err instanceof ClientApiError ? err.code : "generic";
-      const message = code in t.gen.errors ? t.gen.errors[code as keyof typeof t.gen.errors] : t.gen.errors.generic;
-      setError(message);
-      setCreations((list) => list.filter((c) => c.key !== key));
-    }
+    void generate({ prompt: finalPrompt, kind, ratio, durationSec: duration, cost });
   }
 
   const canvas = (
@@ -125,13 +79,13 @@ export function Studio({
                         setPrompt(idea.prompt);
                         textarea.current?.focus();
                       }}
-                      className="group relative aspect-[4/3] overflow-hidden rounded-2xl border border-ink-700/60 text-start transition hover:border-ember-500/60"
+                      className="group relative aspect-[4/3] overflow-hidden rounded-2xl border border-ink-700/60 text-start transition hover:border-mint-500/60"
                       style={{ "--a": `${idea.angle}deg` } as CSSProperties}
                     >
-                      <span aria-hidden className="absolute inset-0 bg-[linear-gradient(var(--a),var(--color-ember-700),var(--color-ink-850)_60%)] opacity-70 transition group-hover:opacity-100" />
+                      <span aria-hidden className="absolute inset-0 bg-[linear-gradient(var(--a),var(--color-mint-700),var(--color-ink-850)_60%)] opacity-70 transition group-hover:opacity-100" />
                       <span className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-ink-950/95 to-transparent p-3 pt-10">
                         <span className="block text-sm font-semibold text-ink-100">{idea.title}</span>
-                        <span className="mt-0.5 block text-xs text-ember-300 opacity-0 transition group-hover:opacity-100">{t.studio.useIdea} →</span>
+                        <span className="mt-0.5 block text-xs text-mint-300 opacity-0 transition group-hover:opacity-100">{t.studio.useIdea} →</span>
                       </span>
                     </button>
                   ))}
@@ -157,7 +111,7 @@ export function Studio({
                         <p className="text-xs text-danger">{c.error}</p>
                       ) : (
                         <span className="flex flex-col items-center gap-2 text-xs text-ink-300">
-                          <span aria-hidden className="size-6 animate-spin rounded-full border-2 border-ink-700 border-t-ember-500" />
+                          <span aria-hidden className="size-6 animate-spin rounded-full border-2 border-ink-700 border-t-mint-500" />
                           {c.status === "queued" || c.status === "submitting" ? t.gen.queued : t.gen.generating}
                         </span>
                       )}
@@ -202,7 +156,7 @@ export function Studio({
                 max={VIDEO_DURATION.max}
                 value={duration}
                 onChange={(e) => setDuration(Number(e.target.value))}
-                className="w-20 accent-ember-500"
+                className="w-20 accent-mint-500"
               />
               <span className="w-5 tabular-nums text-ink-100">{nf.format(duration)}</span>
             </label>

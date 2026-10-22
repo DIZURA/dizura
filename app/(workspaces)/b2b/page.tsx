@@ -19,7 +19,7 @@ export default async function Page() {
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {FEATURES[locale].map((f) => (
           <Card key={f} className="flex items-center gap-3">
-            <span aria-hidden className="text-ember-500">◆</span>
+            <span aria-hidden className="text-mint-500">◆</span>
             {f}
           </Card>
         ))}

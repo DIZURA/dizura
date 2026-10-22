@@ -25,19 +25,19 @@ export function BentoCard({
     <Link
       href={href}
       className={cn(
-        "group relative flex flex-col justify-between overflow-hidden rounded-[var(--radius-card)] border border-ink-700/70 bg-ink-900 p-6 transition hover:-translate-y-0.5 hover:border-ember-500/60",
+        "group relative flex flex-col justify-between overflow-hidden rounded-[var(--radius-card)] border border-ink-700/70 bg-ink-900 p-6 transition hover:-translate-y-0.5 hover:border-mint-500/60",
         span === "2" && "sm:col-span-2",
         span === "tall" && "lg:row-span-2",
-        accent && "bg-gradient-to-br from-ember-700/30 via-ink-900 to-ink-900",
+        accent && "bg-gradient-to-br from-mint-700/30 via-ink-900 to-ink-900",
       )}
     >
-      <div aria-hidden className="pointer-events-none absolute -end-16 -top-16 size-48 rounded-full bg-ember-500/10 blur-3xl transition group-hover:bg-ember-500/20" />
-      <span className="grid size-11 place-items-center rounded-xl bg-ink-800 text-xl text-ember-400">{icon}</span>
+      <div aria-hidden className="pointer-events-none absolute -end-16 -top-16 size-48 rounded-full bg-mint-500/10 blur-3xl transition group-hover:bg-mint-500/20" />
+      <span className="grid size-11 place-items-center rounded-xl bg-ink-800 text-xl text-mint-400">{icon}</span>
       <div className="mt-6">
         <h3 className="text-lg font-semibold text-ink-100">{title}</h3>
         <p className="mt-1.5 text-sm leading-relaxed text-ink-300">{description}</p>
       </div>
-      <span aria-hidden className="flip-rtl absolute end-6 top-6 text-ink-500 transition group-hover:text-ember-400">→</span>
+      <span aria-hidden className="flip-rtl absolute end-6 top-6 text-ink-500 transition group-hover:text-mint-400">→</span>
     </Link>
   );
 }

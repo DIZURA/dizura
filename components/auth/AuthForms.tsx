@@ -21,7 +21,7 @@ export function SignInForm({ next, linkError }: { next: string; linkError?: bool
       <TextField label={t.auth.email} name="email" type="email" autoComplete="email" dir="ltr" required maxLength={254} autoFocus defaultValue={keptEmail(state)} />
       <PasswordField label={t.auth.password} name="password" autoComplete="current-password" required maxLength={72} />
       <div className="flex justify-end">
-        <Link href="/forgot-password" className="text-sm text-ember-300 hover:text-ember-400">{t.auth.forgot}</Link>
+        <Link href="/forgot-password" className="text-sm text-mint-300 hover:text-mint-400">{t.auth.forgot}</Link>
       </div>
       <Button type="submit" disabled={pending} aria-busy={pending}>{pending ? t.auth.working : t.auth.signIn}</Button>
     </form>
@@ -58,7 +58,7 @@ export function ForgotPasswordForm() {
           <Button type="submit" disabled={pending} aria-busy={pending}>{pending ? t.auth.working : t.auth.sendLink}</Button>
         </>
       )}
-      <Link href="/login" className="text-center text-sm text-ember-300 hover:text-ember-400">{t.auth.backToSignIn}</Link>
+      <Link href="/login" className="text-center text-sm text-mint-300 hover:text-mint-400">{t.auth.backToSignIn}</Link>
     </form>
   );
 }

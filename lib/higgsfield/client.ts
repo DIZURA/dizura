@@ -18,6 +18,8 @@ import { providerFetch } from "@/lib/http";
 export const MODELS = {
   image: "higgsfield-ai/soul/v2/standard",
   video: "alibaba/wan-3.0-prime/text-to-video",
+  /** prompt + image_url (first frame); same duration/resolution/aspect options. */
+  imageToVideo: "alibaba/wan-3.0-prime/image-to-video",
 } as const;
 
 const submitSchema = z.object({ request_id: z.string().min(1), status: z.string() });
@@ -59,6 +61,18 @@ export function mapStatus(s: string): JobStatus {
 
 /** Builds the model + body for a request. Exported for tests. */
 export function buildSubmission(req: GenerationRequest): { model: string; body: Record<string, unknown> } {
+  if (req.kind === "video" && req.sourceImageUrl) {
+    return {
+      model: MODELS.imageToVideo,
+      body: {
+        prompt: req.prompt,
+        image_url: req.sourceImageUrl,
+        aspect_ratio: req.aspectRatio,
+        duration: req.durationSec ?? 5,
+        resolution: "1080p",
+      },
+    };
+  }
   if (req.kind === "video") {
     return {
       model: MODELS.video,

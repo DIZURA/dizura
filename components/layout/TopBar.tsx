@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import { LanguageToggle } from "@/components/i18n/LanguageToggle";
 import { getCurrentUser } from "@/lib/auth/session";
@@ -24,8 +25,9 @@ export async function TopBar({
   return (
     <header className="sticky top-0 z-30 border-b border-ink-700/60 bg-ink-950/85 backdrop-blur">
       <div className="mx-auto flex max-w-[96rem] items-center gap-4 px-4 py-2.5 sm:px-5">
-        <Link href="/" className="shrink-0 text-lg font-black tracking-wider text-ink-100">
-          <span className="text-ember-500">◆</span> {brand}
+        <Link href="/" className="flex shrink-0 items-center gap-2 text-lg font-black tracking-wider text-ink-100">
+          <Image src="/brand/dizura-mark-128.png" alt="" width={28} height={28} priority className="size-7" />
+          {brand}
         </Link>
         {nav && (
           <div className="hidden min-w-0 flex-1 lg:block">

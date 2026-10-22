@@ -15,7 +15,7 @@ export const VIDEO_CREDITS_PER_SECOND = 8; // every video runs on WAN 3.0 Prime
 export const VIDEO_DURATION = { min: 3, max: 15, default: 3 } as const; // 3 s = 24 credits, fits the welcome bonus
 
 export function generationCost(req: Pick<GenerationRequest, "workspace" | "kind" | "durationSec">): number {
-  if (req.kind === "image") return req.workspace === "ai-influencer" ? 8 : 5;
+  if (req.kind === "image") return 5; // a character (5) + shortest video (24) fits the 30 welcome credits
   const seconds = Math.max(VIDEO_DURATION.min, Math.min(req.durationSec ?? VIDEO_DURATION.default, VIDEO_DURATION.max));
   return seconds * VIDEO_CREDITS_PER_SECOND;
 }
