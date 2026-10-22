@@ -18,9 +18,9 @@ export function CreditsBadge() {
   }, []);
 
   return (
-    <span className="inline-flex items-center gap-2 rounded-full border border-ink-700 bg-ink-850 px-3 py-1.5 text-sm">
+    <span className="inline-flex items-center gap-1.5 rounded-full border border-ink-700 bg-ink-850 px-2.5 py-1.5 text-sm sm:gap-2 sm:px-3">
       <span aria-hidden className="size-2 rounded-full bg-ember-500" />
-      <span className="text-ink-300">{t.common.credits}</span>
+      <span className="sr-only text-ink-300 sm:not-sr-only">{t.common.credits}</span>
       <span className="font-semibold tabular-nums text-ink-100">{balance === null ? "—" : balance.toLocaleString(locale)}</span>
     </span>
   );

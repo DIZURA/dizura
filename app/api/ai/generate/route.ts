@@ -3,7 +3,7 @@ import { z } from "zod";
 import type { GenerationJob } from "@/types";
 import { providerFor, submit } from "@/lib/ai";
 import { requireUser } from "@/lib/auth/session";
-import { generationCost } from "@/lib/credits/pricing";
+import { generationCost, VIDEO_DURATION } from "@/lib/credits/pricing";
 import { credits } from "@/lib/credits/store";
 import { ok, parseJson, route } from "@/lib/http";
 import { rateLimit } from "@/lib/security/rate-limit";
@@ -14,13 +14,14 @@ export const runtime = "nodejs";
 
 const body = z
   .object({
-    workspace: z.enum(["ads-studio", "ai-influencer", "wan-prime"]),
+    workspace: z.enum(["ai-influencer", "motion", "image", "video", "ads-studio"]),
     prompt: z.string().trim().min(3).max(2000),
     kind: z.enum(["image", "video"]),
     aspectRatio: z.enum(["1:1", "9:16", "16:9", "3:4"]).default("9:16"),
-    durationSec: z.number().int().min(1).max(15).optional(),
+    durationSec: z.number().int().min(VIDEO_DURATION.min).max(VIDEO_DURATION.max).optional(),
   })
-  .refine((b) => b.workspace !== "wan-prime" || b.kind === "video", { message: "WAN 3.0 Prime generates video only." });
+  .refine((b) => !["video", "motion"].includes(b.workspace) || b.kind === "video", { message: "This studio generates video only." })
+  .refine((b) => b.workspace !== "image" || b.kind === "image", { message: "This studio generates images only." });
 
 export const POST = route(async (req: Request) => {
   const user = await requireUser(req);
