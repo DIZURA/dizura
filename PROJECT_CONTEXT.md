@@ -47,6 +47,7 @@ components/
   layout/AccountMenu  Sign-in button or user + sign-out (server component)
 lib/
   env.ts         SERVER-ONLY validated env + requireEnv()   | env.public.ts  NEXT_PUBLIC_* only
+  app-url.ts     resolveAppUrl() — build-time origin (explicit > Netlify URL/DEPLOY_PRIME_URL > localhost); used by next.config.ts
   http.ts        ApiError, ok/fail, route() wrapper, parseJson (size-capped), providerFetch
   api-client.ts  Browser fetch for our own API (typed ApiResult)
   ai/index.ts    Provider router (workspace -> higgsfield | wan)
@@ -95,6 +96,7 @@ proxy.ts         Session refresh + page guards (guest -> /login?next=, signed-in
 | 21 | Auth mutations are **Server Actions** (no browser Supabase client). Generic errors (no account enumeration), per-IP rate limit (10/10 min sign-in, 5/10 min signup & reset), passwords 8–72 chars, `user_metadata` (name, locale) display-only — never used for authorization. Email is echoed back on error; passwords never. | Small attack surface, CSP stays `connect-src 'self'`. |
 | 22 | CSRF: cookie-authenticated non-GET API calls require same-origin `Origin` (or `Sec-Fetch-Site: same-origin`) → else 403; plus SameSite=Lax cookies; Server Actions have Next's built-in origin check. | Cookie auth makes CSRF relevant. |
 | 23 | Redirect targets pass through `safeNext()` (relative paths only); email links land on `/auth/callback` which handles PKCE code and token_hash. | Prevents open redirects / phishing via `?next=`. |
+| 24 | **App URL resolved at build time** (`lib/app-url.ts` → `next.config.ts` `env`, inlined into server + client). `NEXT_PUBLIC_APP_URL` is set for Netlify **Production only**; previews/branch deploys use `DEPLOY_PRIME_URL`, production falls back to `URL`. Never derived from the request `Host` header. | One config value; correct auth-email + Tap redirect URLs per deploy; Host-header injection can't redirect reset links. |
 | 19 | Migration files named `<remote version>_<name>.sql`, matching `supabase_migrations.schema_migrations` exactly. New migrations: apply via MCP/CLI, then name the file with the version Supabase records. Migrations must also replay cleanly on a fresh preview branch (guard project-specific objects). | Supabase GitHub integration (Preview check) fails when remote versions are missing locally. |
 
 ## 5. API routes
@@ -116,8 +118,14 @@ Error codes → HTTP: bad_request 400, unauthorized 401, insufficient_credits 40
 ## 6. Environment variables
 Template: `.env.example` (committed). Real values: `.env.local` (gitignored via `.env.*`, chmod 600; `APP_SECRET` auto-generated).
 Server-only: `APP_SECRET`, `DATABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `HIGGSFIELD_API_KEY/SECRET/BASE_URL`, `WAN_API_BASE_URL/KEY/MODEL`, `GSC_MCP_ENDPOINT/TOKEN`, `TAP_SECRET_KEY`, `TAP_API_BASE_URL`.
-Public: `NEXT_PUBLIC_APP_URL`, `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, `NEXT_PUBLIC_TAP_PUBLIC_KEY`.
+Public: `NEXT_PUBLIC_APP_URL` (optional; see ADR 24), `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, `NEXT_PUBLIC_TAP_PUBLIC_KEY`.
 Rule: never add a secret with the `NEXT_PUBLIC_` prefix; add every new var to `.env.example` + `lib/env.ts` schema.
+
+## 6b. Deployment — Netlify
+- Site: **`sparkly-swan-cf292e`** → `https://sparkly-swan-cf292e.netlify.app` (Next.js runtime auto-detected; any env change needs a **redeploy**).
+- Env per context: `NEXT_PUBLIC_APP_URL` → Production only (custom domain when added). `APP_SECRET` → every context (different value each; build fails without it). `SUPABASE_SERVICE_ROLE_KEY` + `TAP_SECRET_KEY` (`sk_live_`) → Production only; previews get `sk_test_` / no service key. Agent Runners: test keys only. Local dev context: no secrets.
+- Scopes: `NEXT_PUBLIC_*` → Builds; server secrets → Builds + Functions. Tick "Contains secret values" for all non-public keys.
+- **Supabase → Authentication → URL Configuration** (owner): Site URL `https://sparkly-swan-cf292e.netlify.app` (or custom domain); Redirect URLs: `http://localhost:3000/**`, `https://sparkly-swan-cf292e.netlify.app/**`, `https://*--sparkly-swan-cf292e.netlify.app/**` (single `*` — never `**` before the host, which could match an attacker-controlled host).
 
 ## 7. Credit economy (`lib/credits/pricing.ts`)
 Packs: starter 100cr/5 KWD · pro 500cr/20 KWD · studio 2000cr/65 KWD.
