@@ -24,7 +24,8 @@ const optionalUrl = z
 const schema = z.object({
   NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
   NEXT_PUBLIC_APP_URL: z.url().default("http://localhost:3000"),
-  APP_SECRET: z.string().min(32, "APP_SECRET must be at least 32 characters"),
+  // Optional at boot so `next build` never needs it; signed-token enforces presence + length at use.
+  APP_SECRET: optional,
 
   DATABASE_URL: optional,
   NEXT_PUBLIC_SUPABASE_URL: optionalUrl,
@@ -49,6 +50,8 @@ const schema = z.object({
   NEXT_PUBLIC_TAP_PUBLIC_KEY: optional,
 });
 
+export const APP_SECRET_MIN_LENGTH = 32;
+
 export type ServerEnv = z.infer<typeof schema>;
 
 function load(): ServerEnv {
@@ -59,6 +62,9 @@ function load(): ServerEnv {
     throw new Error(`Invalid environment configuration:\n${issues}`);
   }
   const env = parsed.data;
+  if (env.APP_SECRET !== undefined && env.APP_SECRET.length < APP_SECRET_MIN_LENGTH) {
+    console.warn(`[env] APP_SECRET is shorter than ${APP_SECRET_MIN_LENGTH} characters; signed tokens are disabled.`);
+  }
   if (env.NODE_ENV === "production" && env.TAP_SECRET_KEY?.startsWith("sk_test_")) {
     console.warn("[env] Running in production with a Tap TEST secret key.");
   }

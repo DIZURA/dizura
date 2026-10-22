@@ -85,6 +85,7 @@ proxy.ts         Per-request nonce CSP (Next 16 "proxy" = former middleware)
 | 17 | Secret scanning at 3 layers: pre-commit hook, `npm run check`, GitHub Actions CI | Owner's rule: scan before every commit/push. No third-party scanner dependency. |
 | 18 | Mandatory security rules recorded in `CLAUDE.md` | Owner-set; apply to all sessions. |
 | 19 | Migration files named `<remote version>_<name>.sql`, matching `supabase_migrations.schema_migrations` exactly. New migrations: apply via MCP/CLI, then name the file with the version Supabase records. Migrations must also replay cleanly on a fresh preview branch (guard project-specific objects). | Supabase GitHub integration (Preview check) fails when remote versions are missing locally. |
+| 20 | `APP_SECRET` optional at boot; `signed-token.ts` enforces presence + ≥32 chars at use (→ 503 `not_configured`); `/api/ai/generate` checks it before reserving credits | `lib/env.ts` is evaluated during `next build` (page-data collection), so a missing/short secret was failing Netlify builds. |
 
 ## 5. API routes
 | Method | Route | Auth | Limit | Purpose |

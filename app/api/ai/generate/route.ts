@@ -7,7 +7,7 @@ import { generationCost } from "@/lib/credits/pricing";
 import { credits } from "@/lib/credits/store";
 import { ok, parseJson, route } from "@/lib/http";
 import { rateLimit } from "@/lib/security/rate-limit";
-import { seal } from "@/lib/security/signed-token";
+import { assertSigningConfigured, seal } from "@/lib/security/signed-token";
 import type { JobHandle } from "../jobs/[token]/route";
 
 export const runtime = "nodejs";
@@ -27,6 +27,8 @@ export const POST = route(async (req: Request) => {
   const user = await requireUser(req);
   rateLimit(`gen:${user.id}`, 20, 60_000);
   const input = await parseJson(req, body);
+  // Fail before reserving credits if the job handle can't be signed.
+  assertSigningConfigured();
 
   const cost = generationCost(input);
   const referenceId = randomUUID();
