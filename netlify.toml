@@ -8,3 +8,8 @@
 
 [build.environment]
   NODE_VERSION = "22"
+
+# Declare the Next.js runtime explicitly. Deploys were building but reporting
+# "No functions deployed" (plugin state: none), i.e. the runtime wasn't applied.
+[[plugins]]
+  package = "@netlify/plugin-nextjs"
