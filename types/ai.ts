@@ -2,7 +2,8 @@
 
 export type AiProvider = "higgsfield";
 
-export type Workspace = "ads-studio" | "ai-influencer" | "wan-prime";
+/** One studio page per workspace. `image`/`video` are the open tools; the others add guided controls. */
+export type Workspace = "ai-influencer" | "motion" | "image" | "video" | "ads-studio";
 
 export type MediaKind = "image" | "video";
 

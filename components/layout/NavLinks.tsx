@@ -1,0 +1,40 @@
+"use client";
+
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { useI18n } from "@/components/i18n/I18nProvider";
+import { cn } from "@/components/ui/cn";
+import { NAV } from "./nav";
+
+/** Horizontal tool navigation. Scrolls sideways on small screens. */
+export function NavLinks() {
+  const pathname = usePathname();
+  const { t, locale } = useI18n();
+  return (
+    <nav aria-label={t.nav.home} className="-mx-1 flex min-w-0 items-center gap-1 overflow-x-auto px-1 [scrollbar-width:none]">
+      {NAV.map((item, i) => {
+        const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
+        return (
+          <span key={item.href} className="flex items-center">
+            {i === 5 && <span aria-hidden className="mx-2 h-4 w-px bg-ink-700" />}
+            <Link
+              href={item.href}
+              aria-current={active ? "page" : undefined}
+              className={cn(
+                "flex shrink-0 items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm transition",
+                active ? "bg-ink-800 text-ink-100" : "text-ink-300 hover:bg-ink-850 hover:text-ink-100",
+              )}
+            >
+              {t.nav[item.key]}
+              {item.badge === "new" && (
+                <span className="rounded bg-ember-500/15 px-1.5 py-px text-[10px] font-semibold uppercase tracking-wide text-ember-300">
+                  {locale === "ar" ? "جديد" : "New"}
+                </span>
+              )}
+            </Link>
+          </span>
+        );
+      })}
+    </nav>
+  );
+}

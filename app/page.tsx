@@ -10,7 +10,7 @@ export default async function LandingPage() {
   const { t } = await getI18n();
   return (
     <>
-      <TopBar brand={t.brand} showCredits={false} />
+      <TopBar brand={t.brand} showCredits={false} nav />
       <main className="mx-auto max-w-7xl px-5">
         <section className="grid items-center gap-10 py-16 lg:grid-cols-2 lg:py-24">
           <div>
@@ -20,7 +20,7 @@ export default async function LandingPage() {
               {t.tagline}
             </h1>
             <div className="mt-8 flex flex-wrap gap-3">
-              <Link href="/ads-studio" className={buttonClass("primary")}>{t.heroCta}</Link>
+              <Link href="/ai-influencer" className={buttonClass("primary")}>{t.heroCta}</Link>
               <Link href="/geo-audit" className={buttonClass("secondary")}>{t.heroSecondary}</Link>
             </div>
           </div>
@@ -38,7 +38,7 @@ export default async function LandingPage() {
                 icon={item.icon}
                 title={t.nav[item.key]}
                 description={t.workspaces[item.key]}
-                span={i === 0 ? "2" : i === 2 ? "tall" : "1"}
+                span={i === 0 ? "2" : i === 1 ? "tall" : "1"}
                 accent={i === 0}
               />
             ))}

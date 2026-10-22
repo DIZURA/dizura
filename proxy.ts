@@ -20,7 +20,7 @@ export async function proxy(req: NextRequest) {
     return res;
   }
   if (session.userId && matchesPrefix(path, GUEST_ONLY)) {
-    const res = NextResponse.redirect(new URL("/ads-studio", req.url));
+    const res = NextResponse.redirect(new URL("/ai-influencer", req.url));
     session.apply(res);
     return res;
   }

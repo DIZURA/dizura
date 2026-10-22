@@ -25,6 +25,10 @@ const nextConfig: NextConfig = {
   images: {
     remotePatterns: [{ protocol: "https", hostname: "**.higgsfield.ai" }],
   },
+  async redirects() {
+    // WAN 3.0 Prime now lives in the Video studio.
+    return [{ source: "/wan-prime", destination: "/video", permanent: true }];
+  },
   async headers() {
     return [{ source: "/:path*", headers: securityHeaders }];
   },

@@ -3,19 +3,46 @@ import { LanguageToggle } from "@/components/i18n/LanguageToggle";
 import { getCurrentUser } from "@/lib/auth/session";
 import { AccountMenu } from "./AccountMenu";
 import { CreditsBadge } from "./CreditsBadge";
+import { NavLinks } from "./NavLinks";
 
-export async function TopBar({ brand, showCredits = true, showAccount = true }: { brand: string; showCredits?: boolean; showAccount?: boolean }) {
+/**
+ * Global header. With `nav`, tool links sit inline on desktop and wrap to a second,
+ * horizontally scrolling row on mobile.
+ */
+export async function TopBar({
+  brand,
+  showCredits = true,
+  showAccount = true,
+  nav = false,
+}: {
+  brand: string;
+  showCredits?: boolean;
+  showAccount?: boolean;
+  nav?: boolean;
+}) {
   const signedIn = showCredits ? (await getCurrentUser()) !== null : false;
   return (
-    <header className="sticky top-0 z-30 flex items-center justify-between gap-4 border-b border-ink-700/60 bg-ink-950/80 px-5 py-3 backdrop-blur">
-      <Link href="/" className="text-lg font-black tracking-wider text-ink-100">
-        <span className="text-ember-500">◆</span> {brand}
-      </Link>
-      <div className="flex items-center gap-3">
-        {signedIn && <CreditsBadge />}
-        <LanguageToggle />
-        {showAccount && <AccountMenu />}
+    <header className="sticky top-0 z-30 border-b border-ink-700/60 bg-ink-950/85 backdrop-blur">
+      <div className="mx-auto flex max-w-[96rem] items-center gap-4 px-4 py-2.5 sm:px-5">
+        <Link href="/" className="shrink-0 text-lg font-black tracking-wider text-ink-100">
+          <span className="text-ember-500">◆</span> {brand}
+        </Link>
+        {nav && (
+          <div className="hidden min-w-0 flex-1 lg:block">
+            <NavLinks />
+          </div>
+        )}
+        <div className="ms-auto flex shrink-0 items-center gap-2 sm:gap-3">
+          {signedIn && <CreditsBadge />}
+          <LanguageToggle />
+          {showAccount && <AccountMenu />}
+        </div>
       </div>
+      {nav && (
+        <div className="border-t border-ink-700/40 px-3 py-1.5 lg:hidden">
+          <NavLinks />
+        </div>
+      )}
     </header>
   );
 }
