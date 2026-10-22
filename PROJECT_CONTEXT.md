@@ -17,7 +17,7 @@ Monetisation: prepaid **credits** bought via **Tap Payments** (KWD default).
 | Validation | Zod 4 — every env var, request body and provider response |
 | 3D | three.js + @react-three/fiber, lazy-loaded client-only |
 | Auth / DB | Supabase project `mxzeeyqektwdncsryhyk` ("DIZURA's Project", ap-south-1, Postgres 17). Cookie-based Supabase Auth via `@supabase/ssr` 0.12.7 + `@supabase/supabase-js` 2.117.3 (exact pins) |
-| AI | Higgsfield (Ads, Influencer), WAN 3.0 Prime (video), GSC via MCP (audit) |
+| AI | Higgsfield API (`api.higgsfield.ai`) for all generation: images = `higgsfield-ai/soul/v2/standard`, video = `alibaba/wan-3.0-prime/text-to-video` (WAN is hosted by Higgsfield). GSC via MCP (audit) |
 | Payments | Tap Payments hosted charge page + webhook |
 
 Scripts: `npm run dev | build | start | lint | typecheck | scan:secrets | check` (`check` = typecheck + lint + secret scan).
@@ -50,8 +50,8 @@ lib/
   app-url.ts     resolveAppUrl() — build-time origin (explicit > Netlify URL/DEPLOY_PRIME_URL > localhost); used by next.config.ts
   http.ts        ApiError, ok/fail, route() wrapper, parseJson (size-capped), providerFetch
   api-client.ts  Browser fetch for our own API (typed ApiResult)
-  ai/index.ts    Provider router (workspace -> higgsfield | wan)
-  higgsfield/client.ts, wan/client.ts   Provider SDK wrappers
+  ai/index.ts    Provider facade (Higgsfield only)
+  higgsfield/client.ts   Higgsfield API: MODELS, buildSubmission, submitGeneration (Idempotency-Key), getJob (/requests/{id}/status)
   gsc/mcp.ts     MCP Streamable-HTTP client (initialize -> tools/call), degrades to null
   geo/audit.ts   GEO checks (AI crawlers in robots.txt, llms.txt, JSON-LD, meta, depth…)
   tap/client.ts  createCharge, retrieveCharge, verifyWebhookHash (HMAC hashstring)
@@ -99,6 +99,7 @@ proxy.ts         Session refresh + page guards (guest -> /login?next=, signed-in
 | 23 | Redirect targets pass through `safeNext()` (relative paths only); email links land on `/auth/callback` which handles PKCE code and token_hash. | Prevents open redirects / phishing via `?next=`. |
 | 24 | **App URL resolved at build time** (`lib/app-url.ts` → `next.config.ts` `env`, inlined into server + client). `NEXT_PUBLIC_APP_URL` is set for Netlify **Production only**; previews/branch deploys use `DEPLOY_PRIME_URL`, production falls back to `URL`. Never derived from the request `Host` header. | One config value; correct auth-email + Tap redirect URLs per deploy; Host-header injection can't redirect reset links. |
 | 25 | **Welcome bonus = 10 credits, granted by a DB trigger when the email is confirmed** (or on insert if pre-confirmed, e.g. OAuth); never for anonymous users; idempotent (`promo`/`welcome_bonus`). Trigger fn lives in non-exposed `private` schema, `SECURITY DEFINER`, `search_path=''`, EXECUTE revoked; failures only warn (never block signup). Amount mirrored in `WELCOME_CREDITS`. | Lets new users try the product; confirmation gate stops throwaway-account farming; works even if the app is down. |
+| 26 | **Higgsfield API per official docs** (docs.higgsfield.ai): `POST /{model-id}` with top-level params + `Idempotency-Key` = our credit reservation id; poll `GET /requests/{id}/status` (queued → in_progress → completed / failed / nsfw / canceled); outputs `images[].url` / `video.url`. WAN 3.0 Prime via Higgsfield (separate WAN provider + env vars removed). Aspect ratios limited to 1:1, 9:16, 16:9, 3:4 (supported by both models). | Previous endpoints were unverified guesses (generation failed). Idempotency key means a retried submit is never billed twice. |
 | 19 | Migration files named `<remote version>_<name>.sql`, matching `supabase_migrations.schema_migrations` exactly. New migrations: apply via MCP/CLI, then name the file with the version Supabase records. Migrations must also replay cleanly on a fresh preview branch (guard project-specific objects). | Supabase GitHub integration (Preview check) fails when remote versions are missing locally. |
 
 ## 5. API routes
@@ -119,7 +120,7 @@ Error codes → HTTP: bad_request 400, unauthorized 401, insufficient_credits 40
 
 ## 6. Environment variables
 Template: `.env.example` (committed). Real values: `.env.local` (gitignored via `.env.*`, chmod 600; `APP_SECRET` auto-generated).
-Server-only: `APP_SECRET`, `DATABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `HIGGSFIELD_API_KEY/SECRET/BASE_URL`, `WAN_API_BASE_URL/KEY/MODEL`, `GSC_MCP_ENDPOINT/TOKEN`, `TAP_SECRET_KEY`, `TAP_API_BASE_URL`.
+Server-only: `APP_SECRET`, `DATABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `HIGGSFIELD_API_KEY` + `HIGGSFIELD_API_SECRET` (or combined `KEY_ID:KEY_SECRET` in the key), optional `HIGGSFIELD_API_BASE_URL` (default `https://api.higgsfield.ai`), `GSC_MCP_ENDPOINT/TOKEN`, `TAP_SECRET_KEY`, `TAP_API_BASE_URL`.
 Public: `NEXT_PUBLIC_APP_URL` (optional; see ADR 24), `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, `NEXT_PUBLIC_TAP_PUBLIC_KEY`.
 Rule: never add a secret with the `NEXT_PUBLIC_` prefix; add every new var to `.env.example` + `lib/env.ts` schema.
 
@@ -154,8 +155,8 @@ Costs: image 5 (influencer 8); video 8 cr/s (WAN Prime 12 cr/s), 1–15 s.
 - `APP_SECRET` rotated locally after its prefix appeared in a session log (never committed).
 
 ## 9. Open items / things to VERIFY before launch
-- [ ] **Higgsfield** REST paths + auth header format (`lib/higgsfield/client.ts`) — confirm against current API docs.
-- [ ] **WAN 3.0** host & payload shape (`lib/wan/client.ts`).
+- [x] **Higgsfield** paths/auth/response shape now match the official docs; verified against a mock of the documented API (request path, `Key` header, Idempotency-Key, body, status polling, image/video/nsfw results). **Still to do: one live generation with real keys** (sandbox can't reach api.higgsfield.ai).
+- [x] **WAN 3.0 Prime** = Higgsfield model `alibaba/wan-3.0-prime/text-to-video` (duration 2–30 s, resolution 480p/720p/1080p, aspect incl. 3:4).
 - [ ] **GSC MCP** tool name/args (`search_analytics`) — confirm via the server's `tools/list`.
 - [ ] Tap: confirm `hashstring` field order for the account's API version; register webhook URL in Tap dashboard.
 

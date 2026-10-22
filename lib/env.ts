@@ -31,13 +31,9 @@ const schema = z.object({
   NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: optional,
   SUPABASE_SERVICE_ROLE_KEY: optional,
 
-  HIGGSFIELD_API_BASE_URL: z.url().default("https://platform.higgsfield.ai"),
+  HIGGSFIELD_API_BASE_URL: z.url().default("https://api.higgsfield.ai"),
   HIGGSFIELD_API_KEY: optional,
   HIGGSFIELD_API_SECRET: optional,
-
-  WAN_API_BASE_URL: optionalUrl,
-  WAN_API_KEY: optional,
-  WAN_MODEL: z.string().default("wan-3.0-prime"),
 
   GSC_MCP_ENDPOINT: optionalUrl,
   GSC_MCP_TOKEN: optional,
