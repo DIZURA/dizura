@@ -1,4 +1,10 @@
 import type { NextConfig } from "next";
+import { resolveAppUrl } from "./lib/app-url";
+
+// Resolved once per build and inlined everywhere `process.env.NEXT_PUBLIC_APP_URL` is referenced
+// (server + client). On Netlify, previews/branch deploys get their own URL automatically.
+const appUrl = resolveAppUrl(process.env);
+process.env.NEXT_PUBLIC_APP_URL = appUrl;
 
 /**
  * Static security headers. The per-request CSP (with nonce) is set in proxy.ts.
@@ -14,6 +20,7 @@ const securityHeaders = [
 
 const nextConfig: NextConfig = {
   poweredByHeader: false,
+  env: { NEXT_PUBLIC_APP_URL: appUrl },
   reactStrictMode: true,
   images: {
     remotePatterns: [{ protocol: "https", hostname: "**.higgsfield.ai" }],

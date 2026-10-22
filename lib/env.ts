@@ -55,7 +55,9 @@ export const APP_SECRET_MIN_LENGTH = 32;
 export type ServerEnv = z.infer<typeof schema>;
 
 function load(): ServerEnv {
-  const parsed = schema.safeParse(process.env);
+  // NEXT_PUBLIC_APP_URL is referenced literally so Next inlines the build-time value (see lib/app-url.ts);
+  // serverless runtimes (e.g. Netlify Functions) may not carry it in process.env.
+  const parsed = schema.safeParse({ ...process.env, NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL });
   if (!parsed.success) {
     // Log variable names only — never values.
     const issues = parsed.error.issues.map((i) => `  - ${i.path.join(".")}: ${i.message}`).join("\n");
