@@ -17,9 +17,8 @@ const body = z
     workspace: z.enum(["ads-studio", "ai-influencer", "wan-prime"]),
     prompt: z.string().trim().min(3).max(2000),
     kind: z.enum(["image", "video"]),
-    aspectRatio: z.enum(["1:1", "9:16", "16:9", "4:5"]).default("9:16"),
+    aspectRatio: z.enum(["1:1", "9:16", "16:9", "3:4"]).default("9:16"),
     durationSec: z.number().int().min(1).max(15).optional(),
-    referenceUrls: z.array(z.url({ protocol: /^https$/ })).max(4).optional(),
   })
   .refine((b) => b.workspace !== "wan-prime" || b.kind === "video", { message: "WAN 3.0 Prime generates video only." });
 
@@ -37,13 +36,13 @@ export const POST = route(async (req: Request) => {
 
   let submitted: Awaited<ReturnType<typeof submit>>;
   try {
-    submitted = await submit(input);
+    submitted = await submit(input, referenceId);
   } catch (err) {
     await credits().apply({ userId: user.id, delta: cost, reason: "refund", referenceId });
     throw err;
   }
 
-  const provider = providerFor(input);
+  const provider = providerFor();
   const job: GenerationJob = {
     id: seal<JobHandle>("job", { u: user.id, p: provider, j: submitted.providerJobId, c: cost, r: referenceId }),
     provider,

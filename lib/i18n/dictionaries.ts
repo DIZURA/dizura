@@ -37,6 +37,15 @@ const en = {
     queued: "Queued",
     result: "Result",
     failedRefunded: "Generation failed — your credits were refunded.",
+    errors: {
+      insufficient_credits: "Not enough credits for this generation.",
+      not_configured: "AI generation isn't set up yet (missing Higgsfield API key).",
+      provider_error: "The AI provider didn't respond. Please try again in a moment.",
+      rate_limited: "You're generating too fast. Please wait a minute.",
+      unauthorized: "Please sign in again.",
+      nsfw: "This prompt or result was blocked by content moderation — credits refunded.",
+      generic: "Something went wrong. Please try again.",
+    },
   },
   geo: {
     url: "Website URL",
@@ -133,6 +142,15 @@ const ar: Dictionary = {
     queued: "في الانتظار",
     result: "النتيجة",
     failedRefunded: "فشل التوليد — تمت إعادة رصيدك.",
+    errors: {
+      insufficient_credits: "رصيدك غير كافٍ لهذا التوليد.",
+      not_configured: "التوليد بالذكاء الاصطناعي غير مُعدّ بعد (مفتاح Higgsfield مفقود).",
+      provider_error: "لم يستجب مزوّد الذكاء الاصطناعي. حاول مرة أخرى بعد قليل.",
+      rate_limited: "طلبات كثيرة بسرعة. يرجى الانتظار دقيقة.",
+      unauthorized: "يرجى تسجيل الدخول مرة أخرى.",
+      nsfw: "تم حظر الوصف أو النتيجة بواسطة فلتر المحتوى — تمت إعادة رصيدك.",
+      generic: "حدث خطأ ما. يرجى المحاولة مرة أخرى.",
+    },
   },
   geo: {
     url: "رابط الموقع",

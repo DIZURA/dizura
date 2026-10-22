@@ -10,7 +10,7 @@ import { api, ClientApiError } from "@/lib/api-client";
 import { generationCost } from "@/lib/credits/pricing";
 import type { AspectRatio, GeneratedMedia, GenerationJob, JobStatus, MediaKind, Workspace } from "@/types";
 
-const RATIOS: AspectRatio[] = ["9:16", "1:1", "4:5", "16:9"];
+const RATIOS: AspectRatio[] = ["9:16", "1:1", "3:4", "16:9"];
 const POLL_MS = 3_000;
 const MAX_POLLS = 200; // ~10 min
 
@@ -52,12 +52,13 @@ export function GenerationPanel({ workspace, kinds }: { workspace: Workspace; ki
         if (s.status === "completed") return setOutputs(s.outputs);
         if (s.status === "failed" || s.status === "cancelled") {
           if (s.creditsRefunded) window.dispatchEvent(new Event(CREDITS_CHANGED));
-          return setError(t.gen.failedRefunded);
+          return setError(s.error === "nsfw" ? t.gen.errors.nsfw : t.gen.failedRefunded);
         }
       }
     } catch (err) {
       setStatus("failed");
-      setError(err instanceof ClientApiError ? err.message : t.common.error);
+      const code = err instanceof ClientApiError ? err.code : "generic";
+      setError(code in t.gen.errors ? t.gen.errors[code as keyof typeof t.gen.errors] : t.gen.errors.generic);
     }
   }
 

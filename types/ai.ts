@@ -1,6 +1,6 @@
-/** Normalised shapes for every AI provider (Higgsfield, WAN 3.0). Workspaces only see these. */
+/** Normalised shapes for AI generation (Higgsfield, which also hosts WAN 3.0 Prime). Workspaces only see these. */
 
-export type AiProvider = "higgsfield" | "wan";
+export type AiProvider = "higgsfield";
 
 export type Workspace = "ads-studio" | "ai-influencer" | "wan-prime";
 
@@ -8,7 +8,8 @@ export type MediaKind = "image" | "video";
 
 export type JobStatus = "queued" | "processing" | "completed" | "failed" | "cancelled";
 
-export type AspectRatio = "1:1" | "9:16" | "16:9" | "4:5";
+/** Ratios supported by both Soul 2 (image) and WAN 3.0 Prime (video). */
+export type AspectRatio = "1:1" | "9:16" | "16:9" | "3:4";
 
 export interface GenerationRequest {
   workspace: Workspace;
@@ -17,8 +18,6 @@ export interface GenerationRequest {
   aspectRatio: AspectRatio;
   /** Seconds, video only. */
   durationSec?: number;
-  /** Already-uploaded reference media URLs (https only). */
-  referenceUrls?: string[];
 }
 
 export interface GenerationJob {
