@@ -70,8 +70,18 @@ const echo = (form: FormData) => {
   return typeof v === "string" ? v.slice(0, 254) : undefined;
 };
 
-const callbackUrl = (next: string) =>
-  `${env.NEXT_PUBLIC_APP_URL.replace(/\/$/, "")}/auth/callback?next=${encodeURIComponent(next)}`;
+/**
+ * Auth links must come back to the host the flow started on: the PKCE code verifier is a cookie
+ * on that host. Only the app's own host or a Netlify alias of it (`<deploy-id>--<site host>`) is
+ * honoured — anything else (e.g. a spoofed Host header) falls back to the configured app URL.
+ */
+async function callbackUrl(next: string) {
+  const app = new URL(env.NEXT_PUBLIC_APP_URL);
+  const host = (await headers()).get("host")?.toLowerCase() ?? "";
+  const alias = host.endsWith(`--${app.host}`) && /^[a-z0-9-]+$/.test(host.slice(0, -(app.host.length + 2)));
+  const origin = host === app.host || (alias && app.protocol === "https:") ? `${app.protocol}//${host}` : app.origin;
+  return `${origin}/auth/callback?next=${encodeURIComponent(next)}`;
+}
 
 export async function signIn(_: AuthState, form: FormData): Promise<AuthState> {
   const parsed = z.object({ email, password: z.string().min(1).max(72) }).safeParse({
@@ -102,7 +112,7 @@ export async function signInWithGoogle(_: AuthState, form: FormData): Promise<Au
   if (!supabase) return { status: "error", code: "notConfigured" };
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: "google",
-    options: { redirectTo: callbackUrl(safeNext(form.get("next"))), skipBrowserRedirect: true },
+    options: { redirectTo: await callbackUrl(safeNext(form.get("next"))), skipBrowserRedirect: true },
   });
   if (error || !data.url) {
     console.warn(`[auth] Google sign-in unavailable: ${error?.code ?? "no url"} (${error?.status ?? "?"})`);
@@ -135,7 +145,7 @@ export async function signUp(_: AuthState, form: FormData): Promise<AuthState> {
     email: parsed.data.email,
     password: parsed.data.password,
     options: {
-      emailRedirectTo: callbackUrl(safeNext(form.get("next"))),
+      emailRedirectTo: await callbackUrl(safeNext(form.get("next"))),
       // user_metadata is user-editable: display/preferences only, never authorization.
       data: { full_name: parsed.data.name ?? null, locale: parsed.data.locale },
     },
@@ -154,7 +164,7 @@ export async function requestPasswordReset(_: AuthState, form: FormData): Promis
 
   const supabase = await client();
   if (!supabase) return { status: "error", code: "notConfigured", email: echo(form) };
-  const { error } = await supabase.auth.resetPasswordForEmail(parsed.data, { redirectTo: callbackUrl("/reset-password") });
+  const { error } = await supabase.auth.resetPasswordForEmail(parsed.data, { redirectTo: await callbackUrl("/reset-password") });
   // Supabase answers unknown emails with success (no enumeration), so any error here is real.
   if (error) return { status: "error", code: mapAuthError(error.code, error.status), email: echo(form) };
   return { status: "notice", code: "resetSent" };
