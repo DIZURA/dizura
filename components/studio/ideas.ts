@@ -3,13 +3,7 @@ import type { Idea } from "./Studio";
 
 /** Starter prompts per studio. Titles are localized; prompts stay English (models follow English best). */
 type Raw = { en: string; ar: string; prompt: string };
-const RAW: Record<"aiInfluencer" | "motion" | "image" | "video" | "adsStudio", Raw[]> = {
-  aiInfluencer: [
-    { en: "Morning coffee post", ar: "قهوة الصباح", prompt: "holding a cup of Arabic coffee, candid smile, soft morning light" },
-    { en: "Product review", ar: "مراجعة منتج", prompt: "holding a skincare bottle toward the camera, talking-to-camera pose" },
-    { en: "Travel vlog", ar: "مدونة سفر", prompt: "walking toward the camera in an old souq, travel vlog style" },
-    { en: "Ramadan campaign", ar: "حملة رمضان", prompt: "festive Ramadan lanterns in the background, warm evening glow" },
-  ],
+const RAW: Record<"motion" | "image" | "video" | "adsStudio", Raw[]> = {
   motion: [
     { en: "Perfume on marble", ar: "عطر على رخام", prompt: "luxury perfume bottle on black marble, golden reflections" },
     { en: "SUV in the dunes", ar: "سيارة في الكثبان", prompt: "a white SUV driving over red sand dunes at sunset" },
