@@ -33,6 +33,20 @@ export type GenerateInput = {
   characterStrength?: number;
 };
 
+export type TransferInput = {
+  /** Signed reference-video token from /api/uploads/video. */
+  video: string;
+  /** The caller's own completed character images. */
+  characters: Creation[];
+  /** Signed photo upload tokens. */
+  photos: string[];
+  resolution: "480p" | "720p" | "1080p";
+  prompt: string;
+  ratio: AspectRatio;
+  /** Client-side estimate; replaced by the server's charged amount once submitted. */
+  estimate: number;
+};
+
 type PollState = { status: JobStatus; outputs: GeneratedMedia[]; error: string | null; creditsRefunded: boolean };
 
 const MAX_POLLS = 120; // ~15 min at the 10 s ceiling
@@ -55,30 +69,16 @@ export function useGenerator(workspace: Workspace) {
   const update = (key: string, patch: Partial<Creation>) =>
     setCreations((list) => list.map((c) => (c.key === key ? { ...c, ...patch } : c)));
 
-  const generate = useCallback(
-    async ({ prompt, kind, ratio, durationSec, cost, source, characterId, characterStrength }: GenerateInput) => {
+  /** Adds a placeholder, submits via `request`, then polls until done (refund handled server-side). */
+  const run = useCallback(
+    async (meta: Omit<Creation, "key" | "jobId" | "status" | "outputs" | "error">, request: () => Promise<GenerationJob>) => {
       setError(null);
       const key = crypto.randomUUID();
-      setCreations((list) => [
-        { key, jobId: null, prompt, kind, ratio, cost, status: "submitting", outputs: [], error: null, animatedFrom: source?.key },
-        ...list,
-      ]);
+      setCreations((list) => [{ ...meta, key, jobId: null, status: "submitting", outputs: [], error: null }, ...list]);
       try {
-        const job = await api<GenerationJob>("/api/ai/generate", {
-          method: "POST",
-          body: JSON.stringify({
-            workspace,
-            prompt,
-            kind,
-            aspectRatio: ratio,
-            durationSec: kind === "video" ? durationSec : undefined,
-            sourceJob: source?.jobId ?? undefined,
-            characterId,
-            characterStrength: characterId ? characterStrength : undefined,
-          }),
-        });
+        const job = await request();
         window.dispatchEvent(new Event(CREDITS_CHANGED));
-        update(key, { status: job.status, jobId: job.id });
+        update(key, { status: job.status, jobId: job.id, cost: job.creditsCharged });
         for (let i = 0; i < MAX_POLLS && mounted.current; i++) {
           await new Promise((r) => setTimeout(r, pollDelay(i)));
           const s = await api<PollState>(`/api/ai/jobs/${encodeURIComponent(job.id)}`);
@@ -95,8 +95,40 @@ export function useGenerator(workspace: Workspace) {
         setCreations((list) => list.filter((c) => c.key !== key));
       }
     },
-    [workspace, t],
+    [t],
   );
 
-  return { creations, error, setError, generate, busy: creations.some(isBusy) };
+  const generate = useCallback(
+    ({ prompt, kind, ratio, durationSec, cost, source, characterId, characterStrength }: GenerateInput) =>
+      run({ prompt, kind, ratio, cost, animatedFrom: source?.key }, () =>
+        api<GenerationJob>("/api/ai/generate", {
+          method: "POST",
+          body: JSON.stringify({
+            workspace,
+            prompt,
+            kind,
+            aspectRatio: ratio,
+            durationSec: kind === "video" ? durationSec : undefined,
+            sourceJob: source?.jobId ?? undefined,
+            characterId,
+            characterStrength: characterId ? characterStrength : undefined,
+          }),
+        }),
+      ),
+    [run, workspace],
+  );
+
+  /** Genjutsu motion transfer: the chosen character images perform the uploaded reference video. */
+  const transfer = useCallback(
+    ({ video, characters, photos, resolution, prompt, ratio, estimate }: TransferInput) =>
+      run({ prompt, kind: "video", ratio, cost: estimate, animatedFrom: characters[0]?.key }, () =>
+        api<GenerationJob>("/api/ai/motion-transfer", {
+          method: "POST",
+          body: JSON.stringify({ video, characters: characters.map((c) => c.jobId).filter(Boolean), photos, resolution, prompt }),
+        }),
+      ),
+    [run],
+  );
+
+  return { creations, error, setError, generate, transfer, busy: creations.some(isBusy) };
 }

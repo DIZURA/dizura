@@ -8,32 +8,9 @@ import { Button } from "@/components/ui/Button";
 import { cn } from "@/components/ui/cn";
 import { api, ClientApiError } from "@/lib/api-client";
 import { SOUL_ID } from "@/lib/credits/pricing";
-import type { ApiResult } from "@/types";
+import { toJpeg, uploadPhoto as upload } from "./media";
 
 type Photo = { key: string; preview: string; state: "uploading" | "uploaded" | "failed"; token?: string };
-
-const MAX_EDGE = 1536;
-
-/** Re-encodes to JPEG ≤ 1536 px: smaller uploads and strips EXIF (e.g. GPS) before anything leaves the device. */
-async function toJpeg(file: File): Promise<Blob> {
-  const bmp = await createImageBitmap(file, { imageOrientation: "from-image" });
-  const scale = Math.min(1, MAX_EDGE / Math.max(bmp.width, bmp.height));
-  const canvas = document.createElement("canvas");
-  canvas.width = Math.round(bmp.width * scale);
-  canvas.height = Math.round(bmp.height * scale);
-  canvas.getContext("2d")!.drawImage(bmp, 0, 0, canvas.width, canvas.height);
-  bmp.close();
-  return new Promise((resolve, reject) => canvas.toBlob((b) => (b ? resolve(b) : reject(new Error("encode"))), "image/jpeg", 0.9));
-}
-
-async function upload(blob: Blob): Promise<string> {
-  const form = new FormData();
-  form.append("file", blob, "photo.jpg");
-  const res = await fetch("/api/uploads/image", { method: "POST", body: form });
-  const json = (await res.json().catch(() => null)) as ApiResult<{ token: string }> | null;
-  if (!json?.ok) throw new ClientApiError(json && !json.ok ? json.error.code : "internal", "upload failed");
-  return json.data.token;
-}
 
 export function SoulIdPanel({
   characters,

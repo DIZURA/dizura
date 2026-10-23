@@ -104,3 +104,27 @@
 .m-handheld   { animation-name: m-handheld; animation-duration: 1.8s }
 .m-fpv        { animation-name: m-fpv; animation-direction: alternate; animation-duration: 2.6s }
 .m-barrelRoll { animation-name: m-barrelRoll; animation-timing-function: linear; animation-duration: 4s }
+
+/* ---- Influencer studio (design from the Lovable prototype) ---------------------------------- */
+:root {
+  /* Placeholder art for option cards until real option photos are generated. */
+  --art-0: linear-gradient(160deg, #00331f, #008f60 55%, #a6fbdb);
+  --art-1: linear-gradient(160deg, #2a1608, #b5541d 60%, #ffc28a);
+  --art-2: linear-gradient(160deg, #0d1a2b, #2b5f8f 60%, #9fd3ff);
+  --art-3: linear-gradient(160deg, #1d0f24, #7a3a7d 60%, #f2a7d8);
+  --art-4: linear-gradient(160deg, #1a1a12, #6f6a2e 60%, #e8e2a0);
+  --art-5: linear-gradient(160deg, #0b0b0c, #2e2e33 50%, #63f3c0);
+}
+@utility text-gradient {
+  background: linear-gradient(100deg, var(--color-ink-100) 30%, var(--color-mint-300) 70%, var(--color-mint-500));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+@keyframes shimmer { from { background-position: -200% 0 } to { background-position: 200% 0 } }
+@utility shimmer {
+  background: linear-gradient(90deg, var(--color-ink-850) 0%, color-mix(in oklab, var(--color-mint-500) 18%, var(--color-ink-850)) 50%, var(--color-ink-850) 100%);
+  background-size: 200% 100%;
+  animation: shimmer 1.6s linear infinite;
+  @media (prefers-reduced-motion: reduce) { animation: none; }
+}

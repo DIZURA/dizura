@@ -33,3 +33,25 @@ export const SOUL_ID = {
   /** Uploaded photo size cap (client downsizes to ~1.5 MB first; Netlify functions accept ≤ 6 MB). */
   maxUploadBytes: 5 * 1024 * 1024,
 } as const;
+
+/**
+ * Genjutsu motion transfer (your character performs a reference video). Higgsfield bills per second
+ * of input video: $0.318 (480p), $0.681 (720p), $1.632 (1080p). At ~$0.16 per credit these rates
+ * keep a ~1.6–2× margin. Duration comes from the uploaded file (server-side), rounded up, 4–30 s
+ * (the provider trims anything longer to 30 s).
+ */
+export const GENJUTSU = {
+  creditsPerSecond: { "480p": 4, "720p": 8, "1080p": 16 },
+  defaultResolution: "720p",
+  minSeconds: 4,
+  maxSeconds: 30,
+  maxImages: 8,
+  /** Direct-to-storage upload cap (matches the `reference-videos` bucket limit). */
+  maxVideoBytes: 50 * 1024 * 1024,
+} as const;
+export type GenjutsuResolution = keyof typeof GENJUTSU.creditsPerSecond;
+
+export function genjutsuCost(durationSec: number, resolution: GenjutsuResolution): number {
+  const seconds = Math.min(GENJUTSU.maxSeconds, Math.max(GENJUTSU.minSeconds, Math.ceil(durationSec)));
+  return seconds * GENJUTSU.creditsPerSecond[resolution];
+}

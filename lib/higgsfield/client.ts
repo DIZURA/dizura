@@ -20,6 +20,8 @@ export const MODELS = {
   video: "alibaba/wan-3.0-prime/text-to-video",
   /** prompt + image_url (first frame); same duration/resolution/aspect options. */
   imageToVideo: "alibaba/wan-3.0-prime/image-to-video",
+  /** Genjutsu: character image(s) perform a reference video (video2video, keeps its motion). */
+  motionTransfer: "higgsfield/genjutsu/motion-transfer/v1.0",
 } as const;
 
 const submitSchema = z.object({ request_id: z.string().min(1), status: z.string() });
@@ -102,6 +104,21 @@ export async function submitGeneration(
     method: "POST",
     headers: { ...headers, "idempotency-key": idempotencyKey },
     body: JSON.stringify(body),
+  });
+  const job = submitSchema.parse(await res.json());
+  return { providerJobId: job.request_id, status: mapStatus(job.status) };
+}
+
+/** Genjutsu motion transfer: 1–8 character images act out the reference video (≥ 4 s, trimmed to 30 s). */
+export async function submitMotionTransfer(
+  input: { prompt: string; videoUrl: string; imageUrls: string[]; resolution: "480p" | "720p" | "1080p" },
+  idempotencyKey: string,
+): Promise<{ providerJobId: string; status: JobStatus }> {
+  const { base, headers } = auth();
+  const res = await providerFetch("Higgsfield", `${base}/${MODELS.motionTransfer}`, {
+    method: "POST",
+    headers: { ...headers, "idempotency-key": idempotencyKey },
+    body: JSON.stringify({ prompt: input.prompt, video_url: input.videoUrl, image_urls: input.imageUrls, resolution: input.resolution }),
   });
   const job = submitSchema.parse(await res.json());
   return { providerJobId: job.request_id, status: mapStatus(job.status) };
