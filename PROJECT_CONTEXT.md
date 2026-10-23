@@ -2,7 +2,7 @@
 
 > Source of truth for architecture, decisions, routes and roadmap.
 > **Every session: read this first; update it in the same change as any architectural edit.**
-> Last updated: 2026-10-23 (Option photos v2 art direction)
+> Last updated: 2026-10-23 (Tap secret key set on Netlify)
 
 ## 1. Product
 AI creative studio for GCC brands, Arabic-first (RTL) with English (LTR).
@@ -218,6 +218,8 @@ Genjutsu (influencer Step 2): **4 / 8 / 16 cr per second** of reference video at
 - [ ] **Marketing Studio Image**: first live ad + `POST /estimate/marketing-studio/image` per tier (ADR 41).
 - [ ] Import Lovable example images (`scripts/import-examples.mjs`) once the Lovable project is connected to GitHub.
 - [ ] Tap: confirm `hashstring` field order for the account's API version; register webhook URL in Tap dashboard.
+- [x] `TAP_SECRET_KEY` set on Netlify (2026-10-23, all contexts, **`sk_test_` = test mode**; switch Production to `sk_live_` to take real payments). Register webhook `https://sparkly-swan-cf292e.netlify.app/api/webhooks/tap` in Tap.
+- [ ] `SUPABASE_SERVICE_ROLE_KEY` on Netlify is only 10 characters — looks like a placeholder, not a real key. Credit ledger, payment fulfilment, DIZURA ID and video uploads fail (503) until it is replaced with the real `service_role`/`sb_secret_` key (Production only).
 
 ## 10. Roadmap
 1. ~~Login UI~~ ✅ (email/password, confirm, reset). ~~Google OAuth button~~ ✅ (ADR 39; provider must be enabled in Supabase). Next: `profiles` (plan via `app_metadata`/table), ~~welcome credits~~ ✅, **custom SMTP** (Supabase built-in email hit its rate limit on 2026-10-23).
