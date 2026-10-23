@@ -16,7 +16,7 @@ export const runtime = "nodejs";
 
 const body = z
   .object({
-    workspace: z.enum(["ai-influencer", "motion", "image", "video", "ads-studio"]),
+    workspace: z.enum(["visual-character", "ads-studio"]),
     prompt: z.string().trim().min(3).max(2000),
     kind: z.enum(["image", "video"]),
     aspectRatio: z.enum(["1:1", "9:16", "16:9", "3:4"]).default("9:16"),
@@ -29,8 +29,6 @@ const body = z
   })
   .refine((b) => !b.characterId || b.kind === "image", { message: "Characters are used for images; animate the image afterwards." })
   .refine((b) => !b.sourceJob || b.kind === "video", { message: "Only videos can start from an image." })
-  .refine((b) => !["video", "motion"].includes(b.workspace) || b.kind === "video", { message: "This studio generates video only." })
-  .refine((b) => b.workspace !== "image" || b.kind === "image", { message: "This studio generates images only." });
 
 export const POST = route(async (req: Request) => {
   const user = await requireUser(req);

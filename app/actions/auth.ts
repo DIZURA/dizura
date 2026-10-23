@@ -171,7 +171,7 @@ export async function updatePassword(_: AuthState, form: FormData): Promise<Auth
   if (!data?.claims) redirect("/login?next=/reset-password");
   const { error } = await supabase.auth.updateUser({ password: parsed.data.password });
   if (error) return { status: "error", code: mapAuthError(error.code, error.status) };
-  redirect("/ai-influencer");
+  redirect("/visual-character");
 }
 
 export async function signOut(): Promise<void> {

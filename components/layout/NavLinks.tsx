@@ -6,17 +6,16 @@ import { useI18n } from "@/components/i18n/I18nProvider";
 import { cn } from "@/components/ui/cn";
 import { NAV } from "./nav";
 
-/** Horizontal tool navigation. Scrolls sideways on small screens. */
+/** Studio navigation (two studios). Scrolls sideways on small screens. */
 export function NavLinks() {
   const pathname = usePathname();
-  const { t, locale } = useI18n();
+  const { t } = useI18n();
   return (
     <nav aria-label={t.nav.home} className="-mx-1 flex min-w-0 items-center gap-1 overflow-x-auto px-1 [scrollbar-width:none]">
-      {NAV.map((item, i) => {
+      {NAV.map((item) => {
         const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
         return (
           <span key={item.href} className="flex items-center">
-            {i === 5 && <span aria-hidden className="mx-2 h-4 w-px bg-ink-700" />}
             <Link
               href={item.href}
               aria-current={active ? "page" : undefined}
@@ -28,7 +27,7 @@ export function NavLinks() {
               {t.nav[item.key]}
               {item.badge === "new" && (
                 <span className="rounded bg-mint-500/15 px-1.5 py-px text-[10px] font-semibold uppercase tracking-wide text-mint-300">
-                  {locale === "ar" ? "جديد" : "New"}
+                  {t.nav.newBadge}
                 </span>
               )}
             </Link>

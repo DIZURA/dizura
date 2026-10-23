@@ -26,8 +26,13 @@ const nextConfig: NextConfig = {
     remotePatterns: [{ protocol: "https", hostname: "**.higgsfield.ai" }],
   },
   async redirects() {
-    // WAN 3.0 Prime now lives in the Video studio.
-    return [{ source: "/wan-prime", destination: "/video", permanent: true }];
+    // DIZURA is two studios now (ADR 40); old tool URLs land on the closest one.
+    return [
+      { source: "/ai-influencer/:path*", destination: "/visual-character/:path*", permanent: true },
+      ...["/motion", "/video", "/wan-prime"].map((source) => ({ source, destination: "/visual-character", permanent: true })),
+      { source: "/image", destination: "/ads-studio", permanent: true },
+      ...["/geo-audit", "/scheduler", "/b2b"].map((source) => ({ source, destination: "/", permanent: true })),
+    ];
   },
   async headers() {
     return [{ source: "/:path*", headers: securityHeaders }];

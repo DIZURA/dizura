@@ -1,6 +1,52 @@
 /**
  * Option photos available under /public/influencer/options/<group>/<option>.webp ("<group>/<option>").
- * Regenerate with `npm run photos:options` (scripts/generate-option-photos.mjs); options without a
- * photo fall back to DIZURA placeholder art.
+ * Regenerate with `npm run photos:options` or import Lovable's with scripts/import-examples.mjs;
+ * options without a photo fall back to DIZURA placeholder art.
  */
-export const OPTION_PHOTOS: ReadonlySet<string> = new Set<string>([]);
+export const OPTION_PHOTOS: ReadonlySet<string> = new Set<string>([
+  "age/adult",
+  "age/mature",
+  "age/senior",
+  "age/young",
+  "build/athletic",
+  "build/curvy",
+  "build/heavy",
+  "build/muscular",
+  "build/slim",
+  "build/ultra",
+  "ethnicity/african",
+  "ethnicity/eastAsian",
+  "ethnicity/european",
+  "ethnicity/gulf",
+  "ethnicity/levant",
+  "ethnicity/mixed",
+  "ethnicity/northAfrica",
+  "ethnicity/southAsian",
+  "expression/confident",
+  "expression/dreamy",
+  "expression/laugh",
+  "expression/neutral",
+  "expression/playful",
+  "expression/serious",
+  "expression/smile",
+  "expression/surprised",
+  "hair/afro",
+  "hair/bob",
+  "hair/braids",
+  "hair/buzz",
+  "hair/hijab",
+  "hair/long",
+  "hair/short",
+  "style/casual",
+  "style/goth",
+  "style/khaleeji",
+  "style/luxury",
+  "style/modest",
+  "style/sporty",
+  "style/streetstyle",
+  "style/suits",
+  "style/y2k",
+  "tier/average",
+  "tier/bold",
+  "tier/extreme"
+]);
