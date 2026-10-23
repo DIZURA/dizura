@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import type { CharacterView } from "@/app/api/characters/view";
+import { openBuyCredits } from "@/components/billing/events";
 import { useI18n } from "@/components/i18n/I18nProvider";
 import { CREDITS_CHANGED } from "@/components/layout/CreditsBadge";
 import { Button } from "@/components/ui/Button";
@@ -42,6 +43,7 @@ export function SoulIdPanel({
 
   function errorText(err: unknown) {
     const code = err instanceof ClientApiError ? err.code : "generic";
+    if (code === "insufficient_credits") openBuyCredits("insufficient");
     return code in t.gen.errors ? t.gen.errors[code as keyof typeof t.gen.errors] : t.gen.errors.generic;
   }
 

@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { openBuyCredits } from "@/components/billing/events";
 import { useI18n } from "@/components/i18n/I18nProvider";
 import { CREDITS_CHANGED } from "@/components/layout/CreditsBadge";
 import { api, ClientApiError } from "@/lib/api-client";
@@ -102,6 +103,7 @@ export function useGenerator(workspace: Workspace) {
         }
       } catch (err) {
         const code = err instanceof ClientApiError ? err.code : "generic";
+        if (code === "insufficient_credits") openBuyCredits("insufficient");
         setError(code in t.gen.errors ? t.gen.errors[code as keyof typeof t.gen.errors] : t.gen.errors.generic);
         setCreations((list) => list.filter((c) => c.key !== key));
       }
