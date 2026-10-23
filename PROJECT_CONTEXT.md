@@ -2,7 +2,7 @@
 
 > Source of truth for architecture, decisions, routes and roadmap.
 > **Every session: read this first; update it in the same change as any architectural edit.**
-> Last updated: 2026-10-22
+> Last updated: 2026-10-23
 
 ## 1. Product
 AI creative studio for GCC brands, Arabic-first (RTL) with English (LTR).
@@ -28,7 +28,7 @@ app/
   layout.tsx                 html lang/dir from locale cookie, fonts, I18nProvider
   page.tsx                   Landing (3D hero + bento grid)
   (workspaces)/layout.tsx    TopBar with tool nav (no sidebar), full-width main
-  (workspaces)/ai-influencer/page.tsx   Brand hero (3D DIZURA globe) + InfluencerWorkspace (Step 1 create → Step 2 animate → workspace panel)
+  (workspaces)/ai-influencer/page.tsx   Brand hero (3D DIZURA globe) + InfluencerWorkspace (builder Step 1 → WAN 3.0 Step 2 under it, preview canvas, presets) + How it works / Features / FAQ / CTA sections
   (workspaces)/{motion,image,video,ads-studio}/page.tsx   ToolHero + Studio (ideas from components/studio/ideas.ts)
   icon.png / apple-icon.png   favicon + touch icon from the DIZURA mark
   (workspaces)/{geo-audit,b2b,scheduler}/page.tsx   WorkspaceHeader + tool UI
@@ -46,7 +46,7 @@ components/
   landing/       Hero3D (reduced-motion aware) -> Hero3DScene (R3F): mint wireframe globe + DIZURA S-band emblem, orbit ring, pulse
   studio/        Studio (results canvas + floating prompt bar, generate/poll, session history, ideas), ToolHero,
                  useGenerator (shared submit → poll w/ 2→10 s backoff + jitter → result; keeps signed jobId per creation), MotionStudio (10 CSS camera presets), ideas.ts
-  studio/influencer/  InfluencerWorkspace (Soul ID card, Step 1 identity picker [New look | trained character + likeness], style presets, TraitBuilder(only=), templates, prompt bar; Step 2 animate; gallery), traits.ts (composeInfluencerPrompt, composeSoulIdPrompt, STYLES, ANIMATIONS), SoulIdPanel (train: name, 5–30 photos re-encoded to JPEG ≤1536px in-browser [strips EXIF], consent, ⚡40; list w/ status + delete), useCharacters (polls while training)
+  studio/influencer/  InfluencerWorkspace (left: Step 1 builder [base identity: New face | Soul ID + likeness], output Sheet 16:9 | Portrait 9:16/3:4/1:1 + scene, details, ⚡5; Step 2 WAN 3.0 animate [portraits only, 8 motions, direction, duration]; Soul ID panel. Right: preview canvas + workspace thumbs. Below: 6 presets), CharacterBuilder (character type Average/Bold/Extreme + Builder/Face/Body/Style tabs, 18 trait groups), SectionHeading, traits.ts (GROUPS catalogue, toggle/normalize/randomize, composeCharacterPrompt, composeSoulIdPrompt, PRESETS, ANIMATIONS), SoulIdPanel (train: name, 5–30 photos re-encoded to JPEG ≤1536px in-browser [strips EXIF], consent, ⚡40; list w/ status + delete), useCharacters (polls while training)
   workspace/     WorkspaceHeader (geo-audit, b2b, scheduler)
   geo/           GeoAuditForm
   i18n/          I18nProvider/useI18n, LanguageToggle
@@ -118,6 +118,7 @@ proxy.ts         Session refresh + page guards (guest -> /login?next=, signed-in
 | 32 | Image cost unified at **5 credits** (influencer was 8). | Character (5) + shortest video (24) = 29 fits the 30 welcome credits — verified end-to-end (30 → 25 → 1). |
 | 33 | **Soul ID characters**: photos are re-encoded in the browser (JPEG ≤ 1536 px, EXIF stripped) → `POST /api/uploads/image` (magic-byte type check, ≤ 5 MB) → Higgsfield presigned PUT (provider headers sent verbatim, our API key never sent, upload URL never logged) → returns a **signed 1 h upload token** (not a URL). `POST /api/characters` accepts only the caller's own upload tokens + explicit consent, reserves 40 credits (`soul:<id>`), trains `model_version v2`; refunds once if training fails. Provider reference ids never reach the browser; generation takes our `characterId`, resolved server-side with an ownership + "completed" check, sent as `custom_reference_id` (+ strength 0.1–1). Delete removes the provider identity too (non-404 provider errors block the delete so nothing is orphaned). Limits: 5–30 photos, ≤ 5 characters/user. | Consistent faces with consent, privacy (EXIF/GPS) and cost controls; no URL injection or cross-user access. |
 | 34 | **Service role needs explicit grants** in this project (no default privileges, and revoking from PUBLIC removed its EXECUTE). Every new table/function the server uses must `grant … to service_role` explicitly. | Found 2026-10-22: production credit RPCs were not executable by service_role (would have broken every generation once the service key was set). Fixed in 0006, verified in a rolled-back transaction. |
+| 35 | **Influencer page mirrors the Higgsfield AI Influencer Studio structure** in DIZURA's design: character type tiers (Average/Bold/Extreme ↔ their normal/freak/total; Bold+ unlock exaggerated options), 18 trait groups in 4 tabs modelled on their builder's option catalogue (read via the Higgsfield MCP, `ai_influencer_get_options`), randomize, presets, character-sheet output (close-up + full body on white, 16:9). GCC additions: Gulf/Levantine/North African origins, hijab, modest + Khaleeji styling, majlis/desert scenes; gender limited to female/male. Labels are ours (i18n), the catalogue → English prompt mapping lives in `traits.ts`; a compile-time check ensures every option has a dictionary label. **Only portraits are animatable** (WAN i2v uses the image as the first frame; a two-panel sheet would animate as a split screen) — sheets are told apart by their 16:9 ratio. Video prompts describe motion only (the image carries identity). | "Exactly like Higgsfield" request (2026-10-23); their page itself is unreachable from the sandbox, so structure follows their API catalogue + published guides, with original copy/visuals. |
 | 19 | Migration files named `<remote version>_<name>.sql`, matching `supabase_migrations.schema_migrations` exactly. New migrations: apply via MCP/CLI, then name the file with the version Supabase records. Migrations must also replay cleanly on a fresh preview branch (guard project-specific objects). | Supabase GitHub integration (Preview check) fails when remote versions are missing locally. |
 | 29 | `APP_SECRET` optional at boot (Netlify agent, PR #4); `signed-token.ts` enforces presence + ≥32 chars at use (→ 503 `not_configured`); `/api/ai/generate` checks it before reserving credits | `lib/env.ts` is evaluated during `next build` (page-data collection), so a missing/short secret was failing Netlify builds. |
 
