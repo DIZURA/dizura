@@ -33,6 +33,7 @@ app/
   icon.png / apple-icon.png   favicon + touch icon from the DIZURA mark
   (workspaces)/{geo-audit,b2b,scheduler}/page.tsx   WorkspaceHeader + tool UI
   (/wan-prime -> 308 /video via next.config redirects)
+  (legal)/{privacy,terms}/page.tsx   Public Privacy Policy + Terms (ar/en, text in dictionaries `legal`), linked from SiteFooter (landing, auth, legal) — required by Google OAuth branding
   (auth)/{login,forgot-password,reset-password}/page.tsx   Login (?mode=signup, ?next=), reset request, new password
   auth/callback/route.ts     Email-link target: PKCE ?code= or ?token_hash=&type= -> session -> safe redirect
   actions/auth.ts            Server Actions: signIn, signUp, requestPasswordReset, updatePassword, signOut
@@ -42,7 +43,7 @@ app/
 components/
   ui/            Button (+buttonClass), Card, Modal (<dialog>), cn
   dashboard/     BentoGrid, BentoCard
-  layout/        TopBar (nav prop), NavLinks (active state, mobile scroll row), CreditsBadge, nav.ts (TOOLS + EXTRAS)
+  layout/        SiteFooter (© + Privacy/Terms/contact), LegalDocument, TopBar (nav prop), NavLinks (active state, mobile scroll row), CreditsBadge, nav.ts (TOOLS + EXTRAS)
   landing/       Hero3D (reduced-motion aware) -> Hero3DScene (R3F): mint wireframe globe + DIZURA S-band emblem, orbit ring, pulse
   studio/        Studio (results canvas + floating prompt bar, generate/poll, session history, ideas), ToolHero,
                  useGenerator (shared submit → poll w/ 2→10 s backoff + jitter → result; keeps signed jobId per creation), MotionStudio (10 CSS camera presets), ideas.ts
