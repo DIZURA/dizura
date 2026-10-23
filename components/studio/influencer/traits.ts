@@ -9,6 +9,14 @@ export type Tier = "average" | "bold" | "extreme";
 export const TIERS: readonly Tier[] = ["average", "bold", "extreme"];
 
 export type Tab = "builder" | "face" | "body" | "style";
+
+/** What the character is. "original" exists only in photo mode ("as in the photo"). */
+export type Kind = "original" | "human" | "animal" | "alien" | "robot" | "fantasy";
+/**
+ * Where the identity comes from: the builder ("new"), a trained DIZURA ID ("soul") or one
+ * uploaded reference photo ("photo"). Soul/photo modes hide the identity groups.
+ */
+export type IdentityMode = "new" | "soul" | "photo";
 export const TABS: readonly Tab[] = ["builder", "face", "body", "style"];
 
 type Option = {
@@ -22,20 +30,61 @@ type Option = {
   slot?: string;
   /** Selecting it clears the rest of the group (e.g. "No accessories"). */
   exclusive?: true;
+  /** Only offered in photo mode (e.g. "As in photo", "Keep outfit from photo"). */
+  photoOnly?: true;
 };
 type Group = {
   id: string;
   tab: Tab;
   max: number;
-  /** Group describes identity and is taken from the Soul ID instead when one is used. */
+  /** Group describes identity and is taken from the Soul ID / photo instead when one is used. */
   identity?: true;
+  /** Picks what the character is (kind + its variants): hidden for a DIZURA ID. */
+  transform?: true;
+  /** Only for these kinds (default: every kind). */
+  kinds?: readonly Kind[];
   only?: "female" | "male";
   options: readonly Option[];
 };
 
 export const GROUPS = [
   // ---- Builder -------------------------------------------------------------
-  { id: "gender", tab: "builder", max: 1, identity: true, options: [
+  { id: "kind", tab: "builder", max: 1, transform: true, options: [
+    { id: "original", en: "", photoOnly: true }, { id: "human", en: "" }, { id: "animal", en: "" },
+    { id: "alien", en: "" }, { id: "robot", en: "" }, { id: "fantasy", en: "" },
+  ] },
+  { id: "animal", tab: "builder", max: 1, transform: true, kinds: ["animal"], options: [
+    { id: "cat", en: "cat" }, { id: "dog", en: "dog" }, { id: "lion", en: "majestic lion" }, { id: "tiger", en: "tiger" },
+    { id: "falcon", en: "falcon" }, { id: "camel", en: "camel" }, { id: "horse", en: "Arabian horse" }, { id: "fox", en: "red fox" },
+    { id: "wolf", en: "wolf" }, { id: "panda", en: "panda" }, { id: "owl", en: "owl" }, { id: "rabbit", en: "rabbit" },
+  ] },
+  { id: "animalForm", tab: "builder", max: 1, transform: true, kinds: ["animal"], options: [
+    { id: "anthro", en: "anthropomorphic" }, { id: "natural", en: "natural" },
+  ] },
+  { id: "alien", tab: "builder", max: 1, transform: true, kinds: ["alien"], options: [
+    { id: "cosmic", en: "an elegant humanoid alien with softly glowing iridescent skin and luminous eyes" },
+    { id: "grey", en: "a classic grey alien with a large head and big black almond eyes" },
+    { id: "reptilian", en: "a reptilian alien with fine iridescent scales" },
+    { id: "crystal", en: "a crystalline alien whose body is made of translucent faceted crystal" },
+    { id: "insectoid", en: "an insectoid alien with a glossy exoskeleton and compound eyes" },
+    { id: "aquatic", en: "an aquatic alien with translucent fins and bioluminescent markings" },
+  ] },
+  { id: "robot", tab: "builder", max: 1, transform: true, kinds: ["robot"], options: [
+    { id: "android", en: "a sleek humanoid android with a polished white and chrome body" },
+    { id: "retro", en: "a charming retro tin robot with rivets and dials" },
+    { id: "mech", en: "a heavy armoured battle mech robot" },
+    { id: "cyborg", en: "a cyborg, half human and half machine, with visible mechanical parts" },
+    { id: "companion", en: "a cute rounded companion robot with an expressive screen face" },
+  ] },
+  { id: "fantasy", tab: "builder", max: 1, transform: true, kinds: ["fantasy"], options: [
+    { id: "elf", en: "elf with pointed ears and ethereal features" }, { id: "fairy", en: "fairy with delicate translucent wings" },
+    { id: "mermaid", en: "merperson with a shimmering fish tail" }, { id: "vampire", en: "vampire with pale skin and an elegant gothic air" },
+    { id: "genie", en: "genie with glowing magical aura" }, { id: "dragonkin", en: "dragon-born humanoid with horns and patches of scales" },
+  ] },
+  { id: "look", tab: "builder", max: 1, options: [
+    { id: "photoreal", en: "" }, { id: "film3d", en: "" }, { id: "anime", en: "" }, { id: "clay", en: "" }, { id: "comic", en: "" },
+  ] },
+  { id: "gender", tab: "builder", max: 1, identity: true, kinds: ["human", "fantasy"], options: [
     { id: "female", en: "woman" }, { id: "male", en: "man" },
   ] },
   { id: "expression", tab: "builder", max: 1, options: [
@@ -44,25 +93,25 @@ export const GROUPS = [
     { id: "serious", en: "a serious, intense gaze" }, { id: "playful", en: "a playful, cheeky grin" },
     { id: "surprised", en: "a surprised, wide-eyed expression" }, { id: "dreamy", en: "a soft, dreamy gaze" },
   ] },
-  { id: "ethnicity", tab: "builder", max: 1, identity: true, options: [
+  { id: "ethnicity", tab: "builder", max: 1, identity: true, kinds: ["human"], options: [
     { id: "gulf", en: "Gulf Arab" }, { id: "levant", en: "Levantine Arab" }, { id: "northAfrica", en: "North African" },
     { id: "african", en: "African" }, { id: "southAsian", en: "South Asian" }, { id: "eastAsian", en: "East Asian" },
     { id: "european", en: "European" }, { id: "mixed", en: "mixed-heritage" },
   ] },
-  { id: "age", tab: "builder", max: 1, identity: true, options: [
+  { id: "age", tab: "builder", max: 1, identity: true, kinds: ["human", "fantasy"], options: [
     { id: "young", en: "in their early twenties" }, { id: "adult", en: "in their thirties" },
     { id: "mature", en: "in their late forties" }, { id: "senior", en: "in their late sixties" },
   ] },
-  { id: "skin", tab: "builder", max: 1, identity: true, options: [
+  { id: "skin", tab: "builder", max: 1, identity: true, kinds: ["human"], options: [
     { id: "porcelain", en: "porcelain" }, { id: "fair", en: "fair" }, { id: "light", en: "light" }, { id: "olive", en: "olive" },
     { id: "tan", en: "warm tan" }, { id: "brown", en: "brown" }, { id: "deep", en: "deep brown" }, { id: "ebony", en: "ebony" },
   ] },
   // ---- Face ----------------------------------------------------------------
-  { id: "head", tab: "face", max: 1, identity: true, options: [
+  { id: "head", tab: "face", max: 1, identity: true, kinds: ["human"], options: [
     { id: "oval", en: "oval" }, { id: "long", en: "long" }, { id: "round", en: "round" }, { id: "square", en: "square-jawed" },
     { id: "heart", en: "heart-shaped" }, { id: "tiny", en: "unusually small", bold: true }, { id: "forehead", en: "high-foreheaded", bold: true },
   ] },
-  { id: "eyeShape", tab: "face", max: 1, identity: true, options: [
+  { id: "eyeShape", tab: "face", max: 1, identity: true, kinds: ["human"], options: [
     { id: "almond", en: "almond-shaped" }, { id: "round", en: "round" }, { id: "monolid", en: "monolid" }, { id: "large", en: "large" },
     { id: "hooded", en: "hooded" }, { id: "upturned", en: "upturned" }, { id: "downturned", en: "downturned" },
     { id: "close", en: "close-set", bold: true }, { id: "wide", en: "wide-set", bold: true }, { id: "huge", en: "huge doll-like", bold: true },
@@ -71,7 +120,7 @@ export const GROUPS = [
     { id: "black", en: "black" }, { id: "brown", en: "brown" }, { id: "hazel", en: "hazel" }, { id: "green", en: "green" },
     { id: "blue", en: "blue" }, { id: "iceBlue", en: "ice-blue" }, { id: "amber", en: "amber" }, { id: "grey", en: "grey" },
   ] },
-  { id: "features", tab: "face", max: 4, identity: true, options: [
+  { id: "features", tab: "face", max: 4, identity: true, kinds: ["human"], options: [
     { id: "freckles", en: "freckles", slot: "marks" }, { id: "dimples", en: "dimples", slot: "cheeks" },
     { id: "cheekbones", en: "high cheekbones", slot: "cheeks" }, { id: "fullLips", en: "full lips", slot: "lips" },
     { id: "thickBrows", en: "thick brows", slot: "brows" }, { id: "beautyMark", en: "a beauty mark", slot: "marks" },
@@ -81,11 +130,11 @@ export const GROUPS = [
     { id: "gapTeeth", en: "a gap between the front teeth", slot: "teeth", bold: true }, { id: "jugEars", en: "jug ears", slot: "ears", bold: true },
     { id: "bigForehead", en: "a big forehead", slot: "forehead", bold: true },
   ] },
-  { id: "facialHair", tab: "face", max: 1, identity: true, only: "male", options: [
+  { id: "facialHair", tab: "face", max: 1, identity: true, kinds: ["human"], only: "male", options: [
     { id: "clean", en: "clean-shaven" }, { id: "stubble", en: "light stubble" }, { id: "beard", en: "a full groomed beard" },
     { id: "goatee", en: "a goatee" }, { id: "moustache", en: "a moustache" }, { id: "pushBroom", en: "a thick push-broom moustache", bold: true },
   ] },
-  { id: "distinctive", tab: "face", max: 2, identity: true, options: [
+  { id: "distinctive", tab: "face", max: 2, identity: true, kinds: ["human"], options: [
     { id: "oddEyes", en: "heterochromia (two different eye colours)" }, { id: "faceTattoo", en: "a small face tattoo" },
     { id: "piercing", en: "a septum piercing" }, { id: "earPiercing", en: "multiple ear piercings" }, { id: "browSlits", en: "eyebrow slits" },
     { id: "goldGrill", en: "a gold grill" }, { id: "braces", en: "metal braces" }, { id: "scar", en: "a small scar through one eyebrow" },
@@ -99,29 +148,29 @@ export const GROUPS = [
     { id: "slim", en: "slim" }, { id: "athletic", en: "athletic" }, { id: "muscular", en: "muscular" }, { id: "curvy", en: "curvy" },
     { id: "heavy", en: "heavy-set" }, { id: "ultra", en: "hyper-muscular bodybuilder" },
   ] },
-  { id: "proportions", tab: "body", max: 2, options: [
+  { id: "proportions", tab: "body", max: 2, kinds: ["human"], options: [
     { id: "longLimbs", en: "long limbs" }, { id: "shortLegs", en: "short legs" }, { id: "shoulders", en: "broad shoulders" },
     { id: "waist", en: "a tiny waist" }, { id: "egg", en: "a round egg-shaped body", bold: true },
   ] },
-  { id: "neck", tab: "body", max: 1, identity: true, options: [
+  { id: "neck", tab: "body", max: 1, identity: true, kinds: ["human"], options: [
     { id: "standard", en: "" }, { id: "short", en: "a short neck" }, { id: "long", en: "an extremely long neck", bold: true },
     { id: "column", en: "a thick column neck", bold: true },
   ] },
   // ---- Style ---------------------------------------------------------------
-  { id: "hair", tab: "style", max: 1, options: [
+  { id: "hair", tab: "style", max: 1, kinds: ["human", "fantasy"], options: [
     { id: "hijab", en: "hijab", only: "female" }, { id: "long", en: "long flowing hair" }, { id: "short", en: "short hair" },
     { id: "braids", en: "braided hair" }, { id: "afro", en: "an afro" }, { id: "buzz", en: "a buzz cut" }, { id: "bald", en: "a bald head" },
     { id: "bowl", en: "a bowl cut" }, { id: "mullet", en: "a mullet" }, { id: "pigtails", en: "pigtails" }, { id: "mohawk", en: "a mohawk" },
     { id: "bob", en: "a sharp bob", bold: true }, { id: "beehive", en: "a towering beehive", bold: true }, { id: "perm", en: "a tight dome perm", bold: true },
     { id: "hairHorns", en: "hair sculpted into two horns", bold: true }, { id: "curlSphere", en: "hair shaped into a perfect curl sphere", bold: true },
   ] },
-  { id: "hairColor", tab: "style", max: 1, options: [
+  { id: "hairColor", tab: "style", max: 1, kinds: ["human", "fantasy"], options: [
     { id: "black", en: "jet-black" }, { id: "darkBrown", en: "dark brown" }, { id: "chestnut", en: "chestnut" }, { id: "ginger", en: "ginger" },
     { id: "red", en: "red" }, { id: "blonde", en: "blonde" }, { id: "platinum", en: "platinum" }, { id: "grey", en: "grey" },
     { id: "white", en: "white" }, { id: "pink", en: "pastel pink" }, { id: "lilac", en: "lilac" }, { id: "blue", en: "blue" }, { id: "green", en: "green" },
   ] },
   { id: "style", tab: "style", max: 1, options: [
-    { id: "modest", en: "" }, { id: "khaleeji", en: "" }, { id: "luxury", en: "luxury designer fashion" },
+    { id: "asPhoto", en: "", photoOnly: true }, { id: "modest", en: "" }, { id: "khaleeji", en: "" }, { id: "luxury", en: "luxury designer fashion" },
     { id: "casual", en: "relaxed casual clothes" }, { id: "streetstyle", en: "trendy streetwear" }, { id: "suits", en: "a sharp tailored suit" },
     { id: "sporty", en: "athleisure sportswear" }, { id: "retro", en: "retro vintage fashion" }, { id: "y2k", en: "playful Y2K fashion" },
     { id: "goth", en: "dark goth fashion" }, { id: "theatre", en: "a dramatic theatrical costume" },
@@ -149,6 +198,7 @@ const GENDERED_STYLE: Record<"modest" | "khaleeji", { female: string; male: stri
 };
 
 export const DEFAULT_SELECTION: Selection = {
+  kind: ["human"], animal: ["cat"], animalForm: ["anthro"], alien: ["cosmic"], robot: ["android"], fantasy: ["elf"], look: ["photoreal"],
   gender: ["female"], expression: ["smile"], ethnicity: ["gulf"], age: ["young"], skin: ["tan"],
   head: ["oval"], eyeShape: ["almond"], eyeColor: ["brown"], features: ["cheekbones"], facialHair: ["clean"], distinctive: [],
   height: ["average"], build: ["slim"], proportions: [], neck: ["standard"],
@@ -162,25 +212,41 @@ function genderOf(sel: Selection): "female" | "male" {
   return sel.gender[0] === "male" ? "male" : "female";
 }
 
-/** Options shown for a group given the character type and gender. */
-export function visibleOptions(groupId: GroupId, tier: Tier, sel: Selection): readonly AnyOption[] {
-  const gender = genderOf(sel);
-  return groupById(groupId).options.filter((o: AnyOption) => (tier !== "average" || !o.bold) && (!o.only || o.only === gender));
+/** The kind that drives visibility/prompting (a DIZURA ID is always a person). */
+export function kindOf(sel: Selection, mode: IdentityMode = "new"): Kind {
+  return mode === "soul" ? "human" : (sel.kind[0] ?? "human");
 }
 
-/** Whether a group applies at all (facial hair only for men, hair colour hidden under a hijab). */
-export function groupVisible(groupId: GroupId, sel: Selection): boolean {
+/** Options shown for a group given the character type, gender and identity mode. */
+export function visibleOptions(groupId: GroupId, tier: Tier, sel: Selection, mode: IdentityMode = "new"): readonly AnyOption[] {
+  const gender = genderOf(sel);
+  return groupById(groupId).options.filter(
+    (o: AnyOption) => (tier !== "average" || !o.bold) && (!o.only || o.only === gender) && (!o.photoOnly || mode === "photo"),
+  );
+}
+
+/**
+ * Whether a group applies at all: identity groups are hidden for a DIZURA ID / photo, groups
+ * are limited to their kinds, facial hair only for men, hair colour hidden under a hijab.
+ */
+export function groupVisible(groupId: GroupId, sel: Selection, mode: IdentityMode = "new"): boolean {
   const g = groupById(groupId);
+  const kind = kindOf(sel, mode);
+  if (mode !== "new" && g.identity) return false;
+  if (mode === "soul" && g.transform) return false;
+  if (mode === "photo" && (groupId === "hair" || groupId === "hairColor")) return false;
+  if (g.kinds && !(g.kinds as readonly Kind[]).includes(kind)) return false;
+  if (kind === "animal" && sel.animalForm[0] === "natural" && (groupId === "style" || groupId === "height")) return false;
   if (g.only && g.only !== genderOf(sel)) return false;
   if (groupId === "hairColor" && (sel.hair[0] === "hijab" || sel.hair[0] === "bald")) return false;
   return true;
 }
 
-/** Drops options that are no longer allowed (tier/gender changes) and refills single-choice groups. */
-export function normalize(sel: Selection, tier: Tier): Selection {
+/** Drops options that are no longer allowed (tier/gender/mode changes) and refills single-choice groups. */
+export function normalize(sel: Selection, tier: Tier, mode: IdentityMode = "new"): Selection {
   const next = { ...sel } as Record<GroupId, string[]>;
   for (const g of GROUPS) {
-    const allowed = new Set(visibleOptions(g.id, tier, next as Selection).map((o) => o.id));
+    const allowed = new Set(visibleOptions(g.id, tier, next as Selection, mode).map((o) => o.id));
     let picked = next[g.id].filter((id) => allowed.has(id));
     if (g.max === 1 && picked.length === 0) {
       const fallback = (DEFAULT_SELECTION[g.id] as string[])[0];
@@ -191,8 +257,13 @@ export function normalize(sel: Selection, tier: Tier): Selection {
   return next as Selection;
 }
 
+/** Photo mode starts from "as in the photo": same subject, same outfit, nothing added. */
+export function photoDefaults(sel: Selection, tier: Tier): Selection {
+  return normalize({ ...sel, kind: ["original"], style: ["asPhoto"], accessories: ["none"] }, tier, "photo");
+}
+
 /** Toggle an option, enforcing max-per-group, one-per-slot and exclusive options. */
-export function toggle(sel: Selection, groupId: GroupId, optionId: string, tier: Tier): Selection {
+export function toggle(sel: Selection, groupId: GroupId, optionId: string, tier: Tier, mode: IdentityMode = "new"): Selection {
   const g = groupById(groupId);
   const current = sel[groupId] as string[];
   let picked: string[];
@@ -209,26 +280,27 @@ export function toggle(sel: Selection, groupId: GroupId, optionId: string, tier:
     });
     picked = [...picked, optionId].slice(-g.max);
   }
-  return normalize({ ...sel, [groupId]: picked } as Selection, tier);
+  return normalize({ ...sel, [groupId]: picked } as Selection, tier, mode);
 }
 
 function pick<T>(items: readonly T[]): T {
   return items[Math.floor(Math.random() * items.length)]!;
 }
 
-/** Random coherent character for the given character type. */
-export function randomize(tier: Tier, base: Selection = DEFAULT_SELECTION): Selection {
+/** Random coherent character for the given character type (keeps the chosen kind and look). */
+export function randomize(tier: Tier, base: Selection = DEFAULT_SELECTION, mode: IdentityMode = "new"): Selection {
   let sel = { ...base } as Record<GroupId, string[]>;
   for (const g of GROUPS) {
-    const options = visibleOptions(g.id, tier, sel as Selection).filter((o) => !o.exclusive);
+    if (g.id === "kind" || g.id === "look") continue;
+    const options = visibleOptions(g.id, tier, sel as Selection, mode).filter((o) => !o.exclusive && !o.photoOnly);
     if (g.max === 1) sel[g.id] = [pick(options).id];
     else {
       const count = Math.floor(Math.random() * Math.min(3, g.max + 1));
       sel = { ...sel, [g.id]: [] };
-      for (let i = 0; i < count; i++) sel = toggle(sel as Selection, g.id, pick(options).id, tier) as Record<GroupId, string[]>;
+      for (let i = 0; i < count; i++) sel = toggle(sel as Selection, g.id, pick(options).id, tier, mode) as Record<GroupId, string[]>;
     }
   }
-  return normalize(sel as Selection, tier);
+  return normalize(sel as Selection, tier, mode);
 }
 
 // ---------------------------------------------------------------------------
@@ -253,6 +325,23 @@ const TIER_LOOK: Record<Tier, string> = {
   bold: "striking fashion-editorial casting look with distinctive yet photoreal features",
   extreme: "avant-garde casting look with exaggerated, surreal yet photoreal features and proportions",
 };
+/** Character-type flavour for non-human characters. */
+const TIER_DESIGN: Record<Tier, string> = {
+  average: "appealing, believable character design",
+  bold: "striking, distinctive character design",
+  extreme: "exaggerated, surreal character design",
+};
+
+type LookId = OptionId<"look">;
+/** Render style: how the image opens and the finishing quality line. */
+const LOOKS: Record<LookId, { lead: string; finish: string }> = {
+  photoreal: { lead: "Photorealistic photo", finish: "Hyper-realistic photo, lifelike textures, crisp detail, 85mm lens, sharp focus" },
+  film3d: { lead: "3D animated feature-film character render", finish: "Stylised 3D animation look, expressive appealing proportions, soft global illumination, rich detail" },
+  anime: { lead: "High-quality anime illustration", finish: "Anime art style, clean line art, cel shading, vibrant colours" },
+  clay: { lead: "Claymation character photo", finish: "Handcrafted clay stop-motion look, visible clay texture, miniature set lighting" },
+  comic: { lead: "Comic-book illustration", finish: "Bold comic-book style, confident ink outlines, halftone shading, dynamic colours" },
+};
+const lookOf = (sel: Selection) => LOOKS[(sel.look[0] ?? "photoreal") as LookId];
 
 function phrase<G extends GroupId>(sel: Selection, groupId: G): string[] {
   const g = groupById(groupId);
@@ -263,27 +352,67 @@ function phrase<G extends GroupId>(sel: Selection, groupId: G): string[] {
 const one = <G extends GroupId>(sel: Selection, groupId: G) => phrase(sel, groupId)[0] ?? "";
 const list = (items: string[]) => (items.length < 2 ? items.join("") : `${items.slice(0, -1).join(", ")} and ${items.at(-1)}`);
 
-function styling(sel: Selection, gender: "female" | "male" | "neutral"): string {
+function styling(sel: Selection, gender: "female" | "male" | "neutral", withHair: boolean): string {
   const style = sel.style[0];
-  const outfit = style === "modest" || style === "khaleeji" ? GENDERED_STYLE[style][gender] : one(sel, "style");
+  const outfit =
+    style === "asPhoto" ? "the same outfit as in the reference photo"
+    : style === "modest" || style === "khaleeji" ? GENDERED_STYLE[style][gender]
+    : one(sel, "style");
   const hairId = sel.hair[0];
-  const hair =
-    hairId === "hijab" ? "wearing an elegant hijab" : hairId === "bald" ? "with a bald head" : `with ${one(sel, "hair")} in ${one(sel, "hairColor")}`;
+  const hair = !withHair
+    ? ""
+    : hairId === "hijab" ? "wearing an elegant hijab" : hairId === "bald" ? "with a bald head" : `with ${one(sel, "hair")} in ${one(sel, "hairColor")}`;
   const acc = phrase(sel, "accessories");
   return [hair, `dressed in ${outfit}`, acc.length ? `accessorised with ${list(acc)}` : ""].filter(Boolean).join(", ");
 }
 
 function framing(output: OutputKind, scene: SceneKey, expression: string): string {
   return output === "sheet"
-    ? `Character reference sheet with two panels side by side: left a tight front-facing close-up portrait with the whole head and hair in frame, right a full-body front-facing standing shot, arms relaxed, ${expression}. Pure white seamless background, bright soft even light`
-    : `Full-body fashion portrait ${SCENES[scene]}, natural pose, looking at the camera with ${expression}`;
+    ? `Character reference sheet with two panels side by side: left a tight front-facing close-up portrait with the whole head in frame, right a full-body front-facing standing shot, ${expression}. Pure white seamless background, bright soft even light`
+    : `Full-body portrait ${SCENES[scene]}, natural pose, looking at the camera with ${expression}`;
 }
 
 const FINISH = "Hyper-realistic photo, natural skin texture, crisp detail, 85mm lens, sharp focus";
 
+/** Who/what the (non-human) character is. */
+function subject(sel: Selection, kind: Kind): string {
+  switch (kind) {
+    case "animal":
+      return sel.animalForm[0] === "natural"
+        ? `a ${one(sel, "animal")}`
+        : `an anthropomorphic ${one(sel, "animal")} character standing upright with human-like posture`;
+    case "alien":
+      return one(sel, "alien");
+    case "robot":
+      return one(sel, "robot");
+    case "fantasy":
+      return `a ${genderOf(sel)} ${one(sel, "fantasy")}, ${one(sel, "age")}`;
+    default:
+      return `a ${one(sel, "ethnicity")} ${one(sel, "gender")} ${one(sel, "age")} with ${one(sel, "skin")} skin`;
+  }
+}
+
+/** Body + styling lines for a non-human character. */
+function creatureDetails(sel: Selection, kind: Kind): string[] {
+  const natural = kind === "animal" && sel.animalForm[0] === "natural";
+  const acc = phrase(sel, "accessories");
+  return [
+    `Eyes: ${one(sel, "eyeColor")}`,
+    natural ? `Body: ${one(sel, "build")} build` : `Body: ${one(sel, "height")}, ${one(sel, "build")} build`,
+    natural
+      ? acc.length ? `Wearing ${list(acc)}` : ""
+      : `Styling: ${styling(sel, kind === "fantasy" ? genderOf(sel) : "neutral", kind === "fantasy")}`,
+  ].filter(Boolean);
+}
+
 export function composeCharacterPrompt(sel: Selection, tier: Tier, output: OutputKind, scene: SceneKey): string {
+  const kind = kindOf(sel);
+  const look = lookOf(sel);
+  const opening = framing(output, scene, one(sel, "expression"));
+  if (kind !== "human") {
+    return [`${opening}. ${look.lead} with an ${TIER_DESIGN[tier]}: ${subject(sel, kind)}`, ...creatureDetails(sel, kind), look.finish].join(". ");
+  }
   const gender = genderOf(sel);
-  const person = `${one(sel, "ethnicity")} ${one(sel, "gender")} ${one(sel, "age")} with ${one(sel, "skin")} skin`;
   const face = [
     `${one(sel, "head")} face shape`,
     `${one(sel, "eyeShape")} ${one(sel, "eyeColor")} eyes`,
@@ -293,18 +422,44 @@ export function composeCharacterPrompt(sel: Selection, tier: Tier, output: Outpu
   ];
   const body = [`${one(sel, "height")}, ${one(sel, "build")} build`, ...phrase(sel, "proportions"), ...phrase(sel, "neck")];
   return [
-    `${framing(output, scene, one(sel, "expression"))}. Photorealistic photo with a ${TIER_LOOK[tier]}: a ${person}`,
+    `${opening}. ${look.lead} with a ${TIER_LOOK[tier]}: ${subject(sel, kind)}`,
     `Face: ${list(face)}`,
     `Body: ${list(body)}`,
-    `Styling: ${styling(sel, gender)}`,
-    FINISH,
+    `Styling: ${styling(sel, gender, true)}`,
+    sel.look[0] === "photoreal" ? FINISH : look.finish,
   ].join(". ");
 }
 
 /** Prompt for a trained Soul ID character: the reference supplies the identity, we add styling only. */
 export function composeSoulIdPrompt(sel: Selection, output: OutputKind, scene: SceneKey): string {
+  const look = lookOf(sel);
   const body = [`${one(sel, "height")}, ${one(sel, "build")} build`, ...phrase(sel, "proportions")];
-  return [`${framing(output, scene, one(sel, "expression"))}. Photorealistic photo of the character`, `Body: ${list(body)}`, `Styling: ${styling(sel, "neutral")}`, FINISH].join(". ");
+  return [
+    `${framing(output, scene, one(sel, "expression"))}. ${look.lead} of the character`,
+    `Body: ${list(body)}`,
+    `Styling: ${styling(sel, "neutral", true)}`,
+    sel.look[0] === "photoreal" ? FINISH : look.finish,
+  ].join(". ");
+}
+
+/**
+ * Prompt for a character made from one reference photo (a person, pet, toy, mascot…): keep the
+ * subject recognisable, either as photographed ("original") or reimagined as another kind.
+ */
+export function composePhotoPrompt(sel: Selection, tier: Tier, output: OutputKind, scene: SceneKey): string {
+  const kind = kindOf(sel, "photo");
+  const look = lookOf(sel);
+  const opening = framing(output, scene, one(sel, "expression"));
+  const keep = "Keep the subject from the reference photo clearly recognisable: same face, features, colouring and distinctive markings";
+  if (kind === "original") {
+    const acc = phrase(sel, "accessories");
+    const extra = sel.style[0] !== "asPhoto" ? styling(sel, "neutral", false) : acc.length ? `accessorised with ${list(acc)}` : "";
+    return [`${opening}. ${look.lead} of the exact same subject as in the reference photo`, keep, extra ? `Styling: ${extra}` : "", look.finish]
+      .filter(Boolean)
+      .join(". ");
+  }
+  const details = kind === "human" ? [`Body: ${one(sel, "height")}, ${one(sel, "build")} build`, `Styling: ${styling(sel, "neutral", false)}`] : creatureDetails(sel, kind);
+  return [`${opening}. ${look.lead} with an ${TIER_DESIGN[tier]}: reimagine the subject of the reference photo as ${kind === "human" ? "a human" : subject(sel, kind)}`, keep, ...details, look.finish].join(". ");
 }
 
 // ---------------------------------------------------------------------------
@@ -313,8 +468,19 @@ export function composeSoulIdPrompt(sel: Selection, output: OutputKind, scene: S
 
 /** Groups shown as photo cards (photos in /public/influencer/options/<group>/<option>.webp, see option-photos.ts). */
 export const PHOTO_GROUPS: ReadonlySet<GroupId> = new Set<GroupId>([
-  "gender", "expression", "ethnicity", "age", "facialHair", "distinctive", "build", "hair", "style", "accessories",
+  "kind", "animal", "alien", "robot", "fantasy", "look", "gender", "expression", "ethnicity", "age", "facialHair", "distinctive", "build", "hair", "style", "accessories",
 ]);
+
+/** Placeholder glyphs for option cards that have no photo yet (kinds, creatures, looks). */
+export const GLYPHS: Partial<Record<GroupId, Record<string, string>>> = {
+  kind: { original: "📷", human: "🧑", animal: "🦁", alien: "👽", robot: "🤖", fantasy: "🧝" },
+  animal: { cat: "🐱", dog: "🐶", lion: "🦁", tiger: "🐯", falcon: "🦅", camel: "🐪", horse: "🐴", fox: "🦊", wolf: "🐺", panda: "🐼", owl: "🦉", rabbit: "🐰" },
+  alien: { cosmic: "✨", grey: "👽", reptilian: "🦎", crystal: "💎", insectoid: "🪲", aquatic: "🐙" },
+  robot: { android: "🤖", retro: "📻", mech: "🦾", cyborg: "⚙️", companion: "🫧" },
+  fantasy: { elf: "🧝", fairy: "🧚", mermaid: "🧜", vampire: "🧛", genie: "🧞", dragonkin: "🐉" },
+  look: { photoreal: "📷", film3d: "🎬", anime: "🌸", clay: "🧸", comic: "💥" },
+  style: { asPhoto: "📷" },
+};
 
 /**
  * Swatch colours for colour groups. Data, not styling tokens (documented exception to the

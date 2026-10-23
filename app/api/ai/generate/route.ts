@@ -1,8 +1,8 @@
 import { randomUUID } from "node:crypto";
 import { z } from "zod";
 import type { GenerationJob } from "@/types";
-import { providerFor, submit } from "@/lib/ai";
-import { resolveJobImage } from "@/lib/ai/resolve";
+import { providerFor, submit, submitAdImage } from "@/lib/ai";
+import { resolveJobImage, resolveUploadImage } from "@/lib/ai/resolve";
 import { requireUser } from "@/lib/auth/session";
 import { characters } from "@/lib/characters/store";
 import { generationCost, SOUL_ID, VIDEO_DURATION } from "@/lib/credits/pricing";
@@ -26,9 +26,12 @@ const body = z
     /** One of the caller's trained Soul ID characters (images only). */
     characterId: z.uuid().optional(),
     characterStrength: z.number().min(0.1).max(1).optional(),
+    /** Signed handle of the caller's own uploaded photo: the character is made from it (images only). */
+    referencePhoto: z.string().min(10).max(2048).optional(),
   })
   .refine((b) => !b.characterId || b.kind === "image", { message: "Characters are used for images; animate the image afterwards." })
   .refine((b) => !b.sourceJob || b.kind === "video", { message: "Only videos can start from an image." })
+  .refine((b) => !b.referencePhoto || (b.kind === "image" && !b.characterId), { message: "A reference photo makes an image, without a DIZURA ID." });
 
 export const POST = route(async (req: Request) => {
   const user = await requireUser(req);
@@ -38,6 +41,7 @@ export const POST = route(async (req: Request) => {
   assertSigningConfigured();
   const sourceImageUrl = input.sourceJob ? await resolveJobImage(input.sourceJob, user.id) : undefined;
   const soulReference = input.characterId ? await resolveCharacter(input.characterId, user.id, input.characterStrength) : undefined;
+  const photoUrl = input.referencePhoto ? resolveUploadImage(input.referencePhoto, user.id) : undefined;
 
   const cost = generationCost(input);
   const referenceId = randomUUID();
@@ -46,7 +50,10 @@ export const POST = route(async (req: Request) => {
 
   let submitted: Awaited<ReturnType<typeof submit>>;
   try {
-    submitted = await submit({ ...input, sourceImageUrl, soulReference }, referenceId);
+    // A reference photo goes to the reference-image model (same as Ads Studio), at 2k / medium.
+    submitted = photoUrl
+      ? await submitAdImage({ prompt: input.prompt, imageUrls: [photoUrl], aspectRatio: input.aspectRatio, resolution: "2k", quality: "medium" }, referenceId)
+      : await submit({ ...input, sourceImageUrl, soulReference }, referenceId);
   } catch (err) {
     await credits().apply({ userId: user.id, delta: cost, reason: "refund", referenceId });
     throw err;

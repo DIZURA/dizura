@@ -5,8 +5,8 @@ import { useI18n } from "@/components/i18n/I18nProvider";
 import { cn } from "@/components/ui/cn";
 import { OPTION_PHOTOS } from "./option-photos";
 import {
-  GROUPS, groupVisible, PHOTO_GROUPS, SWATCHES, TABS, TIERS, toggle, visibleOptions,
-  type GroupId, type Selection, type Tab, type Tier,
+  GLYPHS, GROUPS, groupVisible, PHOTO_GROUPS, SWATCHES, TABS, TIERS, toggle, visibleOptions,
+  type GroupId, type IdentityMode, type Selection, type Tab, type Tier,
 } from "./traits";
 
 /** Groups whose placeholder art shows a full body rather than a face. */
@@ -15,20 +15,20 @@ const BODY_GROUPS: ReadonlySet<GroupId> = new Set<GroupId>(["build", "style", "g
 /**
  * Character builder: character type (Average / Bold / Extreme) + trait groups in
  * Builder · Face · Body · Style tabs. Visual groups are photo cards, colours are swatches,
- * fine details are chips. With a Soul ID the identity groups are hidden.
+ * fine details are chips. With a DIZURA ID or a reference photo the identity groups are hidden.
  */
 export function CharacterBuilder({
   tier,
   onTier,
   selection,
   onSelection,
-  soulLocked,
+  mode,
 }: {
   tier: Tier;
   onTier: (tier: Tier) => void;
   selection: Selection;
   onSelection: (next: Selection) => void;
-  soulLocked: boolean;
+  mode: IdentityMode;
 }) {
   const { t, locale } = useI18n();
   const b = t.builder;
@@ -36,7 +36,7 @@ export function CharacterBuilder({
   const baseId = useId();
   const [tab, setTab] = useState<Tab>("builder");
 
-  const groups = GROUPS.filter((g) => g.tab === tab && !(soulLocked && "identity" in g) && groupVisible(g.id, selection));
+  const groups = GROUPS.filter((g) => g.tab === tab && groupVisible(g.id, selection, mode));
 
   function onTabKey(e: KeyboardEvent<HTMLButtonElement>) {
     if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") return;
@@ -109,8 +109,8 @@ export function CharacterBuilder({
             const labels = b.opts[g.id] as Record<string, string>;
             const swatches = SWATCHES[g.id];
             const photo = PHOTO_GROUPS.has(g.id);
-            const options = visibleOptions(g.id, tier, selection);
-            const pick = (id: string) => onSelection(toggle(selection, g.id as GroupId, id, tier));
+            const options = visibleOptions(g.id, tier, selection, mode);
+            const pick = (id: string) => onSelection(toggle(selection, g.id as GroupId, id, tier, mode));
             const state = (on: boolean) =>
               multi ? { "aria-pressed": on } : { role: "radio" as const, "aria-checked": on };
             return (
@@ -135,7 +135,7 @@ export function CharacterBuilder({
                             o.bold && !on && "border-dashed border-ink-500",
                           )}
                         >
-                          <OptionArt group={g.id} id={o.id} index={i} body={BODY_GROUPS.has(g.id)} />
+                          <OptionArt group={g.id} id={o.id} index={i} body={BODY_GROUPS.has(g.id)} glyph={GLYPHS[g.id]?.[o.id]} />
                           {on && (
                             <span aria-hidden className="absolute end-1.5 top-1.5 grid size-5 place-items-center rounded-full bg-mint-500 text-[11px] font-bold text-ink-950">✓</span>
                           )}
@@ -198,8 +198,15 @@ export function CharacterBuilder({
   );
 }
 
-/** Option photo when generated (see option-photos.ts), else DIZURA placeholder art. */
-function OptionArt({ group, id, index, body }: { group: string; id: string; index: number; body?: boolean }) {
+/** Option photo when generated (see option-photos.ts), else a glyph or DIZURA placeholder art. */
+function OptionArt({ group, id, index, body, glyph }: { group: string; id: string; index: number; body?: boolean; glyph?: string }) {
+  if (glyph && !OPTION_PHOTOS.has(`${group}/${id}`)) {
+    return (
+      <span aria-hidden className="absolute inset-0 grid place-items-center pb-5 text-4xl sm:text-5xl" style={{ background: `var(--art-${index % 6})` }}>
+        <span className="drop-shadow-[0_6px_14px_var(--color-ink-950)] transition duration-300 group-hover:scale-110 motion-reduce:transition-none">{glyph}</span>
+      </span>
+    );
+  }
   if (OPTION_PHOTOS.has(`${group}/${id}`)) {
     return (
       // eslint-disable-next-line @next/next/no-img-element -- small static thumbnails
