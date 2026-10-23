@@ -15,7 +15,8 @@
     "check": "npm run typecheck && npm run lint && npm run scan:secrets",
     "scan:secrets": "node scripts/scan-secrets.mjs",
     "photos:options": "node --env-file-if-exists=.env.local --experimental-strip-types scripts/generate-option-photos.mjs",
-    "prepare": "git config core.hooksPath .githooks || true"
+    "prepare": "git config core.hooksPath .githooks || true",
+    "margins": "node --env-file-if-exists=.env.local --experimental-strip-types scripts/check-margins.mjs"
   },
   "dependencies": {
     "@react-three/fiber": "^9.8.2",
