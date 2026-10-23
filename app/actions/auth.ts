@@ -43,12 +43,16 @@ async function guard(bucket: string, limit: number): Promise<AuthErrorCode | nul
 async function client() {
   try {
     return await createSupabaseServerClient();
-  } catch {
+  } catch (err) {
+    // Usually missing NEXT_PUBLIC_SUPABASE_* env vars on the deploy; logged so it shows in function logs.
+    console.error("[auth] Supabase client unavailable:", err instanceof Error ? err.message : "unknown");
     return null;
   }
 }
 
 function mapAuthError(code: string | undefined, status: number | undefined): AuthErrorCode {
+  // Codes only — never emails or passwords.
+  console.warn(`[auth] Supabase auth error: ${code ?? "unknown"} (${status ?? "?"})`);
   if (status === 429 || code === "over_request_rate_limit" || code === "over_email_send_rate_limit") return "rateLimited";
   if (code === "email_not_confirmed") return "emailNotConfirmed";
   if (code === "weak_password") return "weakPassword";
