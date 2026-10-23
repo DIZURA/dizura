@@ -2,7 +2,7 @@
 
 > Source of truth for architecture, decisions, routes and roadmap.
 > **Every session: read this first; update it in the same change as any architectural edit.**
-> Last updated: 2026-10-23
+> Last updated: 2026-10-23 (Genjutsu + option photos)
 
 ## 1. Product
 AI creative studio for GCC brands, Arabic-first (RTL) with English (LTR).
@@ -28,7 +28,7 @@ app/
   layout.tsx                 html lang/dir from locale cookie, fonts, I18nProvider
   page.tsx                   Landing (3D hero + bento grid)
   (workspaces)/layout.tsx    TopBar with tool nav (no sidebar), full-width main
-  (workspaces)/ai-influencer/page.tsx   Brand hero (3D DIZURA globe) + InfluencerWorkspace (builder Step 1 → WAN 3.0 Step 2 under it, preview canvas, presets) + How it works / Features / FAQ / CTA sections
+  (workspaces)/ai-influencer/page.tsx   Slim hero (gradient title + globe) + InfluencerWorkspace only (Step 1 builder → Step 2 Genjutsu under it, preview/workspace column)
   (workspaces)/{motion,image,video,ads-studio}/page.tsx   ToolHero + Studio (ideas from components/studio/ideas.ts)
   icon.png / apple-icon.png   favicon + touch icon from the DIZURA mark
   (workspaces)/{geo-audit,b2b,scheduler}/page.tsx   WorkspaceHeader + tool UI
@@ -46,7 +46,7 @@ components/
   landing/       Hero3D (reduced-motion aware) -> Hero3DScene (R3F): mint wireframe globe + DIZURA S-band emblem, orbit ring, pulse
   studio/        Studio (results canvas + floating prompt bar, generate/poll, session history, ideas), ToolHero,
                  useGenerator (shared submit → poll w/ 2→10 s backoff + jitter → result; keeps signed jobId per creation), MotionStudio (10 CSS camera presets), ideas.ts
-  studio/influencer/  InfluencerWorkspace (left: Step 1 builder [base identity: New face | Soul ID + likeness], output Sheet 16:9 | Portrait 9:16/3:4/1:1 + scene, details, ⚡5; Step 2 WAN 3.0 animate [portraits only, 8 motions, direction, duration]; Soul ID panel. Right: preview canvas + workspace thumbs. Below: 6 presets), CharacterBuilder (character type Average/Bold/Extreme + Builder/Face/Body/Style tabs, 18 trait groups), SectionHeading, traits.ts (GROUPS catalogue, toggle/normalize/randomize, composeCharacterPrompt, composeSoulIdPrompt, PRESETS, ANIMATIONS), SoulIdPanel (train: name, 5–30 photos re-encoded to JPEG ≤1536px in-browser [strips EXIF], consent, ⚡40; list w/ status + delete), useCharacters (polls while training)
+  studio/influencer/  InfluencerWorkspace (left: Step 1 builder [base identity: New face | Soul ID + likeness], output Sheet 16:9 | Portrait 9:16/3:4/1:1 + scene, details, ⚡5; Step 2 GenjutsuStep; Soul ID panel. Right: preview canvas + workspace thumbs, "Use in video"), CharacterBuilder (character type cards + Builder/Face/Body/Style tabs, 19 groups: photo cards for visual groups, colour swatches, chips), GenjutsuStep (reference video upload w/ progress → character images [own creations + uploaded photos, ≤ 8] → quality 480/720/1080p → optional changes → cost from duration), media.ts (toJpeg, uploadPhoto, uploadVideo [direct signed PUT], videoMeta), option-photos.ts (generated manifest), traits.ts (GROUPS incl. expression/Emotion, PHOTO_GROUPS, SWATCHES, toggle/normalize/randomize, composeCharacterPrompt, composeSoulIdPrompt), SoulIdPanel (train: name, 5–30 photos re-encoded to JPEG ≤1536px in-browser [strips EXIF], consent, ⚡40; list w/ status + delete), useCharacters (polls while training)
   workspace/     WorkspaceHeader (geo-audit, b2b, scheduler)
   geo/           GeoAuditForm
   i18n/          I18nProvider/useI18n, LanguageToggle
@@ -58,12 +58,14 @@ lib/
   http.ts        ApiError, ok/fail, route() wrapper, parseJson (size-capped), providerFetch
   api-client.ts  Browser fetch for our own API (typed ApiResult)
   ai/index.ts    Provider facade (Higgsfield only)
-  higgsfield/client.ts   Higgsfield API: MODELS, buildSubmission (+custom_reference_id), submitGeneration (Idempotency-Key), getJob, uploadMedia (presigned PUT), create/get/deleteSoulReference
+  higgsfield/client.ts   Higgsfield API: MODELS (+motionTransfer = Genjutsu), buildSubmission (+custom_reference_id), submitGeneration / submitMotionTransfer (Idempotency-Key), getJob, uploadMedia (presigned PUT), create/get/deleteSoulReference
+  ai/resolve.ts  resolveJobImage (caller's own completed job → provider image URL), resolveUploadImage (caller's own upload token)
+  media/         mp4.ts (range-read moov/mvhd duration), reference-videos.ts (private Supabase Storage bucket: signed upload URL, header inspect, signed download URL; memory store + /api/uploads/video/dev in dev only)
   gsc/mcp.ts     MCP Streamable-HTTP client (initialize -> tools/call), degrades to null
   geo/audit.ts   GEO checks (AI crawlers in robots.txt, llms.txt, JSON-LD, meta, depth…)
   tap/client.ts  createCharge, retrieveCharge, verifyWebhookHash (HMAC hashstring)
   tap/fulfill.ts fulfillCharge() — re-fetch, validate amount, idempotent grant
-  credits/       pricing.ts (packs + generationCost + SOUL_ID limits/price), store.ts (CreditStore: memory dev / Supabase RPC)
+  credits/       pricing.ts (packs + generationCost + SOUL_ID + GENJUTSU/genjutsuCost), store.ts (CreditStore: memory dev / Supabase RPC)
   characters/    store.ts (CharacterStore: Supabase REST as service role w/ uuid-validated filters / memory in dev)
   auth/session.ts getCurrentUser() (React cache) + requireUser(req): getClaims() on cookie or Bearer; same-origin check for cookie-auth writes
   auth/redirect.ts safeNext() (open-redirect guard), PROTECTED_PREFIXES, GUEST_ONLY
@@ -79,6 +81,8 @@ supabase/migrations/20261022080434_0003_welcome_credits.sql   private.grant_welc
 supabase/migrations/20261022083415_0004_welcome_credits_30.sql   welcome bonus 10 -> 30 (APPLIED)
 supabase/migrations/20261022215306_0005_characters.sql   characters table (Soul ID), RLS select-own, no anon/authenticated privileges (APPLIED)
 supabase/migrations/20261022215528_0006_service_role_grants.sql   grant service_role EXECUTE on credit RPCs + CRUD on characters (APPLIED — fixes prod credit ledger)
+supabase/migrations/20261023014838_0007_reference_videos_bucket.sql   private `reference-videos` bucket (50 MB, mp4/mov), no client policies (APPLIED)
+scripts/generate-option-photos.mjs  `npm run photos:options` — Soul 2 option photos → public/influencer/options/*.webp (256 px, sharp) + manifest
 scripts/scan-secrets.mjs  Zero-dep secret scanner (pre-commit hook in .githooks/, CI in .github/workflows/security.yml)
 proxy.ts         Session refresh + page guards (guest -> /login?next=, signed-in away from /login) + per-request nonce CSP
 ```
@@ -119,6 +123,8 @@ proxy.ts         Session refresh + page guards (guest -> /login?next=, signed-in
 | 33 | **Soul ID characters**: photos are re-encoded in the browser (JPEG ≤ 1536 px, EXIF stripped) → `POST /api/uploads/image` (magic-byte type check, ≤ 5 MB) → Higgsfield presigned PUT (provider headers sent verbatim, our API key never sent, upload URL never logged) → returns a **signed 1 h upload token** (not a URL). `POST /api/characters` accepts only the caller's own upload tokens + explicit consent, reserves 40 credits (`soul:<id>`), trains `model_version v2`; refunds once if training fails. Provider reference ids never reach the browser; generation takes our `characterId`, resolved server-side with an ownership + "completed" check, sent as `custom_reference_id` (+ strength 0.1–1). Delete removes the provider identity too (non-404 provider errors block the delete so nothing is orphaned). Limits: 5–30 photos, ≤ 5 characters/user. | Consistent faces with consent, privacy (EXIF/GPS) and cost controls; no URL injection or cross-user access. |
 | 34 | **Service role needs explicit grants** in this project (no default privileges, and revoking from PUBLIC removed its EXECUTE). Every new table/function the server uses must `grant … to service_role` explicitly. | Found 2026-10-22: production credit RPCs were not executable by service_role (would have broken every generation once the service key was set). Fixed in 0006, verified in a rolled-back transaction. |
 | 35 | **Influencer page mirrors the Higgsfield AI Influencer Studio structure** in DIZURA's design: character type tiers (Average/Bold/Extreme ↔ their normal/freak/total; Bold+ unlock exaggerated options), 18 trait groups in 4 tabs modelled on their builder's option catalogue (read via the Higgsfield MCP, `ai_influencer_get_options`), randomize, presets, character-sheet output (close-up + full body on white, 16:9). GCC additions: Gulf/Levantine/North African origins, hijab, modest + Khaleeji styling, majlis/desert scenes; gender limited to female/male. Labels are ours (i18n), the catalogue → English prompt mapping lives in `traits.ts`; a compile-time check ensures every option has a dictionary label. **Only portraits are animatable** (WAN i2v uses the image as the first frame; a two-panel sheet would animate as a split screen) — sheets are told apart by their 16:9 ratio. Video prompts describe motion only (the image carries identity). | "Exactly like Higgsfield" request (2026-10-23); their page itself is unreachable from the sandbox, so structure follows their API catalogue + published guides, with original copy/visuals. |
+| 36 | **Step 2 = Genjutsu motion transfer** (`higgsfield/genjutsu/motion-transfer/v1.0`) replaces WAN 3.0 i2v on the influencer page: the user uploads a reference video and picks 1–8 character images (own Step-1 creations via signed job handles and/or own photo uploads); Genjutsu makes the character perform the video. Reference videos go **browser → private Supabase Storage** via a server-minted single-use signed upload URL (videos exceed Netlify's ~6 MB function body limit; CSP `connect-src` already allows the Supabase origin). The server then range-reads only the MP4/MOV header (`moov/mvhd`) to get the **real duration** — price = ceil(duration, 4–30 s) × {480p 4, 720p 8, 1080p 16} credits/s (Higgsfield $0.318/0.681/1.632 per s) — and gives the provider a 6 h signed download URL. Paths are `<userId>/<uuid>.mp4|mov`, sealed in a 2 h token and re-checked for ownership. Bucket has no anon/authenticated policies. Character sheets are now valid inputs (Genjutsu takes reference images, not a first frame). | Owner's spec (2026-10-23): "copy the exact style of the reference" is the core offer. Client never sends a URL, price or duration. |
+| 37 | **Option photo cards**: visual trait groups (character type, gender, emotion, origin, age, facial hair, distinctive, build, hairstyle, style, accessories) render as photo cards; colour groups as swatches (hex values live in `traits.ts` as *data* — documented exception to the no-raw-hex rule); fine details stay chips. Photos are generated by us with Soul 2 (`npm run photos:options`, 83 images, idempotent per prompt), stored as 256 px WebP in `public/`, listed in `option-photos.ts`; missing photos fall back to placeholder art. New **Emotion** group (8 expressions) feeds the prompt and also applies to Soul ID characters. Marketing sections (presets, how-it-works, features, FAQ, CTA) removed — the page is the studio. | Owner: "photos of the options… easier and comfortable to choose". Not Higgsfield's images (copyright); our own generations. Higgsfield MCP account had 0 credits on 2026-10-23, so photos are pending. |
 | 19 | Migration files named `<remote version>_<name>.sql`, matching `supabase_migrations.schema_migrations` exactly. New migrations: apply via MCP/CLI, then name the file with the version Supabase records. Migrations must also replay cleanly on a fresh preview branch (guard project-specific objects). | Supabase GitHub integration (Preview check) fails when remote versions are missing locally. |
 | 29 | `APP_SECRET` optional at boot (Netlify agent, PR #4); `signed-token.ts` enforces presence + ≥32 chars at use (→ 503 `not_configured`); `/api/ai/generate` checks it before reserving credits | `lib/env.ts` is evaluated during `next build` (page-data collection), so a missing/short secret was failing Netlify builds. |
 
@@ -129,6 +135,9 @@ proxy.ts         Session refresh + page guards (guest -> /login?next=, signed-in
 | GET | `/api/ai/jobs/[token]` | user (must own) | 120/min/user | Poll provider; auto-refunds once on failed/cancelled |
 | GET | `/api/credits` | user | – | `{ balance }` |
 | POST | `/api/uploads/image` | user | 60/10 min | multipart `file` (JPEG/PNG/WebP by magic bytes, ≤ 5 MB) → `{ token }` (signed 1 h upload handle) |
+| POST | `/api/uploads/video` | user | 20/10 min | `{ type: video/mp4|video/quicktime, size ≤ 50 MB }` → `{ uploadUrl, headers, token }` (browser PUTs the file straight to private storage; token = signed 2 h handle) |
+| POST | `/api/ai/motion-transfer` | user | 20/min/user | `{ video: token, characters: jobToken[], photos: uploadToken[] (1–8 total), resolution, prompt? }` → `GenerationJob` (202); server reads duration, prices, reserves, submits Genjutsu; poll via `/api/ai/jobs/[token]` |
+| PUT/GET | `/api/uploads/video/dev` | – | – | **Dev/test only** stand-in for storage; 404 whenever real storage is configured and always in production |
 | GET | `/api/characters` | user | 60/min | caller's Soul ID characters `{id,name,state,thumbnailUrl,…}`; refreshes training ones; refunds failed once |
 | POST | `/api/characters` | user | 5/10 min | `{ name, uploads: token[5–30], consent: true }` → train (⚡40) |
 | DELETE | `/api/characters/[id]` | user (owner) | 20/min | delete here + at Higgsfield |
@@ -160,6 +169,7 @@ Welcome bonus: **30 credits** on email confirmation (ADR 25).
 Soul ID training: **40 credits** (Higgsfield ≈ $2.50/request; 1 credit ≈ $0.16 at pack prices) — needs a credit purchase after the welcome bonus.
 Packs: starter 100cr/5 KWD · pro 500cr/20 KWD · studio 2000cr/65 KWD.
 Costs: image **5** (every studio); video **8 cr/s** for every studio, 3–15 s, default 3 s (= 24). Character + first video = 29 ≤ welcome 30.
+Genjutsu (influencer Step 2): **4 / 8 / 16 cr per second** of reference video at 480p / 720p / 1080p, 4–30 s (e.g. 6 s at 720p = 48). Shortest 720p run (4 s = 32) needs more than the 30 welcome credits; 480p (16) fits.
 
 ## 8. Verified status (2026-10-22)
 - `typecheck`, `lint`, `build` all clean. All pages 200, no browser console errors, RTL/LTR + mobile screenshots checked.
@@ -196,7 +206,7 @@ Costs: image **5** (every studio); video **8 cr/s** for every studio, 3–15 s, 
 ## 10. Roadmap
 1. ~~Login UI~~ ✅ (email/password, confirm, reset). Next: `profiles` (plan via `app_metadata`/table), ~~welcome credits~~ ✅ (10), Google OAuth, custom SMTP (Supabase built-in email is rate-limited).
 2. Pricing/checkout UI (Modal + packs) wired to `/api/payments/checkout`.
-2b. ~~Influencer animate (i2v)~~ ✅ ~~Soul ID~~ ✅ (verified vs mocks; first live training still to confirm). Next: Motion photo upload + i2v (reuse `/api/uploads/image`), copy outputs to Supabase Storage (provider URLs expire ≥7 d), price check via `/estimate`, real thumbnails for style/idea cards.
+2b. ~~Influencer animate (i2v)~~ ✅ → replaced by ~~Genjutsu motion transfer~~ ✅ (ADR 36, verified vs mocks; first live run still to confirm). ~~Soul ID~~ ✅. Next: run `npm run photos:options` once the Higgsfield account has credits; purge reference videos after N days (storage lifecycle / scheduled delete via Storage API); copy outputs to our storage. Next: Motion photo upload + i2v (reuse `/api/uploads/image`), copy outputs to Supabase Storage (provider URLs expire ≥7 d), price check via `/estimate`, real thumbnails for style/idea cards.
 3. Persist generation jobs (history gallery per workspace) + media upload for reference images.
 4. Shared rate limiter (Upstash Redis or Postgres) before multi-instance deploy.
 5. Scheduler: posts table, channel OAuth (TikTok/Instagram/X), cron publisher.

@@ -1,14 +1,15 @@
 import { randomUUID } from "node:crypto";
 import { z } from "zod";
 import type { GenerationJob } from "@/types";
-import { poll, providerFor, submit } from "@/lib/ai";
+import { providerFor, submit } from "@/lib/ai";
+import { resolveJobImage } from "@/lib/ai/resolve";
 import { requireUser } from "@/lib/auth/session";
 import { characters } from "@/lib/characters/store";
 import { generationCost, SOUL_ID, VIDEO_DURATION } from "@/lib/credits/pricing";
 import { credits } from "@/lib/credits/store";
 import { ApiError, ok, parseJson, route } from "@/lib/http";
 import { rateLimit } from "@/lib/security/rate-limit";
-import { assertSigningConfigured, seal, unseal } from "@/lib/security/signed-token";
+import { assertSigningConfigured, seal } from "@/lib/security/signed-token";
 import type { JobHandle } from "../jobs/[token]/route";
 
 export const runtime = "nodejs";
@@ -37,7 +38,7 @@ export const POST = route(async (req: Request) => {
   const input = await parseJson(req, body);
   // Fail before reserving credits if the job handle can't be signed.
   assertSigningConfigured();
-  const sourceImageUrl = input.sourceJob ? await resolveSourceImage(input.sourceJob, user.id) : undefined;
+  const sourceImageUrl = input.sourceJob ? await resolveJobImage(input.sourceJob, user.id) : undefined;
   const soulReference = input.characterId ? await resolveCharacter(input.characterId, user.id, input.characterStrength) : undefined;
 
   const cost = generationCost(input);
@@ -67,19 +68,6 @@ export const POST = route(async (req: Request) => {
   };
   return ok(job, { status: 202 });
 });
-
-/**
- * Turns a signed job handle into the image URL to animate. The URL always comes from the
- * provider's own result for a job the caller owns — never from client input.
- */
-async function resolveSourceImage(token: string, userId: string): Promise<string> {
-  const handle = unseal<JobHandle>("job", token);
-  if (!handle || handle.u !== userId) throw new ApiError("not_found", "Source image not found.");
-  const source = await poll(handle.p, handle.j);
-  const image = source.status === "completed" ? source.outputs.find((o) => o.kind === "image") : undefined;
-  if (!image || !image.url.startsWith("https://")) throw new ApiError("bad_request", "That image isn't ready to animate yet.");
-  return image.url;
-}
 
 /** Maps the caller's own trained character to its provider reference (never exposed to the client). */
 async function resolveCharacter(id: string, userId: string, strength: number = SOUL_ID.defaultStrength) {

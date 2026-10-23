@@ -38,6 +38,12 @@ export const GROUPS = [
   { id: "gender", tab: "builder", max: 1, identity: true, options: [
     { id: "female", en: "woman" }, { id: "male", en: "man" },
   ] },
+  { id: "expression", tab: "builder", max: 1, options: [
+    { id: "neutral", en: "a calm, neutral expression" }, { id: "smile", en: "a warm, natural smile" },
+    { id: "laugh", en: "laughing joyfully" }, { id: "confident", en: "a confident, self-assured look" },
+    { id: "serious", en: "a serious, intense gaze" }, { id: "playful", en: "a playful, cheeky grin" },
+    { id: "surprised", en: "a surprised, wide-eyed expression" }, { id: "dreamy", en: "a soft, dreamy gaze" },
+  ] },
   { id: "ethnicity", tab: "builder", max: 1, identity: true, options: [
     { id: "gulf", en: "Gulf Arab" }, { id: "levant", en: "Levantine Arab" }, { id: "northAfrica", en: "North African" },
     { id: "african", en: "African" }, { id: "southAsian", en: "South Asian" }, { id: "eastAsian", en: "East Asian" },
@@ -143,7 +149,7 @@ const GENDERED_STYLE: Record<"modest" | "khaleeji", { female: string; male: stri
 };
 
 export const DEFAULT_SELECTION: Selection = {
-  gender: ["female"], ethnicity: ["gulf"], age: ["young"], skin: ["tan"],
+  gender: ["female"], expression: ["smile"], ethnicity: ["gulf"], age: ["young"], skin: ["tan"],
   head: ["oval"], eyeShape: ["almond"], eyeColor: ["brown"], features: ["cheekbones"], facialHair: ["clean"], distinctive: [],
   height: ["average"], build: ["slim"], proportions: [], neck: ["standard"],
   hair: ["hijab"], hairColor: ["black"], style: ["modest"], accessories: ["jewelry"],
@@ -267,10 +273,10 @@ function styling(sel: Selection, gender: "female" | "male" | "neutral"): string 
   return [hair, `dressed in ${outfit}`, acc.length ? `accessorised with ${list(acc)}` : ""].filter(Boolean).join(", ");
 }
 
-function framing(output: OutputKind, scene: SceneKey): string {
+function framing(output: OutputKind, scene: SceneKey, expression: string): string {
   return output === "sheet"
-    ? "Character reference sheet with two panels side by side: left a tight front-facing close-up portrait with the whole head and hair in frame, right a full-body front-facing standing shot, arms relaxed, neutral expression. Pure white seamless background, bright soft even light"
-    : `Full-body fashion portrait ${SCENES[scene]}, natural confident pose, looking at the camera`;
+    ? `Character reference sheet with two panels side by side: left a tight front-facing close-up portrait with the whole head and hair in frame, right a full-body front-facing standing shot, arms relaxed, ${expression}. Pure white seamless background, bright soft even light`
+    : `Full-body fashion portrait ${SCENES[scene]}, natural pose, looking at the camera with ${expression}`;
 }
 
 const FINISH = "Hyper-realistic photo, natural skin texture, crisp detail, 85mm lens, sharp focus";
@@ -287,7 +293,7 @@ export function composeCharacterPrompt(sel: Selection, tier: Tier, output: Outpu
   ];
   const body = [`${one(sel, "height")}, ${one(sel, "build")} build`, ...phrase(sel, "proportions"), ...phrase(sel, "neck")];
   return [
-    `${framing(output, scene)}. Photorealistic photo with a ${TIER_LOOK[tier]}: a ${person}`,
+    `${framing(output, scene, one(sel, "expression"))}. Photorealistic photo with a ${TIER_LOOK[tier]}: a ${person}`,
     `Face: ${list(face)}`,
     `Body: ${list(body)}`,
     `Styling: ${styling(sel, gender)}`,
@@ -298,37 +304,27 @@ export function composeCharacterPrompt(sel: Selection, tier: Tier, output: Outpu
 /** Prompt for a trained Soul ID character: the reference supplies the identity, we add styling only. */
 export function composeSoulIdPrompt(sel: Selection, output: OutputKind, scene: SceneKey): string {
   const body = [`${one(sel, "height")}, ${one(sel, "build")} build`, ...phrase(sel, "proportions")];
-  return [`${framing(output, scene)}. Photorealistic photo of the character`, `Body: ${list(body)}`, `Styling: ${styling(sel, "neutral")}`, FINISH].join(". ");
+  return [`${framing(output, scene, one(sel, "expression"))}. Photorealistic photo of the character`, `Body: ${list(body)}`, `Styling: ${styling(sel, "neutral")}`, FINISH].join(". ");
 }
 
 // ---------------------------------------------------------------------------
-// Presets (DIZURA originals) and animation (WAN 3.0 Prime image-to-video)
+// Visual pickers: photo cards for visual groups, colour swatches for colour groups
 // ---------------------------------------------------------------------------
 
-export const PRESETS = [
-  { id: "khaleeji", tier: "average", sel: { gender: ["female"], ethnicity: ["gulf"], age: ["young"], skin: ["tan"], hair: ["hijab"], style: ["modest"], accessories: ["jewelry", "bag"], features: ["cheekbones", "fullLips"] } },
-  { id: "executive", tier: "average", sel: { gender: ["male"], ethnicity: ["gulf"], age: ["adult"], skin: ["olive"], hair: ["short"], hairColor: ["black"], facialHair: ["beard"], style: ["suits"], accessories: ["watch", "glasses"], build: ["athletic"], height: ["tall"] } },
-  { id: "creator", tier: "average", sel: { gender: ["female"], ethnicity: ["levant"], age: ["young"], skin: ["light"], hair: ["long"], hairColor: ["darkBrown"], style: ["streetstyle"], accessories: ["headphones"], features: ["freckles", "dimples"] } },
-  { id: "athlete", tier: "average", sel: { gender: ["male"], ethnicity: ["northAfrica"], age: ["young"], skin: ["brown"], hair: ["buzz"], hairColor: ["black"], facialHair: ["stubble"], style: ["sporty"], build: ["muscular"], proportions: ["shoulders"], accessories: ["none"] } },
-  { id: "popIcon", tier: "bold", sel: { gender: ["female"], ethnicity: ["eastAsian"], age: ["young"], skin: ["fair"], hair: ["pigtails"], hairColor: ["pink"], style: ["y2k"], distinctive: ["faceGems", "bigLashes"], eyeShape: ["huge"], accessories: ["jewelry"] } },
-  { id: "avantGarde", tier: "extreme", sel: { gender: ["female"], ethnicity: ["african"], age: ["adult"], skin: ["ebony"], hair: ["bob"], hairColor: ["platinum"], style: ["goth"], neck: ["long"], height: ["veryTall"], proportions: ["longLimbs"], head: ["forehead"], accessories: ["none"] } },
-] as const satisfies readonly { id: string; tier: Tier; sel: Partial<Record<GroupId, readonly string[]>> }[];
-export type PresetId = (typeof PRESETS)[number]["id"];
+/** Groups shown as photo cards (photos in /public/influencer/options/<group>/<option>.webp, see option-photos.ts). */
+export const PHOTO_GROUPS: ReadonlySet<GroupId> = new Set<GroupId>([
+  "gender", "expression", "ethnicity", "age", "facialHair", "distinctive", "build", "hair", "style", "accessories",
+]);
 
-export function applyPreset(id: PresetId): { tier: Tier; sel: Selection } {
-  const preset = PRESETS.find((p) => p.id === id)!;
-  const sel = { ...DEFAULT_SELECTION, facialHair: ["clean"], features: [], distinctive: [], proportions: [], ...preset.sel } as unknown as Selection;
-  return { tier: preset.tier, sel: normalize(sel, preset.tier) };
-}
-
-export const ANIMATIONS = {
-  subtle: "subtle natural idle motion, gentle breathing and blinking, seamless loop",
-  talk: "speaking naturally to the camera with expressive hand gestures",
-  smile: "turns head toward the camera and smiles warmly",
-  walk: "walks confidently toward the camera",
-  wind: "hair and clothes moving gently in the wind",
-  orbit: "slow cinematic camera orbit around the subject",
-  dance: "does a short playful dance move, full body in frame",
-  product: "holds up a product toward the camera and presents it with a smile",
-} as const;
-export type AnimationKey = keyof typeof ANIMATIONS;
+/**
+ * Swatch colours for colour groups. Data, not styling tokens (documented exception to the
+ * no-raw-hex rule, like the three.js scene constants): they depict skin/eye/hair colours.
+ */
+export const SWATCHES: Partial<Record<GroupId, Record<string, string>>> = {
+  skin: { porcelain: "#f6e3d7", fair: "#efd0b8", light: "#e2b48f", olive: "#c39a6b", tan: "#b07a4c", brown: "#8a5a36", deep: "#5e3b22", ebony: "#3a2416" },
+  eyeColor: { black: "#1b1512", brown: "#5a3a1e", hazel: "#8a6a32", green: "#4f7a45", blue: "#3f6fb0", iceBlue: "#a9cfe8", amber: "#c78a2c", grey: "#8a9097" },
+  hairColor: {
+    black: "#141414", darkBrown: "#3b2619", chestnut: "#6b3b22", ginger: "#b5561f", red: "#9e1f1f", blonde: "#d9b56a", platinum: "#e9e4d6",
+    grey: "#9a9a9a", white: "#f2f2f2", pink: "#f2a9c4", lilac: "#c3a5e0", blue: "#3d6fd1", green: "#3f9e6b",
+  },
+};

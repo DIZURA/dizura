@@ -14,3 +14,7 @@ export async function submit(req: GenerationRequest, idempotencyKey: string): Pr
 export async function poll(_provider: GenerationJob["provider"], providerJobId: string) {
   return higgsfield.getJob(providerJobId);
 }
+
+export async function submitMotionTransfer(...args: Parameters<typeof higgsfield.submitMotionTransfer>) {
+  return higgsfield.submitMotionTransfer(...args);
+}
