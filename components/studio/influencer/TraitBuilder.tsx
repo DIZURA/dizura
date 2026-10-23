@@ -10,11 +10,20 @@ type Field = { key: keyof Traits; options: readonly string[] };
 const FIELDS: readonly Field[] = (GROUPS as readonly { fields: readonly Field[] }[]).flatMap((group) => group.fields);
 
 /** Compact trait chips, grouped Identity → Look → Style → Scene. */
-export function TraitBuilder({ traits, onChange }: { traits: Traits; onChange: (key: keyof Traits, value: string) => void }) {
+export function TraitBuilder({
+  traits,
+  onChange,
+  only,
+}: {
+  traits: Traits;
+  onChange: (key: keyof Traits, value: string) => void;
+  /** Show only these fields (e.g. outfit/setting when a Soul ID supplies the identity). */
+  only?: (keyof Traits)[];
+}) {
   const { t } = useI18n();
   return (
     <div className="grid gap-x-6 gap-y-4 sm:grid-cols-2">
-      {FIELDS.map((field) => {
+      {FIELDS.filter((f) => !only || only.includes(f.key)).map((field) => {
         if (field.key === "hairColor" && traits.hair === "hijab") return null;
         return (
           <div key={field.key} role="radiogroup" aria-label={t.influencer[field.key]} className={cn(field.key === "origin" && "sm:col-span-2")}>

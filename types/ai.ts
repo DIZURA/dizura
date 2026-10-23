@@ -24,6 +24,8 @@ export interface GenerationRequest {
    * completed image jobs (never from client input).
    */
   sourceImageUrl?: string;
+  /** Soul ID to generate with. Set ONLY by the server after an ownership check. */
+  soulReference?: { providerId: string; strength: number };
 }
 
 export interface GenerationJob {

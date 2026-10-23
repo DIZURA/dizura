@@ -46,7 +46,7 @@ components/
   landing/       Hero3D (reduced-motion aware) -> Hero3DScene (R3F): mint wireframe globe + DIZURA S-band emblem, orbit ring, pulse
   studio/        Studio (results canvas + floating prompt bar, generate/poll, session history, ideas), ToolHero,
                  useGenerator (shared submit → poll w/ 2→10 s backoff + jitter → result; keeps signed jobId per creation), MotionStudio (10 CSS camera presets), ideas.ts
-  studio/influencer/  InfluencerWorkspace (style presets, TraitBuilder, templates, prompt bar; Step 2 character picker + 6 animation presets; gallery with Animate/Download), traits.ts (composeInfluencerPrompt, STYLES, ANIMATIONS)
+  studio/influencer/  InfluencerWorkspace (Soul ID card, Step 1 identity picker [New look | trained character + likeness], style presets, TraitBuilder(only=), templates, prompt bar; Step 2 animate; gallery), traits.ts (composeInfluencerPrompt, composeSoulIdPrompt, STYLES, ANIMATIONS), SoulIdPanel (train: name, 5–30 photos re-encoded to JPEG ≤1536px in-browser [strips EXIF], consent, ⚡40; list w/ status + delete), useCharacters (polls while training)
   workspace/     WorkspaceHeader (geo-audit, b2b, scheduler)
   geo/           GeoAuditForm
   i18n/          I18nProvider/useI18n, LanguageToggle
@@ -58,12 +58,13 @@ lib/
   http.ts        ApiError, ok/fail, route() wrapper, parseJson (size-capped), providerFetch
   api-client.ts  Browser fetch for our own API (typed ApiResult)
   ai/index.ts    Provider facade (Higgsfield only)
-  higgsfield/client.ts   Higgsfield API: MODELS, buildSubmission, submitGeneration (Idempotency-Key), getJob (/requests/{id}/status)
+  higgsfield/client.ts   Higgsfield API: MODELS, buildSubmission (+custom_reference_id), submitGeneration (Idempotency-Key), getJob, uploadMedia (presigned PUT), create/get/deleteSoulReference
   gsc/mcp.ts     MCP Streamable-HTTP client (initialize -> tools/call), degrades to null
   geo/audit.ts   GEO checks (AI crawlers in robots.txt, llms.txt, JSON-LD, meta, depth…)
   tap/client.ts  createCharge, retrieveCharge, verifyWebhookHash (HMAC hashstring)
   tap/fulfill.ts fulfillCharge() — re-fetch, validate amount, idempotent grant
-  credits/       pricing.ts (packs + generationCost), store.ts (CreditStore: memory dev / Supabase RPC)
+  credits/       pricing.ts (packs + generationCost + SOUL_ID limits/price), store.ts (CreditStore: memory dev / Supabase RPC)
+  characters/    store.ts (CharacterStore: Supabase REST as service role w/ uuid-validated filters / memory in dev)
   auth/session.ts getCurrentUser() (React cache) + requireUser(req): getClaims() on cookie or Bearer; same-origin check for cookie-auth writes
   auth/redirect.ts safeNext() (open-redirect guard), PROTECTED_PREFIXES, GUEST_ONLY
   supabase/      server.ts (per-request cookie client, publishable key), proxy.ts (refreshSession for proxy.ts)
@@ -76,6 +77,8 @@ supabase/migrations/20261022060100_0001_credits.sql   Ledger + balances + RLS + 
 supabase/migrations/20261022061230_0002_rls_initplan_and_hardening.sql   RLS initplan fix + revoke rls_auto_enable() (guarded) (APPLIED)
 supabase/migrations/20261022080434_0003_welcome_credits.sql   private.grant_welcome_credits() trigger on auth.users: welcome bonus on email confirmation (APPLIED)
 supabase/migrations/20261022083415_0004_welcome_credits_30.sql   welcome bonus 10 -> 30 (APPLIED)
+supabase/migrations/20261022215306_0005_characters.sql   characters table (Soul ID), RLS select-own, no anon/authenticated privileges (APPLIED)
+supabase/migrations/20261022215528_0006_service_role_grants.sql   grant service_role EXECUTE on credit RPCs + CRUD on characters (APPLIED — fixes prod credit ledger)
 scripts/scan-secrets.mjs  Zero-dep secret scanner (pre-commit hook in .githooks/, CI in .github/workflows/security.yml)
 proxy.ts         Session refresh + page guards (guest -> /login?next=, signed-in away from /login) + per-request nonce CSP
 ```
@@ -113,15 +116,21 @@ proxy.ts         Session refresh + page guards (guest -> /login?next=, signed-in
 | 30 | **Netlify must apply its Next.js runtime**: `[[plugins]] package = "@netlify/plugin-nextjs"` declared in `netlify.toml` (unpinned). Without it, deploys "succeed" with *No functions deployed* (plugin state none) → no SSR/API/Server Actions. Netlify's secret scanner then blocks deploys if any secret env value appears in build output — a short/common `APP_SECRET` value matches unrelated files (libvips, sha256.js), so every context needs a generated 64-char value. | Found 2026-10-22: production of `ee040cf` deployed without functions; PR #8 preview built the server handler but was blocked by the scanner. Canary build proves a real `APP_SECRET` never reaches build output. |
 | 31 | **Animate a character = image-to-video from the caller's own job.** `/api/ai/generate` accepts `sourceJob` (signed job handle); the server unseals it, checks ownership, polls the provider for that job's completed image and passes its https URL as `image_url` to `alibaba/wan-3.0-prime/image-to-video`. The client never sends an image URL. Resolved before credits are reserved. | No SSRF/abuse via arbitrary URLs; can only animate your own completed characters. |
 | 32 | Image cost unified at **5 credits** (influencer was 8). | Character (5) + shortest video (24) = 29 fits the 30 welcome credits — verified end-to-end (30 → 25 → 1). |
+| 33 | **Soul ID characters**: photos are re-encoded in the browser (JPEG ≤ 1536 px, EXIF stripped) → `POST /api/uploads/image` (magic-byte type check, ≤ 5 MB) → Higgsfield presigned PUT (provider headers sent verbatim, our API key never sent, upload URL never logged) → returns a **signed 1 h upload token** (not a URL). `POST /api/characters` accepts only the caller's own upload tokens + explicit consent, reserves 40 credits (`soul:<id>`), trains `model_version v2`; refunds once if training fails. Provider reference ids never reach the browser; generation takes our `characterId`, resolved server-side with an ownership + "completed" check, sent as `custom_reference_id` (+ strength 0.1–1). Delete removes the provider identity too (non-404 provider errors block the delete so nothing is orphaned). Limits: 5–30 photos, ≤ 5 characters/user. | Consistent faces with consent, privacy (EXIF/GPS) and cost controls; no URL injection or cross-user access. |
+| 34 | **Service role needs explicit grants** in this project (no default privileges, and revoking from PUBLIC removed its EXECUTE). Every new table/function the server uses must `grant … to service_role` explicitly. | Found 2026-10-22: production credit RPCs were not executable by service_role (would have broken every generation once the service key was set). Fixed in 0006, verified in a rolled-back transaction. |
 | 19 | Migration files named `<remote version>_<name>.sql`, matching `supabase_migrations.schema_migrations` exactly. New migrations: apply via MCP/CLI, then name the file with the version Supabase records. Migrations must also replay cleanly on a fresh preview branch (guard project-specific objects). | Supabase GitHub integration (Preview check) fails when remote versions are missing locally. |
 | 29 | `APP_SECRET` optional at boot (Netlify agent, PR #4); `signed-token.ts` enforces presence + ≥32 chars at use (→ 503 `not_configured`); `/api/ai/generate` checks it before reserving credits | `lib/env.ts` is evaluated during `next build` (page-data collection), so a missing/short secret was failing Netlify builds. |
 
 ## 5. API routes
 | Method | Route | Auth | Limit | Purpose |
 |---|---|---|---|---|
-| POST | `/api/ai/generate` | user | 20/min/user | Validate, compute cost, reserve credits, submit to provider; returns `GenerationJob` (202) with signed `id` |
+| POST | `/api/ai/generate` | user | 20/min/user | Validate, compute cost, reserve credits, submit to provider; returns `GenerationJob` (202) with signed `id`. Optional `sourceJob` (animate own image, ADR 31) or `characterId` + `characterStrength` (Soul ID, images only, ADR 33) |
 | GET | `/api/ai/jobs/[token]` | user (must own) | 120/min/user | Poll provider; auto-refunds once on failed/cancelled |
 | GET | `/api/credits` | user | – | `{ balance }` |
+| POST | `/api/uploads/image` | user | 60/10 min | multipart `file` (JPEG/PNG/WebP by magic bytes, ≤ 5 MB) → `{ token }` (signed 1 h upload handle) |
+| GET | `/api/characters` | user | 60/min | caller's Soul ID characters `{id,name,state,thumbnailUrl,…}`; refreshes training ones; refunds failed once |
+| POST | `/api/characters` | user | 5/10 min | `{ name, uploads: token[5–30], consent: true }` → train (⚡40) |
+| DELETE | `/api/characters/[id]` | user (owner) | 20/min | delete here + at Higgsfield |
 | GET | `/auth/callback?code=…|token_hash=…&type=…&next=` | – | – | Exchange email link for session; failure → `/login?error=link` |
 | POST | `/api/geo-audit` | public | 5/min/IP | `{ url }` → `GeoAuditReport` |
 | POST | `/api/payments/checkout` | user | 5/min/user | `{ packId }` → `{ redirectUrl, chargeId }` (Tap hosted page) |
@@ -137,6 +146,7 @@ Template: `.env.example` (committed). Real values: `.env.local` (gitignored via 
 Server-only: `APP_SECRET`, `DATABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `HIGGSFIELD_API_KEY` + `HIGGSFIELD_API_SECRET` (or combined `KEY_ID:KEY_SECRET` in the key), optional `HIGGSFIELD_API_BASE_URL` (default `https://api.higgsfield.ai`), `GSC_MCP_ENDPOINT/TOKEN`, `TAP_SECRET_KEY`, `TAP_API_BASE_URL`.
 Public: `NEXT_PUBLIC_APP_URL` (optional; see ADR 24), `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, `NEXT_PUBLIC_TAP_PUBLIC_KEY`.
 Rule: never add a secret with the `NEXT_PUBLIC_` prefix; add every new var to `.env.example` + `lib/env.ts` schema.
+Dev/test only: `DEV_STARTING_CREDITS` (read only by the in-memory credit store, which never runs in production).
 
 ## 6b. Deployment — Netlify
 - Site: **`sparkly-swan-cf292e`** → `https://sparkly-swan-cf292e.netlify.app` (Next.js runtime auto-detected; any env change needs a **redeploy**).
@@ -146,6 +156,7 @@ Rule: never add a secret with the `NEXT_PUBLIC_` prefix; add every new var to `.
 
 ## 7. Credit economy (`lib/credits/pricing.ts`)
 Welcome bonus: **30 credits** on email confirmation (ADR 25).
+Soul ID training: **40 credits** (Higgsfield ≈ $2.50/request; 1 credit ≈ $0.16 at pack prices) — needs a credit purchase after the welcome bonus.
 Packs: starter 100cr/5 KWD · pro 500cr/20 KWD · studio 2000cr/65 KWD.
 Costs: image **5** (every studio); video **8 cr/s** for every studio, 3–15 s, default 3 s (= 24). Character + first video = 29 ≤ welcome 30.
 
@@ -184,7 +195,7 @@ Costs: image **5** (every studio); video **8 cr/s** for every studio, 3–15 s, 
 ## 10. Roadmap
 1. ~~Login UI~~ ✅ (email/password, confirm, reset). Next: `profiles` (plan via `app_metadata`/table), ~~welcome credits~~ ✅ (10), Google OAuth, custom SMTP (Supabase built-in email is rate-limited).
 2. Pricing/checkout UI (Modal + packs) wired to `/api/payments/checkout`.
-2b. ~~Influencer animate (i2v)~~ ✅. Next: **Soul ID** consistent characters (upload photos via `/files/generate-upload-url` → `/v1/custom-references` → `custom_reference_id`), Motion photo upload + i2v, copy outputs to Supabase Storage (provider URLs expire ≥7 d), price check via `/estimate`, real thumbnails for style/idea cards.
+2b. ~~Influencer animate (i2v)~~ ✅ ~~Soul ID~~ ✅ (verified vs mocks; first live training still to confirm). Next: Motion photo upload + i2v (reuse `/api/uploads/image`), copy outputs to Supabase Storage (provider URLs expire ≥7 d), price check via `/estimate`, real thumbnails for style/idea cards.
 3. Persist generation jobs (history gallery per workspace) + media upload for reference images.
 4. Shared rate limiter (Upstash Redis or Postgres) before multi-instance deploy.
 5. Scheduler: posts table, channel OAuth (TikTok/Instagram/X), cron publisher.

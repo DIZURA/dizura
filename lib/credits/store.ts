@@ -21,7 +21,8 @@ class MemoryCreditStore implements CreditStore {
   private ledger = new Map<string, CreditLedgerEntry>();
 
   async getBalance(userId: string) {
-    return this.balances.get(userId) ?? WELCOME_CREDITS; // mirrors the production welcome bonus
+    // Mirrors the production welcome bonus. DEV_STARTING_CREDITS (dev/test only) lets local tests afford paid flows.
+    return this.balances.get(userId) ?? (Number(process.env.DEV_STARTING_CREDITS) || WELCOME_CREDITS);
   }
 
   async apply({ userId, delta, reason, referenceId }: Parameters<CreditStore["apply"]>[0]) {

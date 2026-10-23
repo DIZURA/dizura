@@ -28,6 +28,9 @@ export type GenerateInput = {
   durationSec?: number;
   cost: number;
   source?: Creation;
+  /** Trained Soul ID character (images only). */
+  characterId?: string;
+  characterStrength?: number;
 };
 
 type PollState = { status: JobStatus; outputs: GeneratedMedia[]; error: string | null; creditsRefunded: boolean };
@@ -53,7 +56,7 @@ export function useGenerator(workspace: Workspace) {
     setCreations((list) => list.map((c) => (c.key === key ? { ...c, ...patch } : c)));
 
   const generate = useCallback(
-    async ({ prompt, kind, ratio, durationSec, cost, source }: GenerateInput) => {
+    async ({ prompt, kind, ratio, durationSec, cost, source, characterId, characterStrength }: GenerateInput) => {
       setError(null);
       const key = crypto.randomUUID();
       setCreations((list) => [
@@ -70,6 +73,8 @@ export function useGenerator(workspace: Workspace) {
             aspectRatio: ratio,
             durationSec: kind === "video" ? durationSec : undefined,
             sourceJob: source?.jobId ?? undefined,
+            characterId,
+            characterStrength: characterId ? characterStrength : undefined,
           }),
         });
         window.dispatchEvent(new Event(CREDITS_CHANGED));
