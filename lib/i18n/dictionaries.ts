@@ -277,6 +277,75 @@ const en = {
       link: "That link is invalid or has expired. Please request a new one.",
     },
   },
+  legal: {
+    footerLabel: "Legal",
+    contactEmail: "dizuura@gmail.com",
+    privacy: {
+      title: "Privacy Policy",
+      updated: "Last updated: 23 October 2026",
+      intro: "DIZURA is an AI creative studio for brands. This policy explains what personal data we collect when you use dizura (the website and its studios), why we use it, who processes it for us, and the choices you have.",
+      sections: [
+        { heading: "What we collect", body: [
+          "Account data: your email address, an optional display name and your language preference. If you continue with Google, we receive your name, email address and profile picture from Google — nothing else (no contacts, Drive or Gmail access).",
+          "Content you create or upload: prompts and builder choices, generated images and videos, photos you upload to train a consistent character (Soul ID) or to use in a video, and reference videos you upload for motion transfer.",
+          "Credits and payments: your credit balance and a ledger of credit changes. Payments are processed by Tap Payments; we never receive or store your card details.",
+          "Technical data: security cookies that keep you signed in, a cookie that remembers your language, and standard server logs (IP address, browser, time, error codes) used for security and abuse prevention.",
+        ] },
+        { heading: "How we use it", body: [
+          "To create your account and sign you in, generate the content you request, keep your credit balance accurate, process purchases, prevent abuse and fraud, and keep the service secure and working. We do not sell your data and we do not use it for advertising.",
+        ] },
+        { heading: "Service providers", body: [
+          "Supabase (authentication, database and private file storage), Netlify (hosting), Higgsfield (AI image and video generation — your prompts, selected images and reference videos are sent to it to produce your results), Tap Payments (payments) and Google (only if you choose Google sign-in). Each processes data only to provide its service to us.",
+        ] },
+        { heading: "Photos of people", body: [
+          "Only upload photos you own and that you have the shown person's permission to use. Training a Soul ID character requires you to confirm this consent. Photos are re-encoded in your browser before upload, which removes hidden metadata such as GPS location.",
+        ] },
+        { heading: "Storage and retention", body: [
+          "Uploaded reference videos are kept in private storage that only our servers can read, and the AI provider receives temporary links. We keep account data while your account is active. Generated media links from the AI provider expire after a period set by that provider. You can delete a trained character at any time, which also deletes it at the provider.",
+        ] },
+        { heading: "Your rights", body: [
+          "You can ask us to access, correct, export or delete your personal data, or to close your account, by emailing dizuura@gmail.com. We will respond within 30 days.",
+        ] },
+        { heading: "Security", body: [
+          "Data is encrypted in transit, secret keys never reach your browser, and database access is restricted with row-level security. No system is perfectly secure, but we work to protect your information.",
+        ] },
+        { heading: "Children", body: [
+          "DIZURA is not intended for anyone under 18, and we do not knowingly collect their data.",
+        ] },
+        { heading: "Changes and contact", body: [
+          "We may update this policy and will change the date above when we do. Questions: dizuura@gmail.com.",
+        ] },
+      ],
+    },
+    terms: {
+      title: "Terms of Service",
+      updated: "Last updated: 23 October 2026",
+      intro: "By creating an account or using DIZURA you agree to these terms.",
+      sections: [
+        { heading: "Your account", body: [
+          "You must be 18 or older and provide accurate information. Keep your sign-in secure; you are responsible for activity on your account.",
+        ] },
+        { heading: "Credits", body: [
+          "Generations cost credits, shown before you start. Credits are prepaid, non-transferable and have no cash value. If a generation fails, its credits are refunded automatically.",
+        ] },
+        { heading: "Acceptable use", body: [
+          "Do not create or upload content that is illegal, sexual involving minors, hateful, harassing or deceptive; do not impersonate real people or use someone's likeness without their permission; and do not infringe others' rights or try to break or overload the service. We may remove content and suspend accounts that break these rules.",
+        ] },
+        { heading: "Your content", body: [
+          "You keep the rights you have in what you upload and create, and you are responsible for how you use it. You give us permission to store and process it only to run the service for you.",
+        ] },
+        { heading: "AI output", body: [
+          "AI results can be inaccurate or unexpected. Review content before you publish it.",
+        ] },
+        { heading: "Service and liability", body: [
+          "The service is provided as is. To the extent the law allows, DIZURA is not liable for indirect losses, and our total liability is limited to the amount you paid us in the last 3 months.",
+        ] },
+        { heading: "Changes and contact", body: [
+          "We may update these terms; continued use means you accept the changes. Questions: dizuura@gmail.com.",
+        ] },
+      ],
+    },
+  },
 };
 
 export type Dictionary = typeof en;
@@ -556,6 +625,75 @@ const ar: Dictionary = {
       notConfigured: "تسجيل الدخول غير متاح مؤقتاً.",
       generic: "حدث خطأ ما. يرجى المحاولة مرة أخرى.",
       link: "الرابط غير صالح أو منتهي الصلاحية. يرجى طلب رابط جديد.",
+    },
+  },
+  legal: {
+    footerLabel: "روابط قانونية",
+    contactEmail: "dizuura@gmail.com",
+    privacy: {
+      title: "سياسة الخصوصية",
+      updated: "آخر تحديث: ٢٣ أكتوبر ٢٠٢٦",
+      intro: "ديزورا استوديو إبداعي بالذكاء الاصطناعي للعلامات التجارية. توضح هذه السياسة البيانات الشخصية التي نجمعها عند استخدامك للموقع واستوديوهاته، وسبب استخدامها، ومن يعالجها نيابةً عنا، والخيارات المتاحة لك.",
+      sections: [
+        { heading: "ما الذي نجمعه", body: [
+          "بيانات الحساب: بريدك الإلكتروني واسم عرض اختياري ولغتك المفضلة. إذا تابعت باستخدام Google نستلم اسمك وبريدك وصورة ملفك الشخصي فقط — دون أي وصول إلى جهات الاتصال أو Drive أو Gmail.",
+          "المحتوى الذي تنشئه أو ترفعه: الأوامر واختيارات أداة البناء، والصور والفيديوهات المُنشأة، والصور التي ترفعها لتدريب شخصية ثابتة (Soul ID) أو لاستخدامها في فيديو، والفيديوهات المرجعية التي ترفعها لنقل الحركة.",
+          "الرصيد والمدفوعات: رصيدك وسجل تغييراته. تتم المدفوعات عبر Tap Payments، ولا نستلم بيانات بطاقتك ولا نخزنها.",
+          "بيانات تقنية: ملفات تعريف ارتباط أمنية تُبقيك مسجلاً، وملف يتذكر لغتك، وسجلات خادم معتادة (عنوان IP والمتصفح والوقت ورموز الأخطاء) للأمان ومنع إساءة الاستخدام.",
+        ] },
+        { heading: "كيف نستخدمها", body: [
+          "لإنشاء حسابك وتسجيل دخولك، وإنشاء المحتوى الذي تطلبه، والحفاظ على دقة رصيدك، ومعالجة المشتريات، ومنع الاحتيال وإساءة الاستخدام، والحفاظ على أمان الخدمة وعملها. لا نبيع بياناتك ولا نستخدمها للإعلانات.",
+        ] },
+        { heading: "مزودو الخدمة", body: [
+          "Supabase (تسجيل الدخول وقاعدة البيانات والتخزين الخاص)، وNetlify (الاستضافة)، وHiggsfield (توليد الصور والفيديو بالذكاء الاصطناعي — تُرسل إليه أوامرك والصور المختارة والفيديوهات المرجعية لإنتاج نتائجك)، وTap Payments (المدفوعات)، وGoogle (فقط إذا اخترت تسجيل الدخول عبرها). يعالج كل منهم البيانات فقط لتقديم خدمته لنا.",
+        ] },
+        { heading: "صور الأشخاص", body: [
+          "ارفع فقط صوراً تملكها ولديك إذن الشخص الظاهر فيها لاستخدامها. يتطلب تدريب شخصية Soul ID تأكيدك لهذه الموافقة. تُعاد معالجة الصور في متصفحك قبل الرفع، مما يزيل البيانات المخفية مثل موقع GPS.",
+        ] },
+        { heading: "التخزين والاحتفاظ", body: [
+          "تُحفظ الفيديوهات المرجعية في تخزين خاص لا يقرؤه إلا خوادمنا، ويحصل مزود الذكاء الاصطناعي على روابط مؤقتة فقط. نحتفظ ببيانات الحساب طالما كان حسابك نشطاً. تنتهي صلاحية روابط الوسائط المُنشأة لدى المزود بعد مدة يحددها. يمكنك حذف أي شخصية مدرّبة في أي وقت، فتُحذف لدى المزود أيضاً.",
+        ] },
+        { heading: "حقوقك", body: [
+          "يمكنك طلب الاطلاع على بياناتك أو تصحيحها أو تصديرها أو حذفها، أو إغلاق حسابك، بمراسلة dizuura@gmail.com. سنرد خلال ٣٠ يوماً.",
+        ] },
+        { heading: "الأمان", body: [
+          "البيانات مشفرة أثناء النقل، والمفاتيح السرية لا تصل إلى متصفحك أبداً، والوصول إلى قاعدة البيانات مقيد بأمان على مستوى الصفوف. لا يوجد نظام آمن تماماً، لكننا نعمل على حماية معلوماتك.",
+        ] },
+        { heading: "الأطفال", body: [
+          "ديزورا غير موجه لمن هم دون ١٨ عاماً، ولا نجمع بياناتهم عن علم.",
+        ] },
+        { heading: "التغييرات والتواصل", body: [
+          "قد نحدّث هذه السياسة وسنغيّر التاريخ أعلاه عند ذلك. للاستفسارات: dizuura@gmail.com.",
+        ] },
+      ],
+    },
+    terms: {
+      title: "شروط الخدمة",
+      updated: "آخر تحديث: ٢٣ أكتوبر ٢٠٢٦",
+      intro: "بإنشاء حساب أو استخدام ديزورا فإنك توافق على هذه الشروط.",
+      sections: [
+        { heading: "حسابك", body: [
+          "يجب أن يكون عمرك ١٨ عاماً أو أكثر وأن تقدم معلومات صحيحة. حافظ على أمان تسجيل دخولك؛ فأنت مسؤول عن النشاط في حسابك.",
+        ] },
+        { heading: "الرصيد", body: [
+          "تستهلك عمليات التوليد رصيداً يظهر قبل البدء. الرصيد مدفوع مسبقاً وغير قابل للتحويل وليس له قيمة نقدية. إذا فشلت عملية توليد يُعاد رصيدها تلقائياً.",
+        ] },
+        { heading: "الاستخدام المقبول", body: [
+          "لا تنشئ أو ترفع محتوى غير قانوني أو جنسياً يتعلق بقاصرين أو يحض على الكراهية أو التحرش أو مضللاً؛ ولا تنتحل شخصيات حقيقية أو تستخدم ملامح أحد دون إذنه؛ ولا تنتهك حقوق الآخرين أو تحاول تعطيل الخدمة أو إثقالها. قد نزيل المحتوى ونوقف الحسابات المخالفة.",
+        ] },
+        { heading: "محتواك", body: [
+          "تحتفظ بحقوقك فيما ترفعه وتنشئه، وأنت مسؤول عن طريقة استخدامه. تمنحنا الإذن بتخزينه ومعالجته فقط لتشغيل الخدمة لك.",
+        ] },
+        { heading: "نتائج الذكاء الاصطناعي", body: [
+          "قد تكون نتائج الذكاء الاصطناعي غير دقيقة أو غير متوقعة. راجع المحتوى قبل نشره.",
+        ] },
+        { heading: "الخدمة والمسؤولية", body: [
+          "تُقدَّم الخدمة كما هي. وبالقدر الذي يسمح به القانون، لا تتحمل ديزورا مسؤولية الخسائر غير المباشرة، وتقتصر مسؤوليتنا الإجمالية على ما دفعته لنا خلال آخر ٣ أشهر.",
+        ] },
+        { heading: "التغييرات والتواصل", body: [
+          "قد نحدّث هذه الشروط؛ واستمرارك في الاستخدام يعني قبولك للتغييرات. للاستفسارات: dizuura@gmail.com.",
+        ] },
+      ],
     },
   },
 };

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { BentoCard, BentoGrid } from "@/components/dashboard/BentoGrid";
 import { Hero3D } from "@/components/landing/Hero3D";
 import { NAV } from "@/components/layout/nav";
+import { SiteFooter } from "@/components/layout/SiteFooter";
 import { TopBar } from "@/components/layout/TopBar";
 import { buttonClass } from "@/components/ui/Button";
 import { getI18n } from "@/lib/i18n/server";
@@ -45,6 +46,7 @@ export default async function LandingPage() {
           </BentoGrid>
         </section>
       </main>
+      <SiteFooter />
     </>
   );
 }
