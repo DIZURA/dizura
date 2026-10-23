@@ -23,6 +23,9 @@ export type AuthErrorCode =
   | "weakPassword"
   | "passwordMismatch"
   | "rateLimited"
+  | "emailRateLimited"
+  | "invalidEmail"
+  | "googleUnavailable"
   | "notConfigured"
   | "generic";
 
@@ -53,7 +56,9 @@ async function client() {
 function mapAuthError(code: string | undefined, status: number | undefined): AuthErrorCode {
   // Codes only — never emails or passwords.
   console.warn(`[auth] Supabase auth error: ${code ?? "unknown"} (${status ?? "?"})`);
-  if (status === 429 || code === "over_request_rate_limit" || code === "over_email_send_rate_limit") return "rateLimited";
+  if (code === "over_email_send_rate_limit") return "emailRateLimited";
+  if (status === 429 || code === "over_request_rate_limit") return "rateLimited";
+  if (code === "email_address_invalid") return "invalidEmail";
   if (code === "email_not_confirmed") return "emailNotConfirmed";
   if (code === "weak_password") return "weakPassword";
   if (code === "invalid_credentials") return "invalidCredentials";
@@ -83,6 +88,27 @@ export async function signIn(_: AuthState, form: FormData): Promise<AuthState> {
   // Same message for unknown email and wrong password — no account enumeration.
   if (error) return { status: "error", code: mapAuthError(error.code, error.status), email: echo(form) };
   redirect(safeNext(form.get("next")));
+}
+
+/**
+ * "Continue with Google": PKCE OAuth via Supabase. The code verifier lives in an httpOnly cookie
+ * and /auth/callback exchanges the code. Google accounts arrive email-verified, so the welcome
+ * bonus trigger (ADR 25) grants credits on insert.
+ */
+export async function signInWithGoogle(_: AuthState, form: FormData): Promise<AuthState> {
+  const limited = await guard("oauth", 20);
+  if (limited) return { status: "error", code: limited };
+  const supabase = await client();
+  if (!supabase) return { status: "error", code: "notConfigured" };
+  const { data, error } = await supabase.auth.signInWithOAuth({
+    provider: "google",
+    options: { redirectTo: callbackUrl(safeNext(form.get("next"))), skipBrowserRedirect: true },
+  });
+  if (error || !data.url) {
+    console.warn(`[auth] Google sign-in unavailable: ${error?.code ?? "no url"} (${error?.status ?? "?"})`);
+    return { status: "error", code: "googleUnavailable" };
+  }
+  redirect(data.url);
 }
 
 export async function signUp(_: AuthState, form: FormData): Promise<AuthState> {
