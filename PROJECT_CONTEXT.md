@@ -2,7 +2,7 @@
 
 > Source of truth for architecture, decisions, routes and roadmap.
 > **Every session: read this first; update it in the same change as any architectural edit.**
-> Last updated: 2026-10-23 (Genjutsu + option photos)
+> Last updated: 2026-10-23 (Pricing page + Buy-credits modal)
 
 ## 1. Product
 AI creative studio for GCC brands, Arabic-first (RTL) with English (LTR).
@@ -37,6 +37,7 @@ app/
   auth/callback/route.ts     Email-link target: PKCE ?code= or ?token_hash=&type= -> session -> safe redirect
   actions/auth.ts            Server Actions: signIn, signUp, requestPasswordReset, updatePassword, signOut
   billing/return/page.tsx    Tap redirect target (re-verifies + fulfils idempotently)
+  pricing/page.tsx           Public pricing: credit packs (PackGrid; guests → /login?next=/pricing) + per-feature cost table + notes (one-time, no subscription)
   actions/locale.ts          Server Action: set dz_locale cookie
   api/…                      see §5
 components/
@@ -47,6 +48,7 @@ components/
                  examples.ts (manifest of public/examples/*.webp), useGenerator (shared submit → poll w/ 2→10 s backoff + jitter → result; generate / transfer / ad)
   studio/ads/    AdsStudio
   studio/influencer/  InfluencerWorkspace (left: Step 1 builder [base identity: New face | Soul ID + likeness], output Sheet 16:9 | Portrait 9:16/3:4/1:1 + scene, details, ⚡5; Step 2 GenjutsuStep; Soul ID panel. Right: preview canvas + workspace thumbs, "Use in video"), CharacterBuilder (character type cards + Builder/Face/Body/Style tabs, 19 groups: photo cards for visual groups, colour swatches, chips), GenjutsuStep (reference video upload w/ progress → character images [own creations + uploaded photos, ≤ 8] → quality 480/720/1080p → optional changes → cost from duration), media.ts (toJpeg, uploadPhoto, uploadVideo [direct signed PUT], videoMeta), option-photos.ts (generated manifest), traits.ts (GROUPS incl. expression/Emotion, PHOTO_GROUPS, SWATCHES, toggle/normalize/randomize, composeCharacterPrompt, composeSoulIdPrompt), SoulIdPanel (train: name, 5–30 photos re-encoded to JPEG ≤1536px in-browser [strips EXIF], consent, ⚡40; list w/ status + delete), useCharacters (polls while training)
+  billing/       PackGrid (packs from CREDIT_PACKS → POST /api/payments/checkout → Tap hosted page), BuyCreditsModal (opened by the credits badge or `insufficient_credits`), events.ts (openBuyCredits)
   i18n/          I18nProvider/useI18n, LanguageToggle
   auth/          AuthForms (SignIn/SignUp/ForgotPassword/ResetPassword, useActionState), AuthCard, fields (TextField, PasswordField w/ show-hide), FormStatus
   layout/AccountMenu  Sign-in button or user + sign-out (server component)
@@ -129,6 +131,7 @@ proxy.ts         Session refresh + page guards (guest -> /login?next=, signed-in
 | 41 | **Ads Creative Studio = Higgsfield Marketing Studio Image** (`POST /marketing-studio/image` `{ prompt, image_urls:[product], aspect_ratio, resolution, quality, enhance_prompt:false }`, then `/requests/{id}/status` → `images[]`). Product photo goes through `/api/uploads/image` (re-encoded JPEG, signed token); `/api/ai/ad` takes `{ product, format, aspectRatio, quality, notes≤500 }` — format → server-side prompt template (`lib/ads/formats.ts`), quality tier → credits/resolution/quality (`AD_IMAGE`: standard 3 = 1k/medium, high 6 = 2k/high, ultra 10 = 4k/high). Reserve → submit (Idempotency-Key) → refund on failure, poll via `/api/ai/jobs/[token]`. Video ads: later (Marketing Studio Video API not yet documented for us). | Request shape taken from an integration verified against docs.higgsfield.ai (docs host unreachable from the sandbox); **owner: confirm per-tier cost with `POST /estimate/marketing-studio/image`** and the first live call. |
 | 42 | **Brand-neutral UI**: user-facing text shows only DIZURA (e.g. "DIZURA Character", "DIZURA Motion", "DIZURA Ads", "DIZURA ID"); no Higgsfield/Soul/Genjutsu/WAN/Supabase/Netlify/Tap/Claude names on the site. The privacy policy lists processor *categories*. Exception: "Continue with Google" (Google's sign-in branding rules require it). Internal code identifiers keep provider names. | Owner instruction (2026-10-23). |
 | 43 | **Example imagery** (option cards, ad formats, How-it-works steps, landing collages) was generated in Lovable (fictional people, unbranded products) and is imported as WebP via `scripts/import-examples.mjs`; manifests (`option-photos.ts`, `examples.ts`) list only files on disk, everything else shows placeholder art. | Owner asked for Higgsfield-like example pictures; Higgsfield account had 0 credits. Lovable binaries can't be read intact through the MCP, so they come via the Lovable project's GitHub repo. |
+| 44 | **Monetisation UI = one-time credit packs** (no subscription yet): public `/pricing` + a Buy-credits modal. The credits badge is a button that opens the modal; any `insufficient_credits` (402) from a studio or DIZURA ID opens it with "You're out of credits". The client only sends `packId`; amounts stay server-side (ADR 7). Without `TAP_SECRET_KEY` checkout returns 503 → "Payments are being set up". Pricing shows per-feature costs computed from `pricing.ts`, so it can't drift. | Owner (2026-10-23): "there is no subscription after generating" — users had no way to pay once the welcome credits ran out. Auto-renewing plans need Tap saved cards + scheduled charges — roadmap. |
 | 19 | Migration files named `<remote version>_<name>.sql`, matching `supabase_migrations.schema_migrations` exactly. New migrations: apply via MCP/CLI, then name the file with the version Supabase records. Migrations must also replay cleanly on a fresh preview branch (guard project-specific objects). | Supabase GitHub integration (Preview check) fails when remote versions are missing locally. |
 | 29 | `APP_SECRET` optional at boot (Netlify agent, PR #4); `signed-token.ts` enforces presence + ≥32 chars at use (→ 503 `not_configured`); `/api/ai/generate` checks it before reserving credits | `lib/env.ts` is evaluated during `next build` (page-data collection), so a missing/short secret was failing Netlify builds. |
 
@@ -150,6 +153,7 @@ proxy.ts         Session refresh + page guards (guest -> /login?next=, signed-in
 | POST | `/api/payments/checkout` | user | 5/min/user | `{ packId }` → `{ redirectUrl, chargeId }` (Tap hosted page) |
 | POST | `/api/webhooks/tap` | Tap HMAC | – | Verify + fulfil; 401 bad sig, 500 → Tap retries |
 | Page | `/billing/return?tap_id=` | – | – | Re-verify + idempotent fulfil, show status |
+| Page | `/pricing` | – (buy needs user) | – | Credit packs + cost table; Buy → `/api/payments/checkout` |
 
 "user" = Supabase session cookie or `Authorization: Bearer <access token>`; cookie-auth writes must be same-origin (403 otherwise).
 
@@ -213,7 +217,7 @@ Genjutsu (influencer Step 2): **4 / 8 / 16 cr per second** of reference video at
 
 ## 10. Roadmap
 1. ~~Login UI~~ ✅ (email/password, confirm, reset). ~~Google OAuth button~~ ✅ (ADR 39; provider must be enabled in Supabase). Next: `profiles` (plan via `app_metadata`/table), ~~welcome credits~~ ✅, **custom SMTP** (Supabase built-in email hit its rate limit on 2026-10-23).
-2. Pricing/checkout UI (Modal + packs) wired to `/api/payments/checkout`.
+2. ~~Pricing/checkout UI~~ ✅ (ADR 44; live once Tap keys are set + webhook registered). Next: monthly subscription plans (Tap saved card + recurring charge + monthly credit grant).
 2b. ~~Influencer animate (i2v)~~ ✅ → replaced by ~~Genjutsu motion transfer~~ ✅ (ADR 36, verified vs mocks; first live run still to confirm). ~~Soul ID~~ ✅. Next: run `npm run photos:options` once the Higgsfield account has credits; purge reference videos after N days (storage lifecycle / scheduled delete via Storage API); copy outputs to our storage. Next: Motion photo upload + i2v (reuse `/api/uploads/image`), copy outputs to Supabase Storage (provider URLs expire ≥7 d), price check via `/estimate`, real thumbnails for style/idea cards.
 3. Persist generation jobs (history gallery per workspace) + media upload for reference images.
 4. Shared rate limiter (Upstash Redis or Postgres) before multi-instance deploy.

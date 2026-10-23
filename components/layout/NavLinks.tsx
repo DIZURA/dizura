@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useI18n } from "@/components/i18n/I18nProvider";
 import { cn } from "@/components/ui/cn";
-import { NAV } from "./nav";
+import { EXTRA_NAV, NAV } from "./nav";
 
 /** Studio navigation (two studios). Scrolls sideways on small screens. */
 export function NavLinks() {
@@ -34,6 +34,19 @@ export function NavLinks() {
           </span>
         );
       })}
+      {EXTRA_NAV.map((item) => (
+        <Link
+          key={item.href}
+          href={item.href}
+          aria-current={pathname === item.href ? "page" : undefined}
+          className={cn(
+            "shrink-0 rounded-lg px-3 py-1.5 text-sm transition",
+            pathname === item.href ? "bg-ink-800 text-ink-100" : "text-ink-300 hover:bg-ink-850 hover:text-ink-100",
+          )}
+        >
+          {t.nav[item.key]}
+        </Link>
+      ))}
     </nav>
   );
 }

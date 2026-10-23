@@ -1,0 +1,31 @@
+"use client";
+
+import Link from "next/link";
+import { useEffect, useState } from "react";
+import { useI18n } from "@/components/i18n/I18nProvider";
+import { Modal } from "@/components/ui/Modal";
+import { BUY_CREDITS, type BuyCreditsReason } from "./events";
+import { PackGrid } from "./PackGrid";
+
+/** Top-up modal for signed-in users; opened by the credits badge or an `insufficient_credits` error. */
+export function BuyCreditsModal() {
+  const { t } = useI18n();
+  const [reason, setReason] = useState<BuyCreditsReason | null>(null);
+
+  useEffect(() => {
+    const open = (e: Event) => setReason((e as CustomEvent<BuyCreditsReason>).detail ?? "topup");
+    window.addEventListener(BUY_CREDITS, open);
+    return () => window.removeEventListener(BUY_CREDITS, open);
+  }, []);
+
+  const p = t.pricing;
+  return (
+    <Modal open={reason !== null} onClose={() => setReason(null)} title={reason === "insufficient" ? p.outOfCredits : p.topUpTitle}>
+      {reason === "insufficient" && <p className="-mt-1 mb-4 text-sm text-ink-300">{p.outOfCreditsBody}</p>}
+      <PackGrid signedIn compact />
+      <Link href="/pricing" onClick={() => setReason(null)} className="mt-4 inline-block text-sm text-mint-300 hover:text-mint-200">
+        {p.allPricing}
+      </Link>
+    </Modal>
+  );
+}
