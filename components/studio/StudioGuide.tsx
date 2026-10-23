@@ -67,7 +67,7 @@ function Media({ name, index, label }: { name: string | undefined; index: number
       ) : (
         <span aria-hidden className="absolute inset-0" style={{ background: `var(--art-${index % 6})` }} />
       )}
-      <span aria-hidden className="absolute bottom-4 start-4 rounded-full bg-ink-950/70 px-3 py-1 text-xs font-semibold text-ink-100 backdrop-blur">{label}</span>
+      <span aria-hidden className="absolute bottom-4 start-4 rounded-full bg-ink-950/85 px-3 py-1 text-xs font-semibold text-ink-100">{label}</span>
     </div>
   );
 }

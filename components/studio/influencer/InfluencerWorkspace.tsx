@@ -317,12 +317,12 @@ function Preview({ creation: c, onUse }: { creation: Creation; onUse: (c: Creati
           </div>
         ) : (
           <div className="shimmer grid size-full min-h-48 place-items-center">
-            <span className="rounded-full bg-ink-950/70 px-3 py-1 text-xs text-ink-300 backdrop-blur">
+            <span className="rounded-full bg-ink-950/85 px-3 py-1 text-xs text-ink-300">
               {c.status === "queued" || c.status === "submitting" ? t.gen.queued : t.gen.generating}
             </span>
           </div>
         )}
-        <span className="absolute start-2 top-2 rounded-full bg-ink-950/80 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-ink-300 backdrop-blur">
+        <span className="absolute start-2 top-2 rounded-full bg-ink-950/80 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-ink-300">
           {c.kind === "video" ? s.video : isSheet(c) ? t.builder.outputs.sheet : s.character}
         </span>
       </div>

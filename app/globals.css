@@ -48,10 +48,12 @@
   [dir="rtl"] .flip-rtl { transform: scaleX(-1); }
 }
 
-/* Glassmorphic panel with a faint neon-mint edge. */
+/*
+ * Panel with a faint neon-mint edge. No backdrop-filter: panels sit on the flat page background,
+ * and blurring large scrolling areas re-renders every frame (jank + black tiles on some GPUs).
+ */
 @utility glass {
-  background: color-mix(in oklab, var(--color-ink-900) 62%, transparent);
-  backdrop-filter: blur(18px) saturate(140%);
+  background: linear-gradient(180deg, color-mix(in oklab, var(--color-ink-900) 94%, var(--color-mint-500)), var(--color-ink-900) 40%);
   border: 1px solid color-mix(in oklab, var(--color-mint-500) 20%, transparent);
   box-shadow: 0 0 0 1px color-mix(in oklab, var(--color-ink-950) 40%, transparent), 0 24px 60px -32px color-mix(in oklab, var(--color-mint-500) 35%, transparent);
 }
