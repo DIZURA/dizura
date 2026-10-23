@@ -149,7 +149,7 @@ export function SoulIdPanel({
                 )}
                 <span
                   className={cn(
-                    "absolute start-2 top-2 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold backdrop-blur",
+                    "absolute start-2 top-2 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold",
                     c.state === "ready" && "bg-mint-500/20 text-mint-300",
                     c.state === "training" && "bg-ink-950/80 text-ink-300",
                     c.state === "failed" && "bg-danger/20 text-danger",
@@ -198,7 +198,7 @@ export function SoulIdPanel({
                 <img src={p.preview} alt="" className={cn("size-full object-cover", p.state === "uploading" && "opacity-50")} />
                 <span
                   className={cn(
-                    "absolute inset-x-1 bottom-1 rounded-md px-1 py-0.5 text-center text-[10px] font-semibold backdrop-blur",
+                    "absolute inset-x-1 bottom-1 rounded-md px-1 py-0.5 text-center text-[10px] font-semibold",
                     p.state === "uploaded" && "bg-mint-500/25 text-mint-200",
                     p.state === "uploading" && "bg-ink-950/70 text-ink-300",
                     p.state === "failed" && "bg-danger/30 text-ink-100",

@@ -1,7 +1,7 @@
 "use client";
 
-import { Canvas, useFrame } from "@react-three/fiber";
-import { useMemo, useRef } from "react";
+import { Canvas, useFrame, useThree } from "@react-three/fiber";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { AdditiveBlending, CatmullRomCurve3, Vector3, type Group, type MeshBasicMaterial, type MeshStandardMaterial } from "three";
 
 // Brand colours mirror the CSS tokens (three.js materials can't read CSS variables).
@@ -87,13 +87,55 @@ function Globe() {
   );
 }
 
+/** Renders only while the globe is on screen and the tab is visible — otherwise it idles at 0 fps. */
+function useOnScreen<T extends Element>() {
+  const ref = useRef<T>(null);
+  const [inView, setInView] = useState(false);
+  const [tabVisible, setTabVisible] = useState(true);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const io = new IntersectionObserver(([entry]) => setInView(entry?.isIntersecting ?? false), { threshold: 0 });
+    io.observe(el);
+    const onVisibility = () => setTabVisible(document.visibilityState === "visible");
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => {
+      io.disconnect();
+      document.removeEventListener("visibilitychange", onVisibility);
+    };
+  }, []);
+  return [ref, inView && tabVisible] as const;
+}
+
+/** Slow, ambient motion looks identical at 30 fps — half the GPU/CPU work of the default loop. */
+const FPS = 30;
+function Ticker({ active }: { active: boolean }) {
+  const invalidate = useThree((s) => s.invalidate);
+  useEffect(() => {
+    if (!active) return;
+    const id = window.setInterval(() => invalidate(), 1000 / FPS);
+    return () => window.clearInterval(id);
+  }, [active, invalidate]);
+  return null;
+}
+
 export default function Hero3DScene() {
+  const [ref, active] = useOnScreen<HTMLDivElement>();
   return (
-    <Canvas camera={{ position: [0, 0, 5], fov: 42 }} dpr={[1, 2]} gl={{ antialias: true, alpha: true }} aria-hidden>
-      <ambientLight intensity={0.4} />
-      <pointLight position={[3, 3, 4]} intensity={18} color={MINT} />
-      <pointLight position={[-4, -2, 2]} intensity={10} color={EMBER} />
-      <Globe />
-    </Canvas>
+    <div ref={ref} className="size-full">
+      <Canvas
+        camera={{ position: [0, 0, 5], fov: 42 }}
+        dpr={[1, 1.5]}
+        frameloop="demand"
+        gl={{ antialias: true, alpha: true, powerPreference: "low-power" }}
+        aria-hidden
+      >
+        <ambientLight intensity={0.4} />
+        <pointLight position={[3, 3, 4]} intensity={18} color={MINT} />
+        <pointLight position={[-4, -2, 2]} intensity={10} color={EMBER} />
+        <Globe />
+        <Ticker active={active} />
+      </Canvas>
+    </div>
   );
 }
