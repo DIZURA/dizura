@@ -51,7 +51,23 @@ export function CharacterBuilder({
     <div>
       <p className="mb-2.5 text-sm font-semibold text-ink-100">{b.tiersLabel}</p>
       <div role="radiogroup" aria-label={b.tiersLabel} className="grid grid-cols-3 gap-2">
-        {TIERS.map((key, i) => (
+        {TIERS.map((key, i) =>
+          hasPhoto("tier", key) ? (
+            <button
+              key={key}
+              type="button"
+              role="radio"
+              aria-checked={tier === key}
+              onClick={() => onTier(key)}
+              className={cn(paperCard(tier === key), "rounded-2xl")}
+            >
+              <PaperPhoto group="tier" id={key} on={tier === key} />
+              <span className="block px-2 pb-2 pt-1 text-center">
+                <span className="block text-sm font-semibold text-ink-950">{b.tiers[key]}</span>
+                <span className="hidden text-[11px] leading-snug text-ink-500 sm:block">{b.tierHints[key]}</span>
+              </span>
+            </button>
+          ) : (
           <button
             key={key}
             type="button"
@@ -74,7 +90,8 @@ export function CharacterBuilder({
               <span className="mt-0.5 hidden text-[11px] leading-snug text-ink-300 sm:block">{b.tierHints[key]}</span>
             </span>
           </button>
-        ))}
+          ),
+        )}
       </div>
 
       <div role="tablist" aria-label={b.tiersLabel} className="mt-6 flex gap-1 rounded-xl border border-ink-700 bg-ink-950/50 p-1">
@@ -123,6 +140,14 @@ export function CharacterBuilder({
                   <div className="grid grid-cols-4 gap-2 sm:grid-cols-5">
                     {options.map((o, i) => {
                       const on = picked.includes(o.id);
+                      if (hasPhoto(g.id, o.id)) {
+                        return (
+                          <button key={o.id} type="button" {...state(on)} onClick={() => pick(o.id)} className={paperCard(on)}>
+                            <PaperPhoto group={g.id} id={o.id} on={on} />
+                            <span className="block truncate px-1 pb-1.5 pt-0.5 text-center text-[11px] font-semibold text-ink-950">{labels[o.id]}</span>
+                          </button>
+                        );
+                      }
                       return (
                         <button
                           key={o.id}
@@ -195,6 +220,27 @@ export function CharacterBuilder({
         )}
       </div>
     </div>
+  );
+}
+
+const hasPhoto = (group: string, id: string) => OPTION_PHOTOS.has(`${group}/${id}`);
+
+/** White tile for a generated option photo (art direction: docs/design/option-photos.md). */
+const paperCard = (on: boolean) =>
+  cn(
+    "group relative flex flex-col overflow-hidden rounded-xl border-2 bg-paper text-start transition",
+    on ? "border-mint-500 shadow-[0_0_20px_-6px_var(--color-mint-500)]" : "border-transparent hover:border-ink-500",
+  );
+
+function PaperPhoto({ group, id, on }: { group: string; id: string; on: boolean }) {
+  return (
+    <span className="relative block aspect-square overflow-hidden">
+      {/* eslint-disable-next-line @next/next/no-img-element -- small static thumbnails */}
+      <img src={`/influencer/options/${group}/${id}.webp`} alt="" loading="lazy" className="size-full object-cover transition duration-300 group-hover:scale-105 motion-reduce:transition-none" />
+      {on && (
+        <span aria-hidden className="absolute end-1.5 top-1.5 grid size-5 place-items-center rounded-full bg-mint-500 text-[11px] font-bold text-ink-950">✓</span>
+      )}
+    </span>
   );
 }
 

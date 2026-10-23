@@ -34,6 +34,7 @@
 
   --color-success: #3ecf8e;
   --color-danger: #ff5a5f;
+  --color-paper: #ffffff;     /* white option-photo tiles (docs/design/option-photos.md) */
 
   --font-sans: var(--font-plex-arabic), var(--font-inter), ui-sans-serif, system-ui, sans-serif;
   --radius-card: 1.25rem;
