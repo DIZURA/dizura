@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/Button";
 import { cn } from "@/components/ui/cn";
 import { GENJUTSU, generationCost, SOUL_ID } from "@/lib/credits/pricing";
 import type { AspectRatio } from "@/types";
+import { CanvasPanel } from "../CanvasPanel";
 import { useGenerator, type Creation, type TransferInput } from "../useGenerator";
 import { CharacterBuilder } from "./CharacterBuilder";
 import { GenjutsuStep } from "./GenjutsuStep";
@@ -20,6 +21,8 @@ import { useCharacters } from "./useCharacters";
 const SHEET_RATIO: AspectRatio = "16:9";
 const PORTRAIT_RATIOS: AspectRatio[] = ["9:16", "3:4", "1:1"];
 const RATIO_CLASS: Record<AspectRatio, string> = { "9:16": "aspect-[9/16]", "1:1": "aspect-square", "3:4": "aspect-[3/4]", "16:9": "aspect-video" };
+/** Example pictures for the How-it-works steps (public/examples/*.webp). */
+const GUIDE_IMAGES = ["how-vc-1", "how-vc-2", "how-vc-3", "how-vc-4", "how-vc-5"] as const;
 const isSheet = (c: Creation) => c.kind === "image" && c.ratio === SHEET_RATIO;
 
 function smoothScroll(el: HTMLElement | null) {
@@ -36,7 +39,7 @@ export function InfluencerWorkspace() {
   const s = t.influencerStudio;
   const b = t.builder;
   const nf = new Intl.NumberFormat(locale);
-  const { creations, error, generate, transfer, busy } = useGenerator("ai-influencer");
+  const { creations, error, generate, transfer, busy } = useGenerator("visual-character");
   const [errorAt, setErrorAt] = useState<"create" | "video">("create");
 
   // Soul ID characters
@@ -56,7 +59,7 @@ export function InfluencerWorkspace() {
   const ratio = output === "sheet" ? SHEET_RATIO : portraitRatio;
   const base = soulCharacter ? composeSoulIdPrompt(selection, output, scene) : composeCharacterPrompt(selection, tier, output, scene);
   const characterPrompt = [base, details.trim()].filter(Boolean).join(". ");
-  const imageCost = generationCost({ workspace: "ai-influencer", kind: "image" });
+  const imageCost = generationCost({ workspace: "visual-character", kind: "image" });
 
   // Step 2 — Genjutsu
   const step2 = useRef<HTMLElement>(null);
@@ -104,7 +107,7 @@ export function InfluencerWorkspace() {
       <div className="flex min-w-0 flex-col gap-5">
         {/* ---------------- Step 1: character builder ---------------- */}
         <section aria-labelledby="step1-title" className="glass rounded-[var(--radius-card)] p-5 sm:p-6">
-          <StepHeader badge={s.step1.badge} id="step1-title" title={s.step1.title} subtitle={s.step1.subtitle} model="Soul 2" />
+          <StepHeader badge={s.step1.badge} id="step1-title" title={s.step1.title} subtitle={s.step1.subtitle} model="DIZURA Character" />
 
           <Label>{b.identity}</Label>
           <div role="radiogroup" aria-label={b.identity} className="mb-2 flex flex-wrap items-center gap-2">
@@ -220,7 +223,7 @@ export function InfluencerWorkspace() {
 
         {/* ---------------- Step 2: Genjutsu ---------------- */}
         <section ref={step2} aria-labelledby="step2-title" className="glass scroll-mt-24 rounded-[var(--radius-card)] p-5 sm:p-6">
-          <StepHeader badge={s.step2.badge} id="step2-title" title={s.step2.title} subtitle={s.step2.subtitle} model="Genjutsu" />
+          <StepHeader badge={s.step2.badge} id="step2-title" title={s.step2.title} subtitle={s.step2.subtitle} model="DIZURA Motion" />
           <GenjutsuStep images={images} picked={picked} onPicked={setPicked} busy={busy} error={errorAt === "video" ? error : null} onSubmit={makeVideo} />
         </section>
 
@@ -236,36 +239,30 @@ export function InfluencerWorkspace() {
         </div>
       </div>
 
-      {/* ---------------- Preview canvas + workspace ---------------- */}
-      <aside aria-labelledby="workspace-title" className="glass min-w-0 rounded-[var(--radius-card)] lg:sticky lg:top-20 lg:max-h-[calc(100dvh-6rem)] lg:overflow-y-auto">
-        <header className="sticky top-0 z-10 flex items-center justify-between border-b border-mint-500/15 bg-ink-900/80 px-5 py-3.5 backdrop-blur">
-          <h2 id="workspace-title" className="text-sm font-semibold">{s.gallery.title}</h2>
-          {creations.length > 0 && <span className="rounded-full border border-ink-700 px-2 py-0.5 text-xs tabular-nums text-ink-300">{nf.format(creations.length)}</span>}
-        </header>
-        <div className="p-4 sm:p-5">
-          {focused ? <Preview creation={focused} onUse={pickForVideo} /> : <EmptyCanvas text={s.gallery.empty} />}
-          {creations.length > 1 && (
-            <ul className="mt-4 grid grid-cols-4 gap-2 sm:grid-cols-5 xl:grid-cols-6" aria-label={s.gallery.title}>
-              {creations.map((c) => (
-                <li key={c.key}>
-                  <button
-                    type="button"
-                    onClick={() => setFocusKey(c.key)}
-                    aria-pressed={focused?.key === c.key}
-                    aria-label={c.kind === "video" ? s.gallery.video : s.gallery.character}
-                    className={cn(
-                      "relative block aspect-square w-full overflow-hidden rounded-xl border-2 bg-ink-850 transition",
-                      focused?.key === c.key ? "border-mint-500" : "border-transparent opacity-75 hover:opacity-100",
-                    )}
-                  >
-                    <Thumb creation={c} />
-                  </button>
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
-      </aside>
+      {/* ---------------- Canvas: workspace + how it works ---------------- */}
+      <CanvasPanel count={creations.length} guide={t.guide.visualCharacter} guideImages={GUIDE_IMAGES}>
+        {focused ? <Preview creation={focused} onUse={pickForVideo} /> : <EmptyCanvas text={s.gallery.empty} />}
+        {creations.length > 1 && (
+          <ul className="mt-4 grid grid-cols-4 gap-2 sm:grid-cols-5 xl:grid-cols-6" aria-label={s.gallery.title}>
+            {creations.map((c) => (
+              <li key={c.key}>
+                <button
+                  type="button"
+                  onClick={() => setFocusKey(c.key)}
+                  aria-pressed={focused?.key === c.key}
+                  aria-label={c.kind === "video" ? s.gallery.video : s.gallery.character}
+                  className={cn(
+                    "relative block aspect-square w-full overflow-hidden rounded-xl border-2 bg-ink-850 transition",
+                    focused?.key === c.key ? "border-mint-500" : "border-transparent opacity-75 hover:opacity-100",
+                  )}
+                >
+                  <Thumb creation={c} />
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+      </CanvasPanel>
     </div>
   );
 }

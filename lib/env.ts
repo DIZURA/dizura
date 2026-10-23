@@ -36,8 +36,6 @@ const schema = z.object({
   HIGGSFIELD_API_KEY: optional,
   HIGGSFIELD_API_SECRET: optional,
 
-  GSC_MCP_ENDPOINT: optionalUrl,
-  GSC_MCP_TOKEN: optional,
 
   TAP_API_BASE_URL: z.url().default("https://api.tap.company/v2"),
   TAP_SECRET_KEY: optional.refine((v) => v === undefined || /^sk_(test|live)_/.test(v), {

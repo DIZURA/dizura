@@ -69,7 +69,7 @@ export const POST = route(async (req: Request) => {
     id: seal<JobHandle>("job", { u: user.id, p: provider, j: submitted.providerJobId, c: cost, r: referenceId }),
     provider,
     providerJobId: submitted.providerJobId,
-    workspace: "ai-influencer",
+    workspace: "visual-character",
     status: submitted.status,
     creditsCharged: cost,
     outputs: [],

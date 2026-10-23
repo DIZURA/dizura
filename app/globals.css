@@ -128,3 +128,4 @@
   animation: shimmer 1.6s linear infinite;
   @media (prefers-reduced-motion: reduce) { animation: none; }
 }
+@keyframes kenburns { from { transform: scale(1) translate(0, 0) } to { transform: scale(1.08) translate(-1.5%, -1%) } }

@@ -47,6 +47,17 @@ export type TransferInput = {
   estimate: number;
 };
 
+export type AdInput = {
+  /** Signed photo upload token for the product. */
+  product: string;
+  format: string;
+  aspectRatio: AspectRatio;
+  quality: "standard" | "high" | "ultra";
+  notes: string;
+  /** Client-side estimate; replaced by the server's charged amount once submitted. */
+  estimate: number;
+};
+
 type PollState = { status: JobStatus; outputs: GeneratedMedia[]; error: string | null; creditsRefunded: boolean };
 
 const MAX_POLLS = 120; // ~15 min at the 10 s ceiling
@@ -130,5 +141,14 @@ export function useGenerator(workspace: Workspace) {
     [run],
   );
 
-  return { creations, error, setError, generate, transfer, busy: creations.some(isBusy) };
+  /** Ads Creative Studio: Marketing Studio Image ad from the caller's own product photo. */
+  const ad = useCallback(
+    ({ product, format, aspectRatio, quality, notes, estimate }: AdInput) =>
+      run({ prompt: format, kind: "image", ratio: aspectRatio, cost: estimate }, () =>
+        api<GenerationJob>("/api/ai/ad", { method: "POST", body: JSON.stringify({ product, format, aspectRatio, quality, notes }) }),
+      ),
+    [run],
+  );
+
+  return { creations, error, setError, generate, transfer, ad, busy: creations.some(isBusy) };
 }

@@ -55,3 +55,16 @@ export function genjutsuCost(durationSec: number, resolution: GenjutsuResolution
   const seconds = Math.min(GENJUTSU.maxSeconds, Math.max(GENJUTSU.minSeconds, Math.ceil(durationSec)));
   return seconds * GENJUTSU.creditsPerSecond[resolution];
 }
+
+/**
+ * Ads Creative Studio (Higgsfield Marketing Studio Image) — credits per ad by quality tier.
+ * TODO(owner): confirm provider cost per tier with `POST /estimate/marketing-studio/image` on the
+ * live account and adjust; prices stay server-side only.
+ */
+export const AD_IMAGE = {
+  standard: { credits: 3, resolution: "1k", quality: "medium" },
+  high: { credits: 6, resolution: "2k", quality: "high" },
+  ultra: { credits: 10, resolution: "4k", quality: "high" },
+} as const;
+export type AdQuality = keyof typeof AD_IMAGE;
+export const AD_RATIOS = ["1:1", "3:4", "9:16", "16:9"] as const;

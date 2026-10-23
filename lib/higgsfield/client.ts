@@ -22,6 +22,8 @@ export const MODELS = {
   imageToVideo: "alibaba/wan-3.0-prime/image-to-video",
   /** Genjutsu: character image(s) perform a reference video (video2video, keeps its motion). */
   motionTransfer: "higgsfield/genjutsu/motion-transfer/v1.0",
+  /** Marketing Studio Image: product photo (+ prompt) → ad creative. */
+  adImage: "marketing-studio/image",
 } as const;
 
 const submitSchema = z.object({ request_id: z.string().min(1), status: z.string() });
@@ -119,6 +121,31 @@ export async function submitMotionTransfer(
     method: "POST",
     headers: { ...headers, "idempotency-key": idempotencyKey },
     body: JSON.stringify({ prompt: input.prompt, video_url: input.videoUrl, image_urls: input.imageUrls, resolution: input.resolution }),
+  });
+  const job = submitSchema.parse(await res.json());
+  return { providerJobId: job.request_id, status: mapStatus(job.status) };
+}
+
+/**
+ * Marketing Studio Image ad from the caller's product photo. `enhance_prompt: false` = our own
+ * prompt (no preset); body per docs.higgsfield.ai/docs/models/marketing-studio-image.
+ */
+export async function submitAdImage(
+  input: { prompt: string; imageUrls: string[]; aspectRatio: string; resolution: "1k" | "2k" | "4k"; quality: "low" | "medium" | "high" },
+  idempotencyKey: string,
+): Promise<{ providerJobId: string; status: JobStatus }> {
+  const { base, headers } = auth();
+  const res = await providerFetch("Higgsfield", `${base}/${MODELS.adImage}`, {
+    method: "POST",
+    headers: { ...headers, "idempotency-key": idempotencyKey },
+    body: JSON.stringify({
+      prompt: input.prompt.slice(0, 5000),
+      image_urls: input.imageUrls,
+      aspect_ratio: input.aspectRatio,
+      resolution: input.resolution,
+      quality: input.quality,
+      enhance_prompt: false,
+    }),
   });
   const job = submitSchema.parse(await res.json());
   return { providerJobId: job.request_id, status: mapStatus(job.status) };

@@ -18,3 +18,7 @@ export async function poll(_provider: GenerationJob["provider"], providerJobId: 
 export async function submitMotionTransfer(...args: Parameters<typeof higgsfield.submitMotionTransfer>) {
   return higgsfield.submitMotionTransfer(...args);
 }
+
+export async function submitAdImage(...args: Parameters<typeof higgsfield.submitAdImage>) {
+  return higgsfield.submitAdImage(...args);
+}

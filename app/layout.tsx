@@ -15,7 +15,7 @@ const plexArabic = IBM_Plex_Sans_Arabic({
 
 export const metadata: Metadata = {
   title: { default: "DIZURA — AI Creative Studio", template: "%s · DIZURA" },
-  description: "AI ads, virtual influencers, WAN 3.0 video and free GEO audits — in Arabic and English.",
+  description: "DIZURA — AI visual characters and ad creatives for brands, in Arabic and English.",
   metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"),
 };
 
