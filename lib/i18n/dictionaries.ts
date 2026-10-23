@@ -348,7 +348,7 @@ const en = {
       googleUnavailable: "Google sign-in isn't available yet. Please use email for now.",
       notConfigured: "Sign-in is temporarily unavailable.",
       generic: "Something went wrong. Please try again.",
-      link: "That link is invalid or has expired. Please request a new one.",
+      link: "That link is invalid or has expired. Request a new one and open it in the same browser you requested it from.",
     },
   },
   legal: {
@@ -772,7 +772,7 @@ const ar: Dictionary = {
       googleUnavailable: "تسجيل الدخول عبر Google غير متاح بعد. استخدم البريد الإلكتروني حالياً.",
       notConfigured: "تسجيل الدخول غير متاح مؤقتاً.",
       generic: "حدث خطأ ما. يرجى المحاولة مرة أخرى.",
-      link: "الرابط غير صالح أو منتهي الصلاحية. يرجى طلب رابط جديد.",
+      link: "الرابط غير صالح أو منتهي الصلاحية. اطلب رابطاً جديداً وافتحه في نفس المتصفح الذي طلبته منه.",
     },
   },
   legal: {
