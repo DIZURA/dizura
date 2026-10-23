@@ -32,6 +32,8 @@ export type GenerateInput = {
   /** Trained Soul ID character (images only). */
   characterId?: string;
   characterStrength?: number;
+  /** Signed upload token of a reference photo the character is made from (images only). */
+  referencePhoto?: string;
 };
 
 export type TransferInput = {
@@ -112,7 +114,7 @@ export function useGenerator(workspace: Workspace) {
   );
 
   const generate = useCallback(
-    ({ prompt, kind, ratio, durationSec, cost, source, characterId, characterStrength }: GenerateInput) =>
+    ({ prompt, kind, ratio, durationSec, cost, source, characterId, characterStrength, referencePhoto }: GenerateInput) =>
       run({ prompt, kind, ratio, cost, animatedFrom: source?.key }, () =>
         api<GenerationJob>("/api/ai/generate", {
           method: "POST",
@@ -125,6 +127,7 @@ export function useGenerator(workspace: Workspace) {
             sourceJob: source?.jobId ?? undefined,
             characterId,
             characterStrength: characterId ? characterStrength : undefined,
+            referencePhoto,
           }),
         }),
       ),

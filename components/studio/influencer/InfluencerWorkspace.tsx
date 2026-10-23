@@ -10,10 +10,11 @@ import { CanvasPanel } from "../CanvasPanel";
 import { useGenerator, type Creation, type TransferInput } from "../useGenerator";
 import { CharacterBuilder } from "./CharacterBuilder";
 import { GenjutsuStep } from "./GenjutsuStep";
+import { ReferencePhoto, type ReferencePhotoState } from "./ReferencePhoto";
 import { SoulIdPanel } from "./SoulIdPanel";
 import {
-  composeCharacterPrompt, composeSoulIdPrompt, DEFAULT_SELECTION, normalize, randomize, SCENES,
-  type OutputKind, type SceneKey, type Selection, type Tier,
+  composeCharacterPrompt, composePhotoPrompt, composeSoulIdPrompt, DEFAULT_SELECTION, normalize, photoDefaults, randomize, SCENES,
+  type IdentityMode, type OutputKind, type SceneKey, type Selection, type Tier,
 } from "./traits";
 import { useCharacters } from "./useCharacters";
 
@@ -45,9 +46,12 @@ export function InfluencerWorkspace() {
   // Soul ID characters
   const soul = useCharacters();
   const readyCharacters = soul.list.filter((c) => c.state === "ready");
-  const [identity, setIdentity] = useState<string>("new"); // "new" = builder traits, else a character id
+  const [identity, setIdentity] = useState<string>("new"); // "new" = builder traits, "photo" = reference photo, else a character id
   const soulCharacter = readyCharacters.find((c) => c.id === identity);
+  const mode: IdentityMode = identity === "photo" ? "photo" : soulCharacter ? "soul" : "new";
   const [strength, setStrength] = useState<number>(SOUL_ID.defaultStrength);
+  const [photo, setPhoto] = useState<ReferencePhotoState | null>(null);
+  const [photoError, setPhotoError] = useState(false);
 
   // Step 1 — builder
   const [tier, setTier] = useState<Tier>("average");
@@ -57,7 +61,10 @@ export function InfluencerWorkspace() {
   const [portraitRatio, setPortraitRatio] = useState<AspectRatio>("9:16");
   const [details, setDetails] = useState("");
   const ratio = output === "sheet" ? SHEET_RATIO : portraitRatio;
-  const base = soulCharacter ? composeSoulIdPrompt(selection, output, scene) : composeCharacterPrompt(selection, tier, output, scene);
+  const base =
+    mode === "photo" ? composePhotoPrompt(selection, tier, output, scene)
+    : mode === "soul" ? composeSoulIdPrompt(selection, output, scene)
+    : composeCharacterPrompt(selection, tier, output, scene);
   const characterPrompt = [base, details.trim()].filter(Boolean).join(". ");
   const imageCost = generationCost({ workspace: "visual-character", kind: "image" });
 
@@ -72,12 +79,20 @@ export function InfluencerWorkspace() {
 
   function changeTier(next: Tier) {
     setTier(next);
-    setSelection((prev) => normalize(prev, next));
+    setSelection((prev) => normalize(prev, next, mode));
+  }
+
+  function chooseIdentity(id: string) {
+    const nextMode: IdentityMode = id === "photo" ? "photo" : id === "new" ? "new" : "soul";
+    setIdentity(id);
+    setPhotoError(false);
+    if (nextMode !== mode) setSelection((prev) => (nextMode === "photo" ? photoDefaults(prev, tier) : normalize(prev, tier, nextMode)));
   }
 
   function createCharacter(e: FormEvent) {
     e.preventDefault();
     if (busy) return;
+    if (mode === "photo" && !photo?.token) return setPhotoError(true);
     setErrorAt("create");
     setFocusKey(null); // follow the newest creation
     void generate({
@@ -87,6 +102,7 @@ export function InfluencerWorkspace() {
       cost: imageCost,
       characterId: soulCharacter?.id,
       characterStrength: soulCharacter ? strength : undefined,
+      referencePhoto: mode === "photo" ? (photo?.token ?? undefined) : undefined,
     });
   }
 
@@ -111,13 +127,17 @@ export function InfluencerWorkspace() {
 
           <Label>{b.identity}</Label>
           <div role="radiogroup" aria-label={b.identity} className="mb-2 flex flex-wrap items-center gap-2">
-            {[{ id: "new", name: b.newFace, thumb: null as string | null }, ...readyCharacters.map((c) => ({ id: c.id, name: c.name, thumb: c.thumbnailUrl }))].map((o) => (
+            {[
+              { id: "new", name: b.newFace, thumb: null as string | null },
+              { id: "photo", name: b.fromPhoto, thumb: null },
+              ...readyCharacters.map((c) => ({ id: c.id, name: c.name, thumb: c.thumbnailUrl })),
+            ].map((o) => (
               <button
                 key={o.id}
                 type="button"
                 role="radio"
                 aria-checked={identity === o.id}
-                onClick={() => setIdentity(o.id)}
+                onClick={() => chooseIdentity(o.id)}
                 className={cn(
                   "inline-flex items-center gap-2 rounded-full border py-1 pe-3 ps-1 text-sm transition",
                   identity === o.id ? "border-mint-500 bg-mint-500/10 text-mint-300 shadow-[0_0_16px_-6px_var(--color-mint-500)]" : "border-ink-700 text-ink-300 hover:text-ink-100",
@@ -127,7 +147,7 @@ export function InfluencerWorkspace() {
                   // eslint-disable-next-line @next/next/no-img-element -- provider CDN URL
                   <img src={o.thumb} alt="" className="size-7 rounded-full object-cover" />
                 ) : (
-                  <span aria-hidden className="grid size-7 place-items-center rounded-full bg-ink-800 text-xs">{o.id === "new" ? "✦" : o.name.slice(0, 1)}</span>
+                  <span aria-hidden className="grid size-7 place-items-center rounded-full bg-ink-800 text-xs">{o.id === "new" ? "✦" : o.id === "photo" ? "📷" : o.name.slice(0, 1)}</span>
                 )}
                 <span dir="auto">{o.name}</span>
               </button>
@@ -136,6 +156,16 @@ export function InfluencerWorkspace() {
               + {b.trainSoulId}
             </a>
           </div>
+          {mode === "photo" && (
+            <ReferencePhoto
+              value={photo}
+              onChange={(next) => {
+                setPhoto(next);
+                setPhotoError(false);
+              }}
+            />
+          )}
+          {photoError && <p role="alert" className="mb-2 text-sm text-danger">{b.photo.needed}</p>}
           {soulCharacter && (
             <label className="mb-2 flex items-center gap-3 text-xs text-ink-300">
               {t.soulId.strength}
@@ -145,14 +175,14 @@ export function InfluencerWorkspace() {
           )}
 
           <div className="mt-5">
-            <CharacterBuilder tier={tier} onTier={changeTier} selection={selection} onSelection={setSelection} soulLocked={Boolean(soulCharacter)} />
+            <CharacterBuilder tier={tier} onTier={changeTier} selection={selection} onSelection={setSelection} mode={mode} />
           </div>
 
           <div className="mt-5 flex gap-2">
-            <button type="button" onClick={() => setSelection(randomize(tier))} className="inline-flex items-center gap-1.5 rounded-lg border border-mint-500/40 px-3 py-1.5 text-xs font-semibold text-mint-300 transition hover:bg-mint-500/10">
+            <button type="button" onClick={() => setSelection(randomize(tier, selection, mode))} className="inline-flex items-center gap-1.5 rounded-lg border border-mint-500/40 px-3 py-1.5 text-xs font-semibold text-mint-300 transition hover:bg-mint-500/10">
               <span aria-hidden>⟳</span> {b.randomize}
             </button>
-            <button type="button" onClick={() => setSelection(normalize(DEFAULT_SELECTION, tier))} className="rounded-lg border border-ink-700 px-3 py-1.5 text-xs text-ink-300 transition hover:text-ink-100">
+            <button type="button" onClick={() => setSelection(mode === "photo" ? photoDefaults(DEFAULT_SELECTION, tier) : normalize(DEFAULT_SELECTION, tier, mode))} className="rounded-lg border border-ink-700 px-3 py-1.5 text-xs text-ink-300 transition hover:text-ink-100">
               {b.reset}
             </button>
           </div>
@@ -213,7 +243,7 @@ export function InfluencerWorkspace() {
             />
             <div className="mt-2 flex flex-wrap items-center gap-2">
               <Cost value={nf.format(imageCost)} label={t.gen.credits} />
-              <Button type="submit" disabled={busy} className="ms-auto px-6">
+              <Button type="submit" disabled={busy || (mode === "photo" && !photo?.token)} className="ms-auto px-6">
                 {busy ? t.gen.generating : s.step1.create}
               </Button>
             </div>
