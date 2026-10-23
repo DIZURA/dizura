@@ -8,6 +8,12 @@
 
 [build.environment]
   NODE_VERSION = "22"
+  # Public-by-design Supabase values (browser-safe: project URL + publishable key; RLS protects data).
+  # Kept here so every build has them — values set via the Netlify UI/API were repeatedly missing,
+  # which broke sign-in ("temporarily unavailable"). Secrets (service role, Higgsfield, Tap sk_) are
+  # NEVER put here: they stay in Netlify env vars marked secret.
+  NEXT_PUBLIC_SUPABASE_URL = "https://mxzeeyqektwdncsryhyk.supabase.co"
+  NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY = "sb_publishable_Leia0_iw7hge9AXPA79bSQ_S3JQhdyL"
 
 # Declare the Next.js runtime explicitly. Deploys were building but reporting
 # "No functions deployed" (plugin state: none), i.e. the runtime wasn't applied.
