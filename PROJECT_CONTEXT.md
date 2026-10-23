@@ -165,6 +165,7 @@ Dev/test only: `DEV_STARTING_CREDITS` (read only by the in-memory credit store, 
 ## 6b. Deployment — Netlify
 - Site: **`sparkly-swan-cf292e`** → `https://sparkly-swan-cf292e.netlify.app` (Next.js runtime auto-detected; any env change needs a **redeploy**).
 - **Public Supabase URL + publishable key live in `netlify.toml`** (ADR 38) — not in the Netlify UI.
+- Google Search Console ownership: `metadata.verification.google` in `app/layout.tsx` (URL-prefix property for the Netlify URL; needed for Google OAuth branding verification). Re-verify when the custom domain is added.
 - Env per context: `NEXT_PUBLIC_APP_URL` → Production only (custom domain when added). `APP_SECRET` → every context (different value each; build fails without it). `SUPABASE_SERVICE_ROLE_KEY` + `TAP_SECRET_KEY` (`sk_live_`) → Production only; previews get `sk_test_` / no service key. Agent Runners: test keys only. Local dev context: no secrets.
 - Scopes: `NEXT_PUBLIC_*` → Builds; server secrets → Builds + Functions. Tick "Contains secret values" for all non-public keys.
 - **Supabase → Authentication → URL Configuration** (owner): Site URL `https://sparkly-swan-cf292e.netlify.app` (or custom domain); Redirect URLs: `http://localhost:3000/**`, `https://sparkly-swan-cf292e.netlify.app/**`, `https://*--sparkly-swan-cf292e.netlify.app/**` (single `*` — never `**` before the host, which could match an attacker-controlled host).

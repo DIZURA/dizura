@@ -17,6 +17,8 @@ export const metadata: Metadata = {
   title: { default: "DIZURA — AI Creative Studio", template: "%s · DIZURA" },
   description: "DIZURA — AI visual characters and ad creatives for brands, in Arabic and English.",
   metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"),
+  // Google Search Console ownership token (public by design) — required for OAuth branding verification.
+  verification: { google: "kDNDKdJXLdBF-zTX7vJa500-RGJ2IeWe1zOUlX74wGA" },
 };
 
 export const viewport: Viewport = { themeColor: "#0e0e10", colorScheme: "dark" };
