@@ -104,7 +104,7 @@ export function VoiceStudio() {
               role="radio"
               aria-checked={dialect === d}
               onClick={() => setDialect(d)}
-              className={cn("rounded-full border px-3 py-1.5 text-xs transition", dialect === d ? "border-mint-500/60 bg-mint-500/10 font-semibold text-mint-300" : "border-ink-700 text-ink-300 hover:text-ink-100")}
+              className={cn("rounded-full border px-3 py-1.5 text-xs transition", dialect === d ? "border-violet-400/70 bg-violet-500/15 font-semibold text-mint-300" : "border-ink-700 text-ink-300 hover:text-ink-100")}
             >
               {v.dialects[d]}
             </button>
@@ -122,7 +122,7 @@ export function VoiceStudio() {
               role="radio"
               aria-checked={voice === o.key}
               onClick={() => setVoice(o.key)}
-              className={cn("flex items-center gap-2 rounded-xl border p-2.5 text-start text-xs transition", voice === o.key ? "border-mint-500/70 bg-mint-500/10 text-mint-300" : "border-ink-700 text-ink-300 hover:border-ink-500 hover:text-ink-100")}
+              className={cn("flex items-center gap-2 rounded-xl border p-2.5 text-start text-xs transition", voice === o.key ? "border-violet-400/70 bg-violet-500/15 text-mint-300" : "border-ink-700 text-ink-300 hover:border-ink-500 hover:text-ink-100")}
             >
               <span aria-hidden className="grid size-7 shrink-0 place-items-center rounded-full bg-ink-800 text-sm">{o.gender === "female" ? "♀" : "♂"}</span>
               <span>

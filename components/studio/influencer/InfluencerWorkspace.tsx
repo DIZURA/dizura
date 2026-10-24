@@ -142,7 +142,7 @@ export function InfluencerWorkspace() {
                 onClick={() => chooseIdentity(o.id)}
                 className={cn(
                   "inline-flex items-center gap-2 rounded-full border py-1 pe-3 ps-1 text-sm transition",
-                  identity === o.id ? "border-mint-500 bg-mint-500/10 text-mint-300 shadow-[0_0_16px_-6px_var(--color-mint-500)]" : "border-ink-700 text-ink-300 hover:text-ink-100",
+                  identity === o.id ? "border-violet-400 bg-violet-500/15 text-violet-200 shadow-[0_0_16px_-6px_var(--color-mint-500)]" : "border-ink-700 text-ink-300 hover:text-ink-100",
                 )}
               >
                 {o.thumb ? (
@@ -199,7 +199,7 @@ export function InfluencerWorkspace() {
                   role="radio"
                   aria-checked={output === key}
                   onClick={() => setOutput(key)}
-                  className={cn("flex items-center gap-3 rounded-xl border p-2.5 text-start transition", output === key ? "border-mint-500/70 bg-mint-500/10" : "border-ink-700 hover:border-ink-500")}
+                  className={cn("flex items-center gap-3 rounded-xl border p-2.5 text-start transition", output === key ? "border-violet-400/70 bg-violet-500/15" : "border-ink-700 hover:border-ink-500")}
                 >
                   <OutputGlyph kind={key} active={output === key} />
                   <span>
@@ -220,7 +220,7 @@ export function InfluencerWorkspace() {
                       role="radio"
                       aria-checked={scene === key}
                       onClick={() => setScene(key)}
-                      className={cn("rounded-full border px-2.5 py-1 text-xs transition", scene === key ? "border-mint-500/60 bg-mint-500/10 text-mint-300" : "border-ink-700 text-ink-300 hover:text-ink-100")}
+                      className={cn("rounded-full border px-2.5 py-1 text-xs transition", scene === key ? "border-violet-400/70 bg-violet-500/15 text-violet-200" : "border-ink-700 text-ink-300 hover:text-ink-100")}
                     >
                       {b.scenes[key]}
                     </button>
@@ -410,11 +410,11 @@ function StepHeader({ badge, id, title, subtitle, model }: { badge: string; id: 
   return (
     <header className="mb-5 flex flex-wrap items-start justify-between gap-3">
       <div>
-        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-mint-400">{badge}</p>
+        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-violet-300">{badge}</p>
         <h2 id={id} className="mt-1 text-xl font-bold sm:text-2xl">{title}</h2>
         <p className="mt-1 text-sm text-ink-300">{subtitle}</p>
       </div>
-      <span dir="ltr" className="rounded-full border border-mint-500/30 bg-mint-500/10 px-2.5 py-1 text-[11px] font-semibold tracking-wide text-mint-300">{model}</span>
+      <span dir="ltr" className="rounded-full border border-violet-400/40 bg-violet-500/15 px-2.5 py-1 text-[11px] font-semibold tracking-wide text-violet-200">{model}</span>
     </header>
   );
 }

@@ -4,8 +4,9 @@ import { cn } from "./cn";
 type Variant = "primary" | "secondary" | "ghost";
 
 const styles: Record<Variant, string> = {
-  primary: "bg-mint-500 text-ink-950 hover:bg-mint-400 shadow-[0_0_24px_-6px_var(--color-mint-500)]",
-  secondary: "border border-ink-700 bg-ink-850 text-ink-100 hover:border-mint-500",
+  // Mint by default; the hover sweeps to the signature mint → violet duo (ADR 54).
+  primary: "bg-mint-500 text-ink-950 shadow-[0_0_24px_-6px_var(--color-mint-500)] hover:bg-signature hover:shadow-duo",
+  secondary: "border border-violet-500/40 bg-violet-500/10 text-violet-200 hover:border-violet-400 hover:bg-violet-500/20",
   ghost: "text-ink-300 hover:bg-ink-800 hover:text-ink-100",
 };
 

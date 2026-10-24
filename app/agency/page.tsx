@@ -19,7 +19,7 @@ export default async function AgencyPage() {
       <TopBar brand={t.brand} nav />
       <main className="mx-auto max-w-7xl px-4 pb-20 pt-12 sm:px-5 sm:pt-16">
         <header className="mx-auto mb-12 max-w-2xl text-center">
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-mint-300">{a.eyebrow}</p>
+          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-violet-300">{a.eyebrow}</p>
           <h1 className="mt-3 text-balance text-4xl font-black sm:text-5xl">{a.title}</h1>
           <p className="mt-4 text-pretty text-ink-300">{a.subtitle}</p>
         </header>

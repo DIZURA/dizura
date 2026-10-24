@@ -64,7 +64,7 @@ export function BlueprintWizard({ busy, error, onCancel, onCreate }: { busy: boo
                   setContext(readSession<string>(STRATEGIST_CONTEXT, ""));
                   setStep(1);
                 }}
-                className={cn("rounded-2xl border p-4 text-start transition", goal === g ? "border-mint-500/70 bg-mint-500/10" : "border-ink-700 hover:border-mint-500/40")}
+                className={cn("rounded-2xl border p-4 text-start transition", goal === g ? "border-violet-400/70 bg-violet-500/15" : "border-ink-700 hover:border-mint-500/40")}
               >
                 <span aria-hidden className="mb-3 grid size-10 place-items-center rounded-xl bg-ink-800 text-lg text-mint-300">{GOAL_GLYPH[g]}</span>
                 <span className="block font-semibold">{b.goals[g].name}</span>

@@ -151,7 +151,7 @@ export function GenjutsuStep({
               role="radio"
               aria-checked={mode === m}
               onClick={() => setMode(m)}
-              className={cn("rounded-xl border px-3 py-2.5 text-start text-xs font-semibold transition", mode === m ? "border-mint-500/70 bg-mint-500/10 text-mint-300" : "border-ink-700 text-ink-300 hover:border-ink-500 hover:text-ink-100")}
+              className={cn("rounded-xl border px-3 py-2.5 text-start text-xs font-semibold transition", mode === m ? "border-violet-400/70 bg-violet-500/15 text-mint-300" : "border-ink-700 text-ink-300 hover:border-ink-500 hover:text-ink-100")}
             >
               <span aria-hidden className="me-1.5">{m === "swap" ? "⇄" : "▶"}</span>
               {sw[m]}
@@ -290,10 +290,10 @@ export function GenjutsuStep({
                 role="radio"
                 aria-checked={resolution === r}
                 onClick={() => setResolution(r)}
-                className={cn("rounded-lg px-3 py-1.5 text-xs transition", resolution === r ? "bg-mint-500 font-semibold text-ink-950" : "text-ink-300 hover:text-ink-100")}
+                className={cn("rounded-lg px-3 py-1.5 text-xs transition", resolution === r ? "bg-violet-500 font-semibold text-ink-100" : "text-ink-300 hover:text-ink-100")}
               >
                 {r}
-                <span dir="auto" className={cn("ms-1 text-[10px]", resolution === r ? "text-ink-950/70" : "text-ink-500")}>{s.perSecond.replace("{n}", nf.format(prices.motion[r]))}</span>
+                <span dir="auto" className={cn("ms-1 text-[10px]", resolution === r ? "text-ink-100/70" : "text-ink-500")}>{s.perSecond.replace("{n}", nf.format(prices.motion[r]))}</span>
               </button>
             ))}
           </div>
