@@ -95,7 +95,7 @@ supabase/migrations/20261022083415_0004_welcome_credits_30.sql   welcome bonus 1
 supabase/migrations/20261022215306_0005_characters.sql   characters table (Soul ID), RLS select-own, no anon/authenticated privileges (APPLIED)
 supabase/migrations/20261022215528_0006_service_role_grants.sql   grant service_role EXECUTE on credit RPCs + CRUD on characters (APPLIED — fixes prod credit ledger)
 supabase/migrations/20261023014838_0007_reference_videos_bucket.sql   private `reference-videos` bucket (50 MB, mp4/mov), no client policies (APPLIED)
-supabase/pending/0008_agency_suite.sql   blueprints + service_orders (RLS select-own, service_role grants) + private `voiceovers` bucket — **NOT YET APPLIED** (apply, then move to migrations/ with the remote version, ADR 19)
+supabase/migrations/20261024014147_0008_agency_suite.sql   blueprints + service_orders (RLS select-own, service_role grants) + private `voiceovers` bucket (APPLIED 2026-10-24; advisors: only INFO unused-index on the new tables + the dashboard-level leaked-password warning)
 scripts/import-examples.mjs  Imports Lovable-designed example JPGs → public/influencer/options/<group>/<id>.webp (256 px) + public/examples/<name>.webp (1280 px) and rewrites both manifests
 scripts/generate-option-photos.mjs  `npm run photos:options [-- --dry|--force|--only=g1,g2]` — Soul 2 option photos (white bg, quirky; art direction docs/design/option-photos.md) → public/influencer/options/<group>/<id>.webp (320 px square) + manifest
 scripts/check-margins.mjs  `npm run margins [-- --live]` — gross margin per action from pricing.ts (+ live Higgsfield /estimate)
@@ -242,7 +242,8 @@ Genjutsu (influencer Step 2): **8 / 17 / 40 cr per second** of reference video a
 - **Polling** 2 s → 10 s + jitter (implemented). **Webhooks** `?hf_webhook=` (retries 2 h). **Uploads** `POST /files/generate-upload-url` → PUT → `public_url`. **Cost** `POST /estimate/{model_path}`. Failed/nsfw/canceled not charged. **Outputs live ≥ 7 days → copy to our storage.**
 
 ## 9. Open items / things to VERIFY before launch
-- [ ] **Apply `supabase/pending/0008_agency_suite.sql`** (blueprints, service_orders, voiceovers bucket), run both advisors, then rename into `supabase/migrations/` with the remote version. Until then Strategy files / agency orders / voice storage fail in production.
+- [x] Migration 0008 applied (2026-10-24): `blueprints`, `service_orders` (RLS on, no anon/authenticated privileges, service_role CRUD), private `voiceovers` bucket.
+- [ ] Supabase → Authentication → enable **Leaked password protection** (security advisor WARN; dashboard setting, not SQL).
 - [ ] Netlify (Production): `ANTHROPIC_API_KEY` (Strategist, Strategy files, "Write it for me") and `ELEVENLABS_API_KEY` (DIZURA Voice); without them those features return 503 before charging.
 - [ ] Agency orders: paid orders appear in `service_orders` + function logs (`[agency] new paid order`) — add an email/WhatsApp notification to the team.
 - [x] **Higgsfield** paths/auth/response shape now match the official docs; verified against a mock of the documented API (request path, `Key` header, Idempotency-Key, body, status polling, image/video/nsfw results). **Still to do: one live generation with real keys** (sandbox can't reach api.higgsfield.ai).
