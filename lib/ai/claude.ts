@@ -1,7 +1,10 @@
 import "server-only";
 import Anthropic from "@anthropic-ai/sdk";
 import { betaZodOutputFormat } from "@anthropic-ai/sdk/helpers/beta/zod";
+import { after } from "next/server";
 import { z } from "zod";
+import { recordUsage } from "@/lib/credits/costs";
+import type { CostKey } from "@/lib/credits/pricing";
 import { env, requireEnv } from "@/lib/env";
 import { ApiError } from "@/lib/http";
 
@@ -16,6 +19,20 @@ const FALLBACK = (): { betas: Anthropic.AnthropicBeta[]; fallbacks: "default" } 
   betas: ["server-side-fallback-2026-07-01"],
   fallbacks: "default",
 });
+
+/** USD per million tokens (input, output). Unknown models are billed at the Opus rate (conservative). */
+const RATES: Record<string, { input: number; output: number }> = {
+  "claude-opus-5-5": { input: 4, output: 20 },
+  "claude-sonnet-5-5": { input: 2, output: 10 },
+  "claude-haiku-5-5": { input: 0.8, output: 4 },
+};
+
+/** Feeds the real cost of a call into the live price table (ADR 51), after the response is sent. */
+function track(key: CostKey, usage: { input_tokens: number; output_tokens: number }, scale = 1) {
+  const rate = RATES[env.ANTHROPIC_MODEL] ?? RATES["claude-opus-5-5"]!;
+  const usd = ((usage.input_tokens * rate.input + usage.output_tokens * rate.output) / 1e6) * scale;
+  after(() => recordUsage(key, usd));
+}
 
 let client: Anthropic | undefined;
 function claude() {
@@ -65,6 +82,7 @@ export async function strategistReply(history: ChatTurn[], locale: Locale, studi
       messages: history,
     })
     .catch(rethrow);
+  track("strategyChat", res.usage);
   if (res.stop_reason === "refusal") throw new ApiError("bad_request", "The strategist can't help with that request.");
   return res.content.flatMap((b) => (b.type === "text" ? [b.text] : [])).join("\n").trim();
 }
@@ -155,6 +173,7 @@ export async function generateSection<K extends BlueprintSection>(
       messages: [{ role: "user", content: `${brief}\n\nTask: ${SECTION_TASK[section]}` }],
     })
     .catch(rethrow);
+  track("blueprint", res.usage, BLUEPRINT_SECTIONS.length); // one section ≈ a quarter of a blueprint
   if (res.stop_reason === "refusal") throw new ApiError("bad_request", "This brief can't be turned into a blueprint.");
   if (!res.parsed_output) throw new ApiError("provider_error", "The strategist returned an incomplete section.");
   return res.parsed_output as SectionContent[K];
@@ -195,6 +214,7 @@ export async function writeVoiceScript(dialectName: string, brief: string, secon
       ],
     })
     .catch(rethrow);
+  track("strategyChat", res.usage);
   if (res.stop_reason === "refusal") throw new ApiError("bad_request", "This script can't be written.");
   return res.content.flatMap((b) => (b.type === "text" ? [b.text] : [])).join("\n").trim();
 }

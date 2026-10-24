@@ -17,7 +17,7 @@ const subscribe = (cb: () => void) => {
   return () => mq.removeEventListener("change", cb);
 };
 
-export function Hero3D() {
+export function Hero3D({ className = "max-w-[34rem]" }: { className?: string }) {
   const reduced = useSyncExternalStore(subscribe, () => window.matchMedia(query).matches, () => true);
-  return <div className="relative aspect-square w-full max-w-[34rem]">{reduced ? <Fallback /> : <Scene />}</div>;
+  return <div className={`relative aspect-square w-full ${className}`}>{reduced ? <Fallback /> : <Scene />}</div>;
 }

@@ -15,12 +15,12 @@ export function NavLinks() {
       {NAV.map((item) => {
         const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
         return (
-          <span key={item.href} className="flex items-center">
+          <span key={item.href} className="flex shrink-0 items-center">
             <Link
               href={item.href}
               aria-current={active ? "page" : undefined}
               className={cn(
-                "flex shrink-0 items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm transition",
+                "flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-lg px-3 py-1.5 text-sm transition",
                 active ? "bg-ink-800 text-ink-100" : "text-ink-300 hover:bg-ink-850 hover:text-ink-100",
               )}
             >
@@ -40,7 +40,7 @@ export function NavLinks() {
           href={item.href}
           aria-current={pathname === item.href ? "page" : undefined}
           className={cn(
-            "shrink-0 rounded-lg px-3 py-1.5 text-sm transition",
+            "shrink-0 whitespace-nowrap rounded-lg px-3 py-1.5 text-sm transition",
             pathname === item.href ? "bg-ink-800 text-ink-100" : "text-ink-300 hover:bg-ink-850 hover:text-ink-100",
           )}
         >

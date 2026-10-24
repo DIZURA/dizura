@@ -3,6 +3,7 @@ import { z } from "zod";
 import { strategistReply } from "@/lib/ai/claude";
 import { requireUser } from "@/lib/auth/session";
 import { STRATEGY } from "@/lib/credits/pricing";
+import { getPrices } from "@/lib/credits/costs";
 import { credits } from "@/lib/credits/store";
 import { requireEnv } from "@/lib/env";
 import { ApiError, ok, parseJson, route } from "@/lib/http";
@@ -21,21 +22,22 @@ const body = z.object({
   studio: z.enum(["visual-character", "ads-studio", "blueprints"]).default("visual-character"),
 });
 
-/** POST → one DIZURA Strategist reply (charges STRATEGY.chatCredits; refunded if the call fails). */
+/** POST → one DIZURA Strategist reply (charges the live Strategist price; refunded if the call fails). */
 export const POST = route(async (req: Request) => {
   const user = await requireUser(req);
   rateLimit(`strategy:${user.id}`, 20, 60_000);
   const input = await parseJson(req, body, 64 * 1024);
   requireEnv("ANTHROPIC_API_KEY"); // fail before charging
 
+  const price = (await getPrices()).chat;
   const referenceId = randomUUID();
-  await credits().apply({ userId: user.id, delta: -STRATEGY.chatCredits, reason: "generation", referenceId });
+  await credits().apply({ userId: user.id, delta: -price, reason: "generation", referenceId });
   try {
     const reply = await strategistReply(input.messages, input.locale, input.studio);
     if (!reply) throw new ApiError("provider_error", "Empty reply.");
-    return ok({ reply, creditsCharged: STRATEGY.chatCredits });
+    return ok({ reply, creditsCharged: price });
   } catch (err) {
-    await credits().apply({ userId: user.id, delta: STRATEGY.chatCredits, reason: "refund", referenceId });
+    await credits().apply({ userId: user.id, delta: price, reason: "refund", referenceId });
     throw err;
   }
 });

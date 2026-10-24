@@ -2,6 +2,7 @@ import { z } from "zod";
 import { requireUser } from "@/lib/auth/session";
 import { characters, type Character } from "@/lib/characters/store";
 import { SOUL_ID } from "@/lib/credits/pricing";
+import { getPrices } from "@/lib/credits/costs";
 import { credits } from "@/lib/credits/store";
 import { createSoulReference, getSoulReference } from "@/lib/higgsfield/client";
 import { ApiError, ok, parseJson, route } from "@/lib/http";
@@ -28,7 +29,7 @@ export const GET = route(async (req: Request) => {
   return ok(refreshed.map(toView));
 });
 
-/** POST { name, uploads[], consent } → start Soul ID training (charges SOUL_ID.trainingCredits). */
+/** POST { name, uploads[], consent } → start Soul ID training (charges the live DIZURA ID price). */
 export const POST = route(async (req: Request) => {
   const user = await requireUser(req);
   rateLimit(`chars:create:${user.id}`, 5, 10 * 60_000);
@@ -46,9 +47,10 @@ export const POST = route(async (req: Request) => {
   const existing = (await characters().list(user.id)).filter((c) => c.status !== "failed");
   if (existing.length >= SOUL_ID.maxCharacters) throw new ApiError("forbidden", "Character limit reached. Delete one to train another.");
 
-  const character = await characters().create({ userId: user.id, name: input.name, photoCount: urls.length, creditsCharged: SOUL_ID.trainingCredits });
+  const price = (await getPrices()).soulId;
+  const character = await characters().create({ userId: user.id, name: input.name, photoCount: urls.length, creditsCharged: price });
   try {
-    await credits().apply({ userId: user.id, delta: -SOUL_ID.trainingCredits, reason: "generation", referenceId: `soul:${character.id}` });
+    await credits().apply({ userId: user.id, delta: -price, reason: "generation", referenceId: `soul:${character.id}` });
   } catch (err) {
     await characters().remove(character.id, user.id);
     throw err;
@@ -59,7 +61,7 @@ export const POST = route(async (req: Request) => {
     await characters().update(character.id, user.id, { providerReferenceId: ref.id, status: ref.status, thumbnailUrl: ref.thumbnail_url ?? null, failReason: ref.fail_reason ?? null });
     return ok(toView({ ...character, providerReferenceId: ref.id, status: ref.status, thumbnailUrl: ref.thumbnail_url ?? null }), { status: 202 });
   } catch (err) {
-    await credits().apply({ userId: user.id, delta: SOUL_ID.trainingCredits, reason: "refund", referenceId: `soul:${character.id}` });
+    await credits().apply({ userId: user.id, delta: price, reason: "refund", referenceId: `soul:${character.id}` });
     await characters().remove(character.id, user.id);
     throw err;
   }

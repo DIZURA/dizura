@@ -24,12 +24,4 @@ export interface CreditLedgerEntry {
   createdAt: string;
 }
 
-export interface CreditPack {
-  id: "starter" | "pro" | "studio";
-  credits: number;
-  /** Price in the smallest-precision decimal the currency supports, e.g. 9.500 KWD. */
-  price: number;
-  currency: SupportedCurrency;
-}
-
 export type SupportedCurrency = "KWD" | "SAR" | "AED" | "BHD" | "QAR" | "OMR" | "USD";

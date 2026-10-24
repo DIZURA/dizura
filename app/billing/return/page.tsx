@@ -27,7 +27,7 @@ export default async function BillingReturn({ searchParams }: { searchParams: Pr
   const service = result?.kind === "service";
   const message =
     result?.status === "CAPTURED"
-      ? service ? t.billing.serviceSuccess : t.billing.success
+      ? service ? t.billing.serviceSuccess : t.billing.subscriptionSuccess
       : result && ["INITIATED", "IN_PROGRESS"].includes(result.status) ? t.billing.pending : t.billing.failed;
 
   return (
@@ -36,7 +36,16 @@ export default async function BillingReturn({ searchParams }: { searchParams: Pr
       <main className="mx-auto grid min-h-[70dvh] max-w-lg place-items-center p-5">
         <Card className="w-full text-center">
           <p role="status" className="text-lg font-semibold">{message}</p>
-          <Link href={service ? "/agency" : "/ads-studio"} className={buttonClass("secondary", "mt-6")}>{service ? t.billing.backAgency : t.billing.back}</Link>
+          <div className="mt-6 flex flex-wrap justify-center gap-2">
+            {service ? (
+              <Link href="/agency" className={buttonClass("secondary")}>{t.billing.backAgency}</Link>
+            ) : (
+              <>
+                <Link href="/visual-character" className={buttonClass("primary")}>{t.billing.back}</Link>
+                <Link href="/billing" className={buttonClass("secondary")}>{t.billing.backBilling}</Link>
+              </>
+            )}
+          </div>
         </Card>
       </main>
     </>

@@ -5,6 +5,7 @@ import { providerFor, submitMotionTransfer } from "@/lib/ai";
 import { resolveJobImage, resolveUploadImage } from "@/lib/ai/resolve";
 import { requireUser } from "@/lib/auth/session";
 import { GENJUTSU, genjutsuCost } from "@/lib/credits/pricing";
+import { getPrices } from "@/lib/credits/costs";
 import { credits } from "@/lib/credits/store";
 import { ApiError, ok, parseJson, route } from "@/lib/http";
 import { assertOwnPath, referenceVideos } from "@/lib/media/reference-videos";
@@ -65,7 +66,7 @@ export const POST = route(async (req: Request) => {
   const prompt = input.mode === "swap" ? `${SWAP_DIRECTION} ${input.prompt}`.trim() : input.prompt;
   const store = referenceVideos();
   const info = await store.inspect(video.path);
-  const cost = genjutsuCost(info.durationSec, input.resolution);
+  const cost = genjutsuCost(info.durationSec, input.resolution, await getPrices());
   const videoUrl = await store.signedUrl(video.path, 6 * 60 * 60);
 
   const referenceId = randomUUID();

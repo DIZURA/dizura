@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 import { z } from "zod";
 import { writeVoiceScript } from "@/lib/ai/claude";
 import { requireUser } from "@/lib/auth/session";
-import { STRATEGY } from "@/lib/credits/pricing";
+import { getPrices } from "@/lib/credits/costs";
 import { credits } from "@/lib/credits/store";
 import { requireEnv } from "@/lib/env";
 import { ApiError, ok, parseJson, route } from "@/lib/http";
@@ -24,14 +24,15 @@ export const POST = route(async (req: Request) => {
   const input = await parseJson(req, body, 8 * 1024);
   requireEnv("ANTHROPIC_API_KEY");
 
+  const price = (await getPrices()).chat;
   const referenceId = randomUUID();
-  await credits().apply({ userId: user.id, delta: -STRATEGY.chatCredits, reason: "generation", referenceId });
+  await credits().apply({ userId: user.id, delta: -price, reason: "generation", referenceId });
   try {
     const script = await writeVoiceScript(DIALECTS[input.dialect], input.brief, input.seconds);
     if (!script) throw new ApiError("provider_error", "Empty script.");
-    return ok({ script, creditsCharged: STRATEGY.chatCredits });
+    return ok({ script, creditsCharged: price });
   } catch (err) {
-    await credits().apply({ userId: user.id, delta: STRATEGY.chatCredits, reason: "refund", referenceId });
+    await credits().apply({ userId: user.id, delta: price, reason: "refund", referenceId });
     throw err;
   }
 });

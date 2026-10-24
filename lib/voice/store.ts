@@ -2,6 +2,7 @@ import "server-only";
 import { randomUUID } from "node:crypto";
 import { ApiError } from "@/lib/http";
 import { serviceRest } from "@/lib/supabase/rest";
+import { devSingleton } from "@/lib/dev-singleton";
 
 /**
  * Voiceover files in the private `voiceovers` bucket (migration 0008). Paths are `<userId>/<uuid>.mp3`;
@@ -9,7 +10,7 @@ import { serviceRest } from "@/lib/supabase/rest";
  */
 const BUCKET = "voiceovers";
 const PATH_RE = /^[0-9a-f-]{36}\/[0-9a-f-]{36}\.mp3$/;
-const memory = new Map<string, Uint8Array>(); // development only (serviceRest() is null outside prod)
+const memory = devSingleton("voiceovers", () => new Map<string, Uint8Array>()); // development only (serviceRest() is null outside prod)
 
 export async function saveVoiceover(userId: string, bytes: Uint8Array): Promise<string> {
   const path = `${userId}/${randomUUID()}.mp3`;

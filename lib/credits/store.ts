@@ -4,6 +4,7 @@ import type { CreditLedgerEntry, CreditReason } from "@/types";
 import { env, NotConfiguredError } from "@/lib/env";
 import { ApiError } from "@/lib/http";
 import { WELCOME_CREDITS } from "./pricing";
+import { devSingleton } from "@/lib/dev-singleton";
 
 /**
  * Credit ledger. All mutations are idempotent on (userId, reason, referenceId) so
@@ -81,7 +82,7 @@ export function credits(): CreditStore {
   if (env.NEXT_PUBLIC_SUPABASE_URL && env.SUPABASE_SERVICE_ROLE_KEY) {
     store = new SupabaseCreditStore(env.NEXT_PUBLIC_SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY);
   } else if (env.NODE_ENV !== "production") {
-    store = new MemoryCreditStore();
+    store = devSingleton("credits", () => new MemoryCreditStore());
   } else {
     // Never silently run a money-handling ledger in memory in production.
     throw new NotConfiguredError(["NEXT_PUBLIC_SUPABASE_URL", "SUPABASE_SERVICE_ROLE_KEY"]);

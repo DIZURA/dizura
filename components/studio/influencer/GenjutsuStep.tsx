@@ -1,10 +1,11 @@
 "use client";
 
+import { usePrices } from "@/components/billing/PricesProvider";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { useI18n } from "@/components/i18n/I18nProvider";
 import { Button } from "@/components/ui/Button";
 import { cn } from "@/components/ui/cn";
-import { GENJUTSU, genjutsuCost, type GenjutsuResolution } from "@/lib/credits/pricing";
+import { GENJUTSU, genjutsuCost, MOTION_RESOLUTIONS, type GenjutsuResolution } from "@/lib/credits/pricing";
 import type { AspectRatio } from "@/types";
 import { isBusy, type Creation, type TransferInput } from "../useGenerator";
 import { toJpeg, uploadPhoto, uploadVideo, VIDEO_ACCEPT, videoMeta } from "./media";
@@ -21,7 +22,7 @@ type VideoState = {
 };
 type Photo = { key: string; preview: string; token: string | null; failed: boolean };
 
-const RESOLUTIONS = Object.keys(GENJUTSU.creditsPerSecond) as GenjutsuResolution[];
+const RESOLUTIONS = MOTION_RESOLUTIONS;
 
 /** Closest supported ratio to the reference video's frame (for the preview tile only). */
 function nearestRatio(w: number, h: number): AspectRatio {
@@ -54,6 +55,7 @@ export function GenjutsuStep({
   const { t, locale } = useI18n();
   const s = t.influencerStudio.step2;
   const nf = new Intl.NumberFormat(locale);
+  const prices = usePrices();
   const videoInput = useRef<HTMLInputElement>(null);
   const photoInput = useRef<HTMLInputElement>(null);
 
@@ -74,7 +76,7 @@ export function GenjutsuStep({
   const total = selected.length + photoTokens.length;
   // The product photo counts towards the provider's image limit in swap mode.
   const maxImages = GENJUTSU.maxImages - (mode === "swap" ? 1 : 0);
-  const cost = video ? genjutsuCost(video.duration, resolution) : null;
+  const cost = video ? genjutsuCost(video.duration, resolution, prices) : null;
   const canSubmit = !busy && !!video?.token && total > 0 && total <= maxImages && !photos.some((p) => !p.token && !p.failed) && (mode === "standard" || !!product?.token);
 
   // Release object URLs on unmount.
@@ -291,7 +293,7 @@ export function GenjutsuStep({
                 className={cn("rounded-lg px-3 py-1.5 text-xs transition", resolution === r ? "bg-mint-500 font-semibold text-ink-950" : "text-ink-300 hover:text-ink-100")}
               >
                 {r}
-                <span className={cn("ms-1 text-[10px]", resolution === r ? "text-ink-950/70" : "text-ink-500")}>⚡{s.perSecond.replace("{n}", nf.format(GENJUTSU.creditsPerSecond[r]))}</span>
+                <span className={cn("ms-1 text-[10px]", resolution === r ? "text-ink-950/70" : "text-ink-500")}>⚡{s.perSecond.replace("{n}", nf.format(prices.motion[r]))}</span>
               </button>
             ))}
           </div>

@@ -1,43 +1,46 @@
-#!/usr/bin/env node
 /**
- * Prints DIZURA's gross margin per action (ADR 49) from lib/credits/pricing.ts.
+ * Gross margin per action (ADR 51). Credits are derived from provider cost with the 60% rule in
+ * lib/credits/pricing.ts; this prints what each action earns at every plan's credit price.
  *
- *   npm run margins            # table from PROVIDER_COST_USD (offline)
+ *   npm run margins            # baseline costs (BASE_COST_USD)
  *   npm run margins -- --live  # also asks Higgsfield POST /estimate/{model} for our exact settings
  *
- * --live reads HIGGSFIELD_API_KEY / HIGGSFIELD_API_SECRET from .env.local (owner's machine only;
- * never in the browser, never committed) and prints the raw estimate next to our assumption.
+ * --live reads HIGGSFIELD_API_KEY / HIGGSFIELD_API_SECRET from .env.local (owner's machine only).
+ * In production the same refresh runs hourly by itself (/api/cron/hourly → provider_costs).
  */
-import {
-  AD_IMAGE, CREDIT_PACKS, GENJUTSU, PAYMENT_FEE, PROVIDER_COST_USD as COST, SOUL_ID, STRATEGY, TARGET_MARGIN, USD_PER_KWD, VOICE, generationCost,
-} from "../lib/credits/pricing.ts";
+import { BASE_COST_USD as COST, CHEAPEST_CREDIT_USD, PAYMENT_FEE, PLANS, TARGET_MARGIN, USD_PER_SAR, priceList } from "../lib/credits/pricing.ts";
 
-const perCredit = Object.values(CREDIT_PACKS).map((p) => ({ id: p.id, usd: (p.price * USD_PER_KWD) / p.credits }));
-const cheapest = Math.min(...perCredit.map((p) => p.usd));
-const image = generationCost({ workspace: "visual-character", kind: "image" });
+const prices = priceList(COST);
+const perCredit = Object.entries(PLANS).flatMap(([id, p]) => [
+  [`${id} USD`, p.prices.USD / p.credits],
+  [`${id} SAR`, (p.prices.SAR * USD_PER_SAR) / p.credits],
+]);
+console.log("Revenue per credit (USD): " + perCredit.map(([k, v]) => `${k} $${v.toFixed(3)}`).join(" · "));
+console.log(`Cheapest: $${CHEAPEST_CREDIT_USD.toFixed(4)} · fee ${PAYMENT_FEE * 100}% · target margin ${TARGET_MARGIN * 100}%\n`);
 
 const rows = [
-  ["Character image", image, COST.characterImage.usd, COST.characterImage.estimate],
-  ["Character from a photo", image, COST.photoCharacter.usd, COST.photoCharacter.estimate],
-  ["DIZURA ID training", SOUL_ID.trainingCredits, COST.soulId.usd, COST.soulId.estimate],
-  ...Object.entries(GENJUTSU.creditsPerSecond).map(([r, c]) => [`Motion ${r} (per second)`, c, COST.genjutsu[r], false]),
-  ...Object.entries(AD_IMAGE).map(([q, t]) => [`Ad ${q} (${t.resolution}/${t.quality})`, t.credits, COST.adImage[q], q !== "ultra"]),
-  ["Strategist chat message", STRATEGY.chatCredits, COST.strategyChat.usd, COST.strategyChat.estimate],
-  ["Strategy blueprint", STRATEGY.blueprintCredits, COST.blueprint.usd, COST.blueprint.estimate],
-  ["Voice (per 100 characters)", VOICE.creditsPer100Chars, COST.voicePer100Chars.usd, COST.voicePer100Chars.estimate],
+  ["Character image", prices.image, COST.characterImage],
+  ["Character from a photo", prices.photoCharacter, COST.photoCharacter],
+  ["DIZURA ID training", prices.soulId, COST.soulId],
+  ["Motion 480p (per second)", prices.motion["480p"], COST.motion480p],
+  ["Motion 720p (per second)", prices.motion["720p"], COST.motion720p],
+  ["Motion 1080p (per second)", prices.motion["1080p"], COST.motion1080p],
+  ["Ad standard", prices.ad.standard, COST.adStandard],
+  ["Ad high", prices.ad.high, COST.adHigh],
+  ["Ad ultra", prices.ad.ultra, COST.adUltra],
+  ["Strategist message", prices.chat, COST.strategyChat],
+  ["Strategy file", prices.blueprint, COST.blueprint],
+  ["Voice (per 100 chars)", prices.voicePer100, COST.voicePer100Chars],
 ];
-
-console.log(`Credit value: ${perCredit.map((p) => `${p.id} $${p.usd.toFixed(3)}`).join(" · ")}  (cheapest $${cheapest.toFixed(3)}, fee ${PAYMENT_FEE * 100}%)\n`);
-console.log("Action".padEnd(30), "Credits".padStart(7), "Cost $".padStart(8), "Rev $ (cheapest)".padStart(17), "Margin".padStart(7), "Min credits");
+console.log("Action".padEnd(28), "Credits".padStart(7), "Cost $".padStart(8), "Margin @cheapest".padStart(17), "Margin @Pro USD".padStart(16));
+const pro = PLANS.pro.prices.USD / PLANS.pro.credits;
 let bad = 0;
-for (const [name, credits, usd, est] of rows) {
-  const rev = credits * cheapest * (1 - PAYMENT_FEE);
-  const margin = 1 - usd / rev;
-  const min = Math.ceil(usd / (cheapest * (1 - PAYMENT_FEE)) / (1 - TARGET_MARGIN));
-  if (margin < TARGET_MARGIN - 0.02) bad++;
-  console.log(name.padEnd(30), String(credits).padStart(7), usd.toFixed(4).padStart(8), rev.toFixed(3).padStart(17), `${Math.round(margin * 100)}%`.padStart(7), String(min).padStart(5), est ? " (cost estimated)" : "");
+for (const [name, credits, usd] of rows) {
+  const m = (rate) => 1 - usd / (credits * rate * (1 - PAYMENT_FEE));
+  if (m(CHEAPEST_CREDIT_USD) < TARGET_MARGIN - 1e-9) bad++;
+  console.log(name.padEnd(28), String(credits).padStart(7), usd.toFixed(4).padStart(8), `${(m(CHEAPEST_CREDIT_USD) * 100).toFixed(1)}%`.padStart(17), `${(m(pro) * 100).toFixed(1)}%`.padStart(16));
 }
-if (bad) console.log(`\n⚠ ${bad} action(s) below the ${TARGET_MARGIN * 100}% target.`);
+console.log(bad ? `\n⚠ ${bad} action(s) below target.` : `\n✓ Every action ≥ ${TARGET_MARGIN * 100}% at the cheapest credit.`);
 
 if (process.argv.includes("--live")) {
   const key = process.env.HIGGSFIELD_API_KEY ?? "", secret = process.env.HIGGSFIELD_API_SECRET ?? "";
@@ -47,9 +50,9 @@ if (process.argv.includes("--live")) {
   const headers = { authorization: `Key ${cred}`, "content-type": "application/json", accept: "application/json" };
   const probes = [
     ["higgsfield-ai/soul/v2/standard", { prompt: "estimate", aspect_ratio: "9:16", resolution: "720p", batch_size: 1 }],
-    ...Object.entries(AD_IMAGE).map(([, t]) => ["marketing-studio/image", { prompt: "estimate", image_urls: [], aspect_ratio: "1:1", resolution: t.resolution, quality: t.quality }]),
-    ["marketing-studio/image", { prompt: "estimate", image_urls: [], aspect_ratio: "16:9", resolution: "2k", quality: "medium" }],
-    ...Object.keys(GENJUTSU.creditsPerSecond).map((r) => ["higgsfield/genjutsu/motion-transfer/v1.0", { prompt: "", resolution: r, duration: 1 }]),
+    ["marketing-studio/image", { prompt: "estimate", image_urls: [], aspect_ratio: "1:1", resolution: "1k", quality: "medium" }],
+    ["marketing-studio/image", { prompt: "estimate", image_urls: [], aspect_ratio: "1:1", resolution: "4k", quality: "high" }],
+    ["higgsfield/genjutsu/motion-transfer/v1.0", { prompt: "", image_urls: [], resolution: "720p", duration: 10 }],
   ];
   console.log("\nLive estimates (raw):");
   for (const [model, body] of probes) {

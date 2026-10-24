@@ -6,6 +6,7 @@ import { resolveJobImage, resolveUploadImage } from "@/lib/ai/resolve";
 import { requireUser } from "@/lib/auth/session";
 import { characters } from "@/lib/characters/store";
 import { generationCost, SOUL_ID, VIDEO_DURATION } from "@/lib/credits/pricing";
+import { getPrices } from "@/lib/credits/costs";
 import { credits } from "@/lib/credits/store";
 import { ApiError, ok, parseJson, route } from "@/lib/http";
 import { rateLimit } from "@/lib/security/rate-limit";
@@ -43,7 +44,7 @@ export const POST = route(async (req: Request) => {
   const soulReference = input.characterId ? await resolveCharacter(input.characterId, user.id, input.characterStrength) : undefined;
   const photoUrl = input.referencePhoto ? resolveUploadImage(input.referencePhoto, user.id) : undefined;
 
-  const cost = generationCost(input);
+  const cost = generationCost(input, await getPrices(), !!input.referencePhoto);
   const referenceId = randomUUID();
   // Reserve credits first; refund if the provider rejects the job.
   await credits().apply({ userId: user.id, delta: -cost, reason: "generation", referenceId });

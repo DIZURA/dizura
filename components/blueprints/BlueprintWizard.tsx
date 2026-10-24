@@ -1,12 +1,12 @@
 "use client";
 
+import { usePrices } from "@/components/billing/PricesProvider";
 import { useState, type FormEvent } from "react";
 import { useI18n } from "@/components/i18n/I18nProvider";
 import { STRATEGIST_CONTEXT, readSession, writeSession } from "@/components/strategist/context";
 import { Button } from "@/components/ui/Button";
 import { cn } from "@/components/ui/cn";
 import { CostChip } from "@/components/ui/CostChip";
-import { STRATEGY } from "@/lib/credits/pricing";
 import { GOAL_GLYPH, GOALS, type BlueprintGoal } from "./types";
 
 export type WizardInput = {
@@ -16,9 +16,10 @@ export type WizardInput = {
 
 const FIELDS = ["product", "audience", "market", "budget", "tone"] as const;
 
-/** Goal → business details → confirm (⚡ STRATEGY.blueprintCredits). */
+/** Goal → business details → confirm (⚡ prices.blueprint). */
 export function BlueprintWizard({ busy, error, onCancel, onCreate }: { busy: boolean; error: string | null; onCancel: () => void; onCreate: (input: WizardInput) => void }) {
   const { t, locale } = useI18n();
+  const prices = usePrices();
   const b = t.blueprints;
   const nf = new Intl.NumberFormat(locale);
   const [step, setStep] = useState<0 | 1 | 2>(0);
@@ -126,7 +127,7 @@ export function BlueprintWizard({ busy, error, onCancel, onCreate }: { busy: boo
           <div className="flex flex-wrap items-center gap-2">
             <Button type="button" variant="ghost" onClick={() => setStep(1)} disabled={busy}>{b.back}</Button>
             <Button type="button" variant="ghost" onClick={onCancel} disabled={busy}>{t.common.close}</Button>
-            <CostChip value={nf.format(STRATEGY.blueprintCredits)} label={t.gen.credits} className="ms-auto" />
+            <CostChip value={nf.format(prices.blueprint)} label={t.gen.credits} className="ms-auto" />
             <Button type="button" onClick={create} disabled={busy} className="px-6">{busy ? b.generating : b.create}</Button>
           </div>
         </div>

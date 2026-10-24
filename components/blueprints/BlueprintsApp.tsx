@@ -1,5 +1,6 @@
 "use client";
 
+import { usePrices } from "@/components/billing/PricesProvider";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { openBuyCredits } from "@/components/billing/events";
@@ -9,7 +10,6 @@ import { OPEN_STRATEGIST } from "@/components/strategist/context";
 import { Button } from "@/components/ui/Button";
 import { CostChip } from "@/components/ui/CostChip";
 import { api, ClientApiError } from "@/lib/api-client";
-import { STRATEGY } from "@/lib/credits/pricing";
 import { BlueprintDoc } from "./BlueprintDoc";
 import { BlueprintWizard, type WizardInput } from "./BlueprintWizard";
 import { GOAL_GLYPH, SECTIONS, type Blueprint, type BlueprintSection, type BlueprintSummary, type SectionContent, type SectionState } from "./types";
@@ -20,6 +20,7 @@ const allStates = (bp: Blueprint | null): Record<BlueprintSection, SectionState>
 /** Strategy files: list (search + tags) · wizard (?new=1) · document (?id=…). */
 export function BlueprintsApp() {
   const { t, locale } = useI18n();
+  const prices = usePrices();
   const b = t.blueprints;
   const nf = new Intl.NumberFormat(locale);
   const router = useRouter();
@@ -138,7 +139,7 @@ export function BlueprintsApp() {
         <button type="button" onClick={() => window.dispatchEvent(new Event(OPEN_STRATEGIST))} className="rounded-xl border border-mint-500/40 px-3 py-2 text-xs font-semibold text-mint-300 hover:bg-mint-500/10">
           ✦ {t.strategist.open}
         </button>
-        <CostChip value={nf.format(STRATEGY.blueprintCredits)} label={t.gen.credits} className="ms-auto" />
+        <CostChip value={nf.format(prices.blueprint)} label={t.gen.credits} className="ms-auto" />
         <Button type="button" onClick={() => go("new=1")}>+ {b.new}</Button>
       </div>
 

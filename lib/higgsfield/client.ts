@@ -252,3 +252,17 @@ export async function deleteSoulReference(id: string): Promise<void> {
   const { base, headers } = auth();
   await providerFetch("Higgsfield", `${base}${refPath(id)}`, { method: "DELETE", headers });
 }
+
+const estimateSchema = z.object({ usd: z.union([z.string(), z.number()]).optional(), credits: z.union([z.string(), z.number()]).optional() });
+
+/**
+ * Provider price for one request with our exact settings (`POST /estimate/{model}` → `{ credits, usd }`).
+ * Returns null when the answer has no usable USD amount (ADR 51 keeps the previous cost then).
+ */
+export async function estimateCostUsd(model: string, body: Record<string, unknown>): Promise<number | null> {
+  const { base, headers } = auth();
+  const res = await providerFetch("Higgsfield", `${base}/estimate/${model}`, { method: "POST", headers, body: JSON.stringify(body), timeoutMs: 10_000 });
+  const parsed = estimateSchema.safeParse(await res.json());
+  const usd = parsed.success ? Number(parsed.data.usd) : NaN;
+  return Number.isFinite(usd) && usd > 0 ? usd : null;
+}
