@@ -8,6 +8,7 @@ import { GENJUTSU, genjutsuCost, type GenjutsuResolution } from "@/lib/credits/p
 import type { AspectRatio } from "@/types";
 import { isBusy, type Creation, type TransferInput } from "../useGenerator";
 import { toJpeg, uploadPhoto, uploadVideo, VIDEO_ACCEPT, videoMeta } from "./media";
+import { ReferencePhoto, type ReferencePhotoState } from "./ReferencePhoto";
 
 type VideoState = {
   name: string;
@@ -60,6 +61,9 @@ export function GenjutsuStep({
   const [photos, setPhotos] = useState<Photo[]>([]);
   const [resolution, setResolution] = useState<GenjutsuResolution>(GENJUTSU.defaultResolution);
   const [prompt, setPrompt] = useState("");
+  const [mode, setMode] = useState<"standard" | "swap">("standard");
+  const [product, setProduct] = useState<ReferencePhotoState | null>(null);
+  const sw = t.swap;
 
   const ready = images.filter((c) => c.status === "completed" && c.outputs[0] && c.jobId);
   // Until the user picks explicitly, use the newest image.
@@ -68,8 +72,10 @@ export function GenjutsuStep({
   const selected = ready.filter((c) => selectedKeys.includes(c.key));
   const photoTokens = photos.flatMap((p) => (p.token ? [p.token] : []));
   const total = selected.length + photoTokens.length;
+  // The product photo counts towards the provider's image limit in swap mode.
+  const maxImages = GENJUTSU.maxImages - (mode === "swap" ? 1 : 0);
   const cost = video ? genjutsuCost(video.duration, resolution) : null;
-  const canSubmit = !busy && !!video?.token && total > 0 && total <= GENJUTSU.maxImages && !photos.some((p) => !p.token && !p.failed);
+  const canSubmit = !busy && !!video?.token && total > 0 && total <= maxImages && !photos.some((p) => !p.token && !p.failed) && (mode === "standard" || !!product?.token);
 
   // Release object URLs on unmount.
   const urls = useRef<string[]>([]);
@@ -100,7 +106,7 @@ export function GenjutsuStep({
 
   async function addPhotos(files: FileList | null) {
     if (!files) return;
-    const room = GENJUTSU.maxImages - selected.length - photos.length;
+    const room = maxImages - selected.length - photos.length;
     const batch = Array.from(files).filter((f) => f.type.startsWith("image/")).slice(0, Math.max(0, room));
     if (!picked.length && fallback) onPicked([fallback.key]); // keep the implicit pick once photos are added
     const added = batch.map((file) => ({ file, photo: { key: crypto.randomUUID(), preview: objectUrl(file), token: null, failed: false } satisfies Photo }));
@@ -116,19 +122,49 @@ export function GenjutsuStep({
   function togglePick(key: string) {
     const base = picked.length || photos.length ? picked : selectedKeys;
     if (base.includes(key)) onPicked(base.filter((k) => k !== key));
-    else if (total < GENJUTSU.maxImages) onPicked([...base, key]);
+    else if (total < maxImages) onPicked([...base, key]);
   }
 
   function submit(e: FormEvent) {
     e.preventDefault();
     if (!canSubmit || !video?.token || cost === null) return;
-    onSubmit({ video: video.token, characters: selected, photos: photoTokens, resolution, prompt: prompt.trim(), ratio: video.ratio, estimate: cost });
+    onSubmit({
+      video: video.token, characters: selected, photos: photoTokens, resolution, prompt: prompt.trim(), ratio: video.ratio, estimate: cost,
+      mode, product: mode === "swap" ? (product?.token ?? undefined) : undefined,
+    });
   }
 
   const seconds = video ? Math.ceil(Math.min(GENJUTSU.maxSeconds, video.duration)) : 0;
 
   return (
     <form onSubmit={submit} className="grid gap-6">
+      {/* Mode: standard motion transfer or face & product swap */}
+      <div>
+        <p className="mb-2 text-sm font-semibold text-ink-100">{sw.label}</p>
+        <div role="radiogroup" aria-label={sw.label} className="grid grid-cols-2 gap-2">
+          {(["standard", "swap"] as const).map((m) => (
+            <button
+              key={m}
+              type="button"
+              role="radio"
+              aria-checked={mode === m}
+              onClick={() => setMode(m)}
+              className={cn("rounded-xl border px-3 py-2.5 text-start text-xs font-semibold transition", mode === m ? "border-mint-500/70 bg-mint-500/10 text-mint-300" : "border-ink-700 text-ink-300 hover:border-ink-500 hover:text-ink-100")}
+            >
+              <span aria-hidden className="me-1.5">{m === "swap" ? "⇄" : "▶"}</span>
+              {sw[m]}
+            </button>
+          ))}
+        </div>
+        {mode === "swap" && (
+          <div className="mt-3">
+            <p className="mb-2 text-xs leading-relaxed text-ink-500">{sw.hint}</p>
+            <ReferencePhoto value={product} onChange={setProduct} labels={{ title: sw.product, hint: sw.productHint }} />
+            {!product?.token && video?.token && <p className="text-xs text-ember-300">{sw.needProduct}</p>}
+          </div>
+        )}
+      </div>
+
       {/* Reference video */}
       <div>
         <p className="mb-1 text-sm font-semibold text-ink-100">{s.video}</p>
@@ -230,7 +266,7 @@ export function GenjutsuStep({
           <button
             type="button"
             onClick={() => photoInput.current?.click()}
-            disabled={total >= GENJUTSU.maxImages}
+            disabled={total >= maxImages}
             className="flex h-28 shrink-0 flex-col items-center justify-center gap-1 rounded-xl border border-dashed border-ink-500 px-4 text-xs text-ink-300 transition aspect-[3/4] hover:border-mint-500 hover:text-mint-300 disabled:opacity-40"
           >
             <span aria-hidden className="text-lg">+</span>

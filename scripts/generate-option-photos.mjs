@@ -160,7 +160,12 @@ async function generate(job) {
     headers: { ...headers, "idempotency-key": idem },
     body: JSON.stringify({ prompt: job.prompt, aspect_ratio: "1:1", resolution: "720p", batch_size: 1 }),
   });
-  if (!res.ok) throw new Error(`submit ${res.status}`);
+  if (!res.ok) {
+    // Higgsfield explains the failure in the body (401 bad keys, 403 out of credits, 422 validation…).
+    const detail = (await res.text().catch(() => "")).replace(/\s+/g, " ").slice(0, 300);
+    const hint = { 401: "check HIGGSFIELD_API_KEY / HIGGSFIELD_API_SECRET", 403: "Higgsfield account has no API credits" }[res.status];
+    throw new Error(`submit ${res.status}${hint ? ` (${hint})` : ""} ${detail}`.trim());
+  }
   const { request_id } = await res.json();
   for (let i = 0; i < 90; i++) {
     await sleep(Math.min(10_000, 2_000 * 1.4 ** i));

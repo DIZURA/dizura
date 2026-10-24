@@ -7,6 +7,7 @@ import { cn } from "@/components/ui/cn";
 import { GENJUTSU, generationCost, SOUL_ID } from "@/lib/credits/pricing";
 import type { AspectRatio } from "@/types";
 import { CanvasPanel } from "../CanvasPanel";
+import { VoiceStudio } from "../voice/VoiceStudio";
 import { useGenerator, type Creation, type TransferInput } from "../useGenerator";
 import { CharacterBuilder } from "./CharacterBuilder";
 import { GenjutsuStep } from "./GenjutsuStep";
@@ -255,6 +256,12 @@ export function InfluencerWorkspace() {
         <section ref={step2} aria-labelledby="step2-title" className="glass scroll-mt-24 rounded-[var(--radius-card)] p-5 sm:p-6">
           <StepHeader badge={s.step2.badge} id="step2-title" title={s.step2.title} subtitle={s.step2.subtitle} model="DIZURA Motion" />
           <GenjutsuStep images={images} picked={picked} onPicked={setPicked} busy={busy} error={errorAt === "video" ? error : null} onSubmit={makeVideo} />
+        </section>
+
+        {/* ---------------- Step 3: DIZURA Voice ---------------- */}
+        <section aria-labelledby="step3-title" className="glass scroll-mt-24 rounded-[var(--radius-card)] p-5 sm:p-6">
+          <StepHeader badge={t.voice.badge} id="step3-title" title={t.voice.title} subtitle={t.voice.subtitle} model="DIZURA Voice" />
+          <VoiceStudio />
         </section>
 
         <div id="soul-id" className="scroll-mt-24">

@@ -36,6 +36,13 @@ const schema = z.object({
   HIGGSFIELD_API_KEY: optional,
   HIGGSFIELD_API_SECRET: optional,
 
+  // Strategy chat + blueprints (Claude API). Model id is configurable; default = current Opus.
+  ANTHROPIC_API_KEY: optional,
+  ANTHROPIC_MODEL: z.string().trim().min(1).default("claude-opus-5-5"),
+  // DIZURA Voice (ElevenLabs text-to-speech).
+  ELEVENLABS_API_KEY: optional,
+  ELEVENLABS_MODEL_ID: z.string().trim().min(1).default("eleven_multilingual_v2"),
+  ELEVENLABS_API_BASE_URL: z.url().default("https://api.elevenlabs.io"),
 
   TAP_API_BASE_URL: z.url().default("https://api.tap.company/v2"),
   TAP_SECRET_KEY: optional.refine((v) => v === undefined || /^sk_(test|live)_/.test(v), {

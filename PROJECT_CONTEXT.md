@@ -2,11 +2,11 @@
 
 > Source of truth for architecture, decisions, routes and roadmap.
 > **Every session: read this first; update it in the same change as any architectural edit.**
-> Last updated: 2026-10-23 (Margin-based pricing)
+> Last updated: 2026-10-24 (Agency suite: Strategist, strategy files, swap, voice, agency services)
 
 ## 1. Product
 AI creative studio for GCC brands, Arabic-first (RTL) with English (LTR).
-Two studios (ADR 40): **Visual Character** (`/visual-character` — build a consistent character, then make it act out any reference video) and **Ads Creative Studio** (`/ads-studio` — product photo → ad creatives). The UI shows only the DIZURA brand — never provider/model names (ADR 42).
+Two studios (ADR 40): **Visual Character** (`/visual-character` — build a consistent character, make it act out (or swap into) any reference video, then add a dialect voiceover) and **Ads Creative Studio** (`/ads-studio` — product photo → ad creatives). Agency layer (ADR 50): **DIZURA Strategist** chat drawer in every studio, **Strategy files** (`/blueprints`) and done-for-you **Agency** services (`/agency`, 3000 SAR each). The UI shows only the DIZURA brand — never provider/model names (ADR 42).
 Monetisation: prepaid **credits** bought via **Tap Payments** (KWD default).
 
 ## 2. Stack
@@ -18,7 +18,9 @@ Monetisation: prepaid **credits** bought via **Tap Payments** (KWD default).
 | 3D | three.js + @react-three/fiber, lazy-loaded client-only |
 | Auth / DB | Supabase project `mxzeeyqektwdncsryhyk` ("DIZURA's Project", ap-south-1, Postgres 17). Cookie-based Supabase Auth via `@supabase/ssr` 0.12.7 + `@supabase/supabase-js` 2.117.3 (exact pins) |
 | AI | Higgsfield API (`api.higgsfield.ai`), server-side only: characters = Soul 2 `higgsfield-ai/soul/v2/standard` (+ Soul ID), make-it-act = Genjutsu `higgsfield/genjutsu/motion-transfer/v1.0`, ads = Marketing Studio Image `marketing-studio/image`. (WAN 3.0 i2v/t2v still supported by `/api/ai/generate` but no longer used by the UI.) |
-| Payments | Tap Payments hosted charge page + webhook |
+| Strategy AI | Claude API via `@anthropic-ai/sdk` 0.132.1 (exact pin), server-side only, model `ANTHROPIC_MODEL` (default `claude-opus-5-5`), effort low, server-side refusal fallback |
+| Voice | ElevenLabs TTS (`eleven_multilingual_v2`), server-side only |
+| Payments | Tap Payments hosted charge page + webhook (credit packs + agency service orders) |
 
 Scripts: `npm run dev | build | start | lint | typecheck | scan:secrets | check` (`check` = typecheck + lint + secret scan).
 
@@ -29,6 +31,8 @@ app/
   page.tsx                   Landing: hero + two StudioShowcase cards (example collages) + SiteFooter
   (workspaces)/layout.tsx    TopBar with tool nav (no sidebar), full-width main
   (workspaces)/visual-character/page.tsx   StudioHero + InfluencerWorkspace (Step 1 builder → Step 2 make-it-act; CanvasPanel: Workspace | How it works)
+  (workspaces)/blueprints/page.tsx   Strategy files: list (search/tags) · wizard (?new=1: goal → details → ⚡15) · document (?id=: Strategy | 2-week plan | UGC scripts | Prompt formulas, copy buttons, rename/tags/delete)
+  agency/page.tsx            Public DIZURA Agency: 4 done-for-you services (3000 SAR) + order modal → Tap
   (workspaces)/ads-studio/page.tsx   StudioHero + AdsStudio (product photo, ad format photo cards, size, quality, extra direction; CanvasPanel)
   icon.png / apple-icon.png   favicon + touch icon from the DIZURA mark
   (old tool URLs → 308: /ai-influencer/* → /visual-character/*, /motion /video /wan-prime → /visual-character, /image → /ads-studio, /geo-audit /scheduler /b2b → /)
@@ -48,6 +52,11 @@ components/
                  examples.ts (manifest of public/examples/*.webp), useGenerator (shared submit → poll w/ 2→10 s backoff + jitter → result; generate / transfer / ad)
   studio/ads/    AdsStudio
   studio/influencer/  InfluencerWorkspace (left: Step 1 builder [base identity: New face | From a photo (ReferencePhoto) | Soul ID + likeness], output Sheet 16:9 | Portrait 9:16/3:4/1:1 + scene, details, ⚡5; Step 2 GenjutsuStep; Soul ID panel. Right: preview canvas + workspace thumbs, "Use in video"), CharacterBuilder (character type cards + Builder/Face/Body/Style tabs, 19 groups: photo cards for visual groups, colour swatches, chips), GenjutsuStep (reference video upload w/ progress → character images [own creations + uploaded photos, ≤ 8] → quality 480/720/1080p → optional changes → cost from duration), media.ts (toJpeg, uploadPhoto, uploadVideo [direct signed PUT], videoMeta), option-photos.ts (generated manifest), traits.ts (GROUPS incl. kind [human/animal/alien/robot/fantasy + variants], look [photoreal/3D/anime/clay/comic], expression/Emotion; IdentityMode new|soul|photo; PHOTO_GROUPS, GLYPHS, SWATCHES, toggle/normalize/randomize/photoDefaults, composeCharacterPrompt, composeSoulIdPrompt, composePhotoPrompt), ReferencePhoto (one photo → JPEG in-browser → signed upload token), SoulIdPanel (train: name, 5–30 photos re-encoded to JPEG ≤1536px in-browser [strips EXIF], consent, ⚡40; list w/ status + delete), useCharacters (polls while training)
+  strategist/    StrategistPanel (collapsible inline-end drawer in (workspaces)/layout, ⚡2/msg, sessionStorage chat, "Turn into blueprint"), RichText (safe mini-markdown), context.ts (session hand-off)
+  blueprints/    BlueprintsApp, BlueprintWizard, BlueprintDoc, SectionView, CopyButton, types.ts
+  agency/        AgencyServices (cards + order modal)
+  studio/voice/  VoiceStudio (Step 3: dialect, voice, "Write it for me" ⚡2, script, speed, takes w/ audio + download; lip-sync "Coming soon")
+  ui/CostChip    ember ⚡ cost chip
   billing/       PackGrid (packs from CREDIT_PACKS → POST /api/payments/checkout → Tap hosted page), BuyCreditsModal (opened by the credits badge or `insufficient_credits`), events.ts (openBuyCredits)
   i18n/          I18nProvider/useI18n, LanguageToggle
   auth/          AuthForms (SignIn/SignUp/ForgotPassword/ResetPassword, useActionState), AuthCard, fields (TextField, PasswordField w/ show-hide), FormStatus
@@ -61,6 +70,11 @@ lib/
   higgsfield/client.ts   Higgsfield API: MODELS (+motionTransfer = Genjutsu), buildSubmission (+custom_reference_id), submitGeneration / submitMotionTransfer (Idempotency-Key), getJob, uploadMedia (presigned PUT), create/get/deleteSoulReference
   ai/resolve.ts  resolveJobImage (caller's own completed job → provider image URL), resolveUploadImage (caller's own upload token)
   media/         mp4.ts (range-read moov/mvhd duration), reference-videos.ts (private Supabase Storage bucket: signed upload URL, header inspect, signed download URL; memory store + /api/uploads/video/dev in dev only)
+  ai/claude.ts   Claude client (server-only): strategistReply, generateSection (4 Zod-validated sections via structured outputs), writeVoiceScript; SDK errors → ApiError
+  blueprints/store.ts  BlueprintStore (Supabase REST service role, per-section conditional PATCH `<section>=is.null` / memory in dev)
+  agency/store.ts      ServiceOrderStore (create, attachCharge, markPaid idempotent on status=pending)
+  voice/         elevenlabs.ts (VOICES, DIALECTS, synthesize), store.ts (private `voiceovers` bucket `<userId>/<uuid>.mp3`; memory in dev)
+  supabase/rest.ts  serviceRest() + restRows() helpers for service-role REST stores
   ads/formats.ts AD_FORMATS (7 ad formats → English prompt templates, server-side) + composeAdPrompt
   tap/client.ts  createCharge, retrieveCharge, verifyWebhookHash (HMAC hashstring)
   tap/fulfill.ts fulfillCharge() — re-fetch, validate amount, idempotent grant
@@ -81,6 +95,7 @@ supabase/migrations/20261022083415_0004_welcome_credits_30.sql   welcome bonus 1
 supabase/migrations/20261022215306_0005_characters.sql   characters table (Soul ID), RLS select-own, no anon/authenticated privileges (APPLIED)
 supabase/migrations/20261022215528_0006_service_role_grants.sql   grant service_role EXECUTE on credit RPCs + CRUD on characters (APPLIED — fixes prod credit ledger)
 supabase/migrations/20261023014838_0007_reference_videos_bucket.sql   private `reference-videos` bucket (50 MB, mp4/mov), no client policies (APPLIED)
+supabase/pending/0008_agency_suite.sql   blueprints + service_orders (RLS select-own, service_role grants) + private `voiceovers` bucket — **NOT YET APPLIED** (apply, then move to migrations/ with the remote version, ADR 19)
 scripts/import-examples.mjs  Imports Lovable-designed example JPGs → public/influencer/options/<group>/<id>.webp (256 px) + public/examples/<name>.webp (1280 px) and rewrites both manifests
 scripts/generate-option-photos.mjs  `npm run photos:options [-- --dry|--force|--only=g1,g2]` — Soul 2 option photos (white bg, quirky; art direction docs/design/option-photos.md) → public/influencer/options/<group>/<id>.webp (320 px square) + manifest
 scripts/check-margins.mjs  `npm run margins [-- --live]` — gross margin per action from pricing.ts (+ live Higgsfield /estimate)
@@ -138,6 +153,7 @@ proxy.ts         Session refresh + page guards (guest -> /login?next=, signed-in
 | 47 | **Scroll performance budget**: no `backdrop-filter` on large or scrolling areas (`glass` panels, sticky top bar, canvas tabs, image labels) — use near-opaque token backgrounds instead. The 3D globe renders only while on screen and the tab is visible (IntersectionObserver + `visibilitychange`), at 30 fps via `frameloop="demand"` + a ticker, `dpr` ≤ 1.5, `powerPreference: "low-power"`. | Owner (2026-10-23): "black brightness when I scrolled… lagging". Measured (prod build, headless Chromium, scroll test): /visual-character 69.9 → 17.0 ms/frame (116 → 0 janky frames), /ads-studio 69.4 → 16.7, landing 44.4 → 22.2; background work after scrolling past the globe ~1000 → ~30 ms/s. Large blurred layers are also what render as black tiles on some GPUs. |
 | 48 | **Option photos v2 = white-background, quirky casting** (art direction in `docs/design/option-photos.md`, inspired by the owner's Higgsfield builder references — style only, no Higgsfield images stored). `scripts/generate-option-photos.mjs` v2: 122 prompts covering every photo group incl. kinds/animals/aliens/robots/fantasy/looks (animals wear human hairstyles; builds and outfits played for kind humour; GCC styling), square 1:1 → 320 px WebP, `--force` / `--only=` / `--dry`, idempotency keys versioned. Photo cards render as white "paper" tiles with the label underneath (`--color-paper` token); options without a photo keep glyph/placeholder art. Generation runs on the owner's machine/Codespace with their Higgsfield API keys (sandbox can't reach the API; MCP account has 0 credits). | Owner (2026-10-23): "characters with white background and different styles… looking like this… and more from your imagination". |
 | 49 | **Margin-based pricing**: every action keeps ≥ ~60% gross margin when paid with the cheapest credit (Studio pack ≈ $0.106/credit, 1 KWD = $3.25) after ~3% payment fees. Provider costs live in `PROVIDER_COST_USD` (`lib/credits/pricing.ts`, sourced from open.higgsfield.ai model pages; `estimate: true` where our exact settings aren't published); `npm run margins` prints the table, `-- --live` queries `POST /estimate/{model}` with the owner's keys. New prices: DIZURA ID 40 → **65**; Motion 4/8/16 → **8/17/40** cr/s (480/720/1080p); Ads 3/6/10 → **3/8/20**; images stay **5**. | Owner (2026-10-23): "make the calculation to make great profits". Old Motion 1080p (16 cr/s ≈ $1.70 vs $1.632 cost) and Ultra ads (10 cr ≈ $1.06 vs $0.72) ran at ~4% / ~32% margin. The pricing page couldn't be fetched from the sandbox (DNS), so figures came from Higgsfield's model pages via search — confirm with `--live`. |
+| 50 | **Agency suite** (owner, 2026-10-23). (a) **DIZURA Strategist** = Claude API, server-only (`lib/ai/claude.ts`), never named in the UI (ADR 42); a collapsible drawer in every studio, 2 credits per reply, refunded if the call fails; chat lives in sessionStorage only. (b) **Strategy files** (`blueprints` table): 15 credits charged once at creation (`bp:<id>`), then the client calls one route per section (strategy / 14-day plan / 3 UGC scripts / 6 prompt formulas) so each request stays far under Netlify's 60 s limit; each section is its own jsonb column written with a conditional PATCH (`<section>=is.null`), so parallel writes and retries never overwrite or double-bill; unfinished sections are generated when the file is reopened. Output is Zod-validated structured JSON rendered as text (no HTML). (c) **Swap mode** = Genjutsu with the product photo appended as the last reference image + a fixed swap direction (no new provider). (d) **DIZURA Voice** = ElevenLabs TTS, 1 credit / 100 chars (min 2, ≤ 2500 chars), refunded on failure; MP3 stored in the private `voiceovers` bucket and streamed through `/api/voice/audio/[token]` (signed 7-day handle, owner check); "Write it for me" drafts the script in the dialect via Claude (2 credits). Lip-sync shows *Coming soon* (no verified API). (e) **Agency services**: 4 fixed-price services (3000 SAR) in `AGENCY_SERVICES`; client sends only the service id + brief; Tap charge metadata `kind: service` → `fulfillService` re-fetches the charge, checks amount/currency/order, marks the order paid (idempotent) and logs `[agency] new paid order`. Margins: chat 78%, blueprint 80%, voice 71% (`npm run margins`). | Owner: "AI Agency features, strategy management, and local voice dubbing". Lovable workspace ran out of credits mid-design, so screens were built in our codebase from its drafts. |
 | 19 | Migration files named `<remote version>_<name>.sql`, matching `supabase_migrations.schema_migrations` exactly. New migrations: apply via MCP/CLI, then name the file with the version Supabase records. Migrations must also replay cleanly on a fresh preview branch (guard project-specific objects). | Supabase GitHub integration (Preview check) fails when remote versions are missing locally. |
 | 29 | `APP_SECRET` optional at boot (Netlify agent, PR #4); `signed-token.ts` enforces presence + ≥32 chars at use (→ 503 `not_configured`); `/api/ai/generate` checks it before reserving credits | `lib/env.ts` is evaluated during `next build` (page-data collection), so a missing/short secret was failing Netlify builds. |
 
@@ -150,12 +166,20 @@ proxy.ts         Session refresh + page guards (guest -> /login?next=, signed-in
 | POST | `/api/uploads/image` | user | 60/10 min | multipart `file` (JPEG/PNG/WebP by magic bytes, ≤ 5 MB) → `{ token }` (signed 1 h upload handle) |
 | POST | `/api/uploads/video` | user | 20/10 min | `{ type: video/mp4|video/quicktime, size ≤ 50 MB }` → `{ uploadUrl, headers, token }` (browser PUTs the file straight to private storage; token = signed 2 h handle) |
 | POST | `/api/ai/ad` | user | 20/min/user | `{ product: uploadToken, format, aspectRatio (1:1/3:4/9:16/16:9), quality (standard/high/ultra), notes? }` → `GenerationJob` (202); Marketing Studio Image; credits 3/6/10 by quality |
-| POST | `/api/ai/motion-transfer` | user | 20/min/user | `{ video: token, characters: jobToken[], photos: uploadToken[] (1–8 total), resolution, prompt? }` → `GenerationJob` (202); server reads duration, prices, reserves, submits Genjutsu; poll via `/api/ai/jobs/[token]` |
+| POST | `/api/ai/motion-transfer` | user | 20/min/user | `{ video: token, characters: jobToken[], photos: uploadToken[] (1–8 total incl. product), resolution, prompt?, mode: standard|swap, product?: uploadToken (swap) }` → `GenerationJob` (202); server reads duration, prices, reserves, submits Genjutsu; poll via `/api/ai/jobs/[token]` |
 | PUT/GET | `/api/uploads/video/dev` | – | – | **Dev/test only** stand-in for storage; 404 whenever real storage is configured and always in production |
 | GET | `/api/characters` | user | 60/min | caller's Soul ID characters `{id,name,state,thumbnailUrl,…}`; refreshes training ones; refunds failed once |
 | POST | `/api/characters` | user | 5/10 min | `{ name, uploads: token[5–30], consent: true }` → train (⚡40) |
 | DELETE | `/api/characters/[id]` | user (owner) | 20/min | delete here + at Higgsfield |
 | GET | `/auth/callback?code=…|token_hash=…&type=…&next=` | – | – | Exchange email link for session; failure → `/login?error=link` |
+| POST | `/api/strategy/chat` | user | 20/min | `{ messages[1–20, user first+last], locale, studio }` → `{ reply }` (⚡2, refunded on failure) |
+| GET/POST | `/api/blueprints` | user | 60/min · 5/10 min | list (`done` = finished sections) · create `{ goal, title?, locale, inputs{product, audience, market, budget, tone, notes, context} }` (⚡15) → 201 |
+| GET/PATCH/DELETE | `/api/blueprints/[id]` | user (owner) | 120/30/30 per min | read · `{ title?, tags≤8 }` · delete |
+| POST | `/api/blueprints/[id]/sections/[section]` | user (owner) | 24/10 min | generate one section (free; existing → returned as-is) |
+| POST | `/api/voice/speech` | user | 20/10 min | `{ text 2–2500, voice, speed 0.7–1.2 }` → `{ token }` (⚡1/100 chars, min 2) |
+| GET | `/api/voice/audio/[token]` | user (owner) | – | streams the MP3 |
+| POST | `/api/voice/script` | user | 20/10 min | `{ dialect, brief, seconds 5–90 }` → `{ script }` (⚡2) |
+| GET/POST | `/api/agency/orders` | user | 60/min · 5/10 min | list · `{ service, brief{brand, phone, link?, notes?} }` → `{ redirectUrl, orderId }` (Tap, price server-side; 503 without Tap keys) |
 | POST | `/api/payments/checkout` | user | 5/min/user | `{ packId }` → `{ redirectUrl, chargeId }` (Tap hosted page) |
 | POST | `/api/webhooks/tap` | Tap HMAC | – | Verify + fulfil; 401 bad sig, 500 → Tap retries |
 | Page | `/billing/return?tap_id=` | – | – | Re-verify + idempotent fulfil, show status |
@@ -167,7 +191,7 @@ Error codes → HTTP: bad_request 400, unauthorized 401, insufficient_credits 40
 
 ## 6. Environment variables
 Template: `.env.example` (committed). Real values: `.env.local` (gitignored via `.env.*`, chmod 600; `APP_SECRET` auto-generated).
-Server-only: `APP_SECRET`, `DATABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `HIGGSFIELD_API_KEY` + `HIGGSFIELD_API_SECRET` (or combined `KEY_ID:KEY_SECRET` in the key), optional `HIGGSFIELD_API_BASE_URL` (default `https://api.higgsfield.ai`), `TAP_SECRET_KEY`, `TAP_API_BASE_URL`.
+Server-only: `APP_SECRET`, `DATABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `HIGGSFIELD_API_KEY` + `HIGGSFIELD_API_SECRET` (or combined `KEY_ID:KEY_SECRET` in the key), optional `HIGGSFIELD_API_BASE_URL` (default `https://api.higgsfield.ai`), `TAP_SECRET_KEY`, `TAP_API_BASE_URL`, `ANTHROPIC_API_KEY` (+ optional `ANTHROPIC_MODEL`), `ELEVENLABS_API_KEY` (+ optional `ELEVENLABS_MODEL_ID`, `ELEVENLABS_API_BASE_URL`). The Anthropic SDK also honours `ANTHROPIC_BASE_URL` (tests only).
 Public: `NEXT_PUBLIC_APP_URL` (optional; see ADR 24), `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, `NEXT_PUBLIC_TAP_PUBLIC_KEY`.
 Rule: never add a secret with the `NEXT_PUBLIC_` prefix; add every new var to `.env.example` + `lib/env.ts` schema.
 Dev/test only: `DEV_STARTING_CREDITS` (read only by the in-memory credit store, which never runs in production).
@@ -187,6 +211,8 @@ Soul ID training: **65 credits** (Higgsfield ≈ $2.50/request) — needs a cred
 Packs: starter 100cr/5 KWD · pro 500cr/20 KWD · studio 2000cr/65 KWD.
 Costs: image **5** (every studio); video **8 cr/s** for every studio, 3–15 s, default 3 s (= 24). Character + first video = 29 ≤ welcome 30.
 Ads Creative Studio: **3 / 8 / 20 credits** per ad (Standard 1k / High 2k / Ultra 4k; Ultra cost $0.7219 published, others estimated — `npm run margins -- --live`).
+Strategist: **2** credits per reply · Strategy file: **15** (all four sections) · Voice: **1 per 100 characters** (min 2) · "Write it for me": **2**.
+Agency services (not credits): **3000 SAR** each — Single Product Store, Landing Page, Print on Demand, Shopify (Tap).
 Genjutsu (influencer Step 2): **8 / 17 / 40 cr per second** of reference video at 480p / 720p / 1080p, 4–30 s (e.g. 6 s at 720p = 102). Welcome credits (30) cover 6 characters or 10 standard ads; videos need a pack.
 
 ## 8. Verified status (2026-10-22)
@@ -216,6 +242,9 @@ Genjutsu (influencer Step 2): **8 / 17 / 40 cr per second** of reference video a
 - **Polling** 2 s → 10 s + jitter (implemented). **Webhooks** `?hf_webhook=` (retries 2 h). **Uploads** `POST /files/generate-upload-url` → PUT → `public_url`. **Cost** `POST /estimate/{model_path}`. Failed/nsfw/canceled not charged. **Outputs live ≥ 7 days → copy to our storage.**
 
 ## 9. Open items / things to VERIFY before launch
+- [ ] **Apply `supabase/pending/0008_agency_suite.sql`** (blueprints, service_orders, voiceovers bucket), run both advisors, then rename into `supabase/migrations/` with the remote version. Until then Strategy files / agency orders / voice storage fail in production.
+- [ ] Netlify (Production): `ANTHROPIC_API_KEY` (Strategist, Strategy files, "Write it for me") and `ELEVENLABS_API_KEY` (DIZURA Voice); without them those features return 503 before charging.
+- [ ] Agency orders: paid orders appear in `service_orders` + function logs (`[agency] new paid order`) — add an email/WhatsApp notification to the team.
 - [x] **Higgsfield** paths/auth/response shape now match the official docs; verified against a mock of the documented API (request path, `Key` header, Idempotency-Key, body, status polling, image/video/nsfw results). **Still to do: one live generation with real keys** (sandbox can't reach api.higgsfield.ai).
 - [x] **WAN 3.0 Prime** = Higgsfield model `alibaba/wan-3.0-prime/text-to-video` (duration 2–30 s, resolution 480p/720p/1080p, aspect incl. 3:4).
 - [ ] **Marketing Studio Image**: first live ad + `POST /estimate/marketing-studio/image` per tier (ADR 41).

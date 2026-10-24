@@ -26,9 +26,21 @@ const body = z
     photos: z.array(token).max(GENJUTSU.maxImages).default([]),
     resolution: z.enum(["480p", "720p", "1080p"]).default(GENJUTSU.defaultResolution),
     prompt: z.string().trim().max(2000).default(""),
+    /** "swap" (ADR 50): the character replaces the person AND `product` replaces the held product. */
+    mode: z.enum(["standard", "swap"]).default("standard"),
+    product: token.optional(),
   })
-  .refine((b) => b.characters.length + b.photos.length >= 1, { message: "Pick at least one character image." })
-  .refine((b) => b.characters.length + b.photos.length <= GENJUTSU.maxImages, { message: `Use up to ${GENJUTSU.maxImages} images.` });
+  .refine((b) => b.mode === "standard" || b.product, { message: "Add your product photo for swap mode." })
+  .refine((b) => b.characters.length + b.photos.length + (b.mode === "swap" ? 1 : 0) <= GENJUTSU.maxImages, {
+    message: `Use up to ${GENJUTSU.maxImages} images.`,
+  })
+  .refine((b) => b.characters.length + b.photos.length >= 1, { message: "Pick at least one character image." });
+
+/** Swap mode: the last reference image is the product; the others are the character. */
+const SWAP_DIRECTION =
+  "Replace the person in the reference video with the character shown in the first reference image(s), and replace the " +
+  "product they are holding or using with the product shown in the last reference image (same shape, colours, label and size). " +
+  "Keep the exact camera movement, framing, pacing, gestures, hand placement and timing of the reference video.";
 
 /**
  * POST → Genjutsu motion transfer: the chosen character performs the reference video.
@@ -48,7 +60,9 @@ export const POST = route(async (req: Request) => {
   const imageUrls = [
     ...(await Promise.all(input.characters.map((t) => resolveJobImage(t, user.id)))),
     ...input.photos.map((t) => resolveUploadImage(t, user.id)),
+    ...(input.mode === "swap" && input.product ? [resolveUploadImage(input.product, user.id)] : []),
   ];
+  const prompt = input.mode === "swap" ? `${SWAP_DIRECTION} ${input.prompt}`.trim() : input.prompt;
   const store = referenceVideos();
   const info = await store.inspect(video.path);
   const cost = genjutsuCost(info.durationSec, input.resolution);
@@ -58,7 +72,7 @@ export const POST = route(async (req: Request) => {
   await credits().apply({ userId: user.id, delta: -cost, reason: "generation", referenceId });
   let submitted: Awaited<ReturnType<typeof submitMotionTransfer>>;
   try {
-    submitted = await submitMotionTransfer({ prompt: input.prompt, videoUrl, imageUrls, resolution: input.resolution }, referenceId);
+    submitted = await submitMotionTransfer({ prompt, videoUrl, imageUrls, resolution: input.resolution }, referenceId);
   } catch (err) {
     await credits().apply({ userId: user.id, delta: cost, reason: "refund", referenceId });
     throw err;
