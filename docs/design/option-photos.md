@@ -24,6 +24,9 @@ never their images — every photo is generated fresh by our own account with ou
   ghutra, majlis-era retro — mixed with the quirky casting, never mocking culture or religion.
 
 ## Rules
+- **Never reproduce a reference person.** References set the *style* only; every card gets its own
+  casting (different face, hair, colours, outfit and pose). Prompts describe our own characters,
+  never the people in the owner's screenshots.
 - Fictional people only — no celebrities, no real individuals, no brand logos or text.
 - Respectful: humour comes from styling and expression, never from ethnicity, religion,
   disability or body-shaming.
