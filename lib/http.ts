@@ -97,7 +97,10 @@ export async function providerFetch(provider: string, url: string, init: Request
     if (res.status === 400 && /concurren/i.test(body)) throw new ApiError("rate_limited", "Too many generations running. Please wait a moment.");
     // Our own credentials/account are the problem — retrying won't help the user (operator must fix keys or top up).
     if (res.status === 401) console.error(`[${provider}] credentials rejected — check the ${provider} API key in the hosting environment`);
-    if (res.status === 401 || (res.status === 403 && provider === "Higgsfield")) throw new ApiError("not_configured", `${provider} is temporarily unavailable.`);
+    // Tap 1108 = saved cards (needed for subscriptions) aren't enabled on the merchant account yet.
+    const tapSetup = provider === "Tap" && res.status === 400 && /"1108"/.test(body);
+    if (tapSetup) console.error("[Tap] save-card / recurring payments are not enabled on the Tap account — ask Tap to enable them");
+    if (tapSetup || res.status === 401 || (res.status === 403 && provider === "Higgsfield")) throw new ApiError("not_configured", `${provider} is temporarily unavailable.`);
     throw new ApiError("provider_error", `${provider} request failed (${res.status}).`);
   }
   return res;

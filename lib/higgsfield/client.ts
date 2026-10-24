@@ -36,10 +36,12 @@ const statusSchema = z.object({
 });
 
 function auth() {
-  const key = env.HIGGSFIELD_API_KEY;
-  const secret = env.HIGGSFIELD_API_SECRET;
-  // Accept either KEY_ID + KEY_SECRET, or the combined "KEY_ID:KEY_SECRET" credential in HIGGSFIELD_API_KEY.
-  const credential = key && secret ? `${key}:${secret}` : key?.includes(":") ? key : null;
+  const key = env.HIGGSFIELD_API_KEY?.trim();
+  const secret = env.HIGGSFIELD_API_SECRET?.trim();
+  // Accept a combined "KEY_ID:KEY_SECRET" in HIGGSFIELD_API_KEY (a leftover HIGGSFIELD_API_SECRET is then ignored),
+  // KEY_ID + KEY_SECRET in the two variables, or the SDK-style HF_CREDENTIALS.
+  const sdk = env.HF_CREDENTIALS?.trim();
+  const credential = key?.includes(":") ? key : key && secret ? `${key}:${secret}` : sdk?.includes(":") ? sdk : null;
   if (!credential) throw new NotConfiguredError(["HIGGSFIELD_API_KEY", "HIGGSFIELD_API_SECRET"]);
   return {
     base: env.HIGGSFIELD_API_BASE_URL.replace(/\/$/, ""),
