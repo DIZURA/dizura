@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import { env } from "@/lib/env";
 import { ApiError } from "@/lib/http";
-import { safeNext } from "@/lib/auth/redirect";
+import { safeNext, trustedOrigin } from "@/lib/auth/redirect";
 import { rateLimit } from "@/lib/security/rate-limit";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
@@ -76,10 +76,8 @@ const echo = (form: FormData) => {
  * honoured — anything else (e.g. a spoofed Host header) falls back to the configured app URL.
  */
 async function callbackUrl(next: string) {
-  const app = new URL(env.NEXT_PUBLIC_APP_URL);
-  const host = (await headers()).get("host")?.toLowerCase() ?? "";
-  const alias = host.endsWith(`--${app.host}`) && /^[a-z0-9-]+$/.test(host.slice(0, -(app.host.length + 2)));
-  const origin = host === app.host || (alias && app.protocol === "https:") ? `${app.protocol}//${host}` : app.origin;
+  const h = await headers();
+  const origin = trustedOrigin(env.NEXT_PUBLIC_APP_URL, h.get("x-forwarded-host"), h.get("host"));
   return `${origin}/auth/callback?next=${encodeURIComponent(next)}`;
 }
 
