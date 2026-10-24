@@ -25,12 +25,15 @@ const OUT = join(ROOT, "public/influencer/options");
 const MANIFEST = join(ROOT, "components/studio/influencer/option-photos.ts");
 const DRY = process.argv.includes("--dry");
 const BASE = (process.env.HIGGSFIELD_API_BASE_URL || "https://api.higgsfield.ai").replace(/\/$/, "");
-const KEY = process.env.HIGGSFIELD_API_KEY ?? "";
-const SECRET = process.env.HIGGSFIELD_API_SECRET ?? "";
-const CREDENTIAL = KEY && SECRET ? `${KEY}:${SECRET}` : KEY.includes(":") ? KEY : "";
+const KEY = (process.env.HIGGSFIELD_API_KEY ?? "").trim().replace(/^["']|["']$/g, "");
+const SECRET = (process.env.HIGGSFIELD_API_SECRET ?? "").trim().replace(/^["']|["']$/g, "");
+const SDK = (process.env.HF_CREDENTIALS ?? "").trim().replace(/^["']|["']$/g, "");
+// Same order as lib/higgsfield/client.ts: a combined KEY_ID:KEY_SECRET wins over a leftover secret.
+// Newer Higgsfield keys can be a single value (no ":"), which is sent as-is.
+const CREDENTIAL = KEY.includes(":") ? KEY : KEY && SECRET ? `${KEY}:${SECRET}` : KEY || SDK;
 
 /** Art direction: docs/design/option-photos.md. Bump VERSION when it changes (new idempotency keys). */
-const VERSION = "v3";
+const VERSION = "v4";
 const FORCE = process.argv.includes("--force");
 const ONLY = process.argv.find((a) => a.startsWith("--only="))?.slice(7).split(",") ?? null;
 
@@ -41,12 +44,12 @@ const STYLE =
 const HEAD = (subject, real = true) => `${real ? "Photorealistic h" : "H"}ead-and-shoulders studio portrait of ${subject}. ${STYLE}`;
 const BODY = (subject) => `Photorealistic full-body studio photo of ${subject}, standing straight facing the camera, whole body in frame with feet visible. ${STYLE}`;
 /** One recurring model so Emotion / Look cards compare like for like. */
-const MUSE = "a young woman with a glossy black blunt bob with heavy bangs and thin round gold glasses";
+const MUSE = "a young woman with a soft wavy chestnut lob and tortoiseshell cat-eye glasses";
 
 const TIER = {
-  average: HEAD(`${MUSE}, small friendly smile, cream knit sweater`),
-  bold: HEAD("a lanky man with a shaggy chestnut bowl cut and rectangular glasses, sticking his tongue out, mustard corduroy jacket"),
-  extreme: HEAD("a surreal character with a towering glossy lime-green pompadour, round black glasses, a tiny pointed goatee and wide astonished eyes"),
+  average: HEAD(`${MUSE}, small friendly smile, sage-green cardigan`),
+  bold: HEAD("a woman with a sharp silver asymmetric bob, bold red lipstick, one eyebrow raised high, cobalt blazer"),
+  extreme: HEAD("a man with a towering magenta quiff sculpted like a wave, oversized star-shaped sunglasses, glitter on the cheekbones, open-mouth gasp"),
 };
 const KIND = {
   human: HEAD("a stylish young Gulf Arab woman in a sleek black hijab and statement gold earrings, confident half smile"),
@@ -57,8 +60,8 @@ const KIND = {
 };
 /** Animals wear human hairstyles — the signature of the set. */
 const ANIMAL_HAIR = {
-  cat: "a fluffy auburn pompadour, hissing dramatically",
-  dog: "a tall black flat-top haircut, tongue out",
+  cat: "a voluminous silver blow-dried bouffant, deeply unimpressed",
+  dog: "long flowing ombré hair parted in the middle, aloof look",
   lion: "a slicked-back 1950s crooner hairstyle, proud stare",
   tiger: "a spiky punk mohawk, snarling playfully",
   falcon: "a tiny gold crown and aviator sunglasses, fierce look",
@@ -78,12 +81,12 @@ const LOOK_STYLE = {
   comic: `${MUSE}, drawn as a bold comic-book illustration with ink outlines and halftone shading`,
 };
 const BUILD = {
-  slim: "a very slim, very tall young man in an oversized brown double-breasted suit",
-  athletic: "an athletic young woman in a teal zip-up tracksuit and white socks with loafers",
-  muscular: "a muscular man with a neat moustache in a striped polo shirt and beige pleated trousers",
-  curvy: "a curvy woman with a towering beehive in a burgundy polka-dot wrap dress and kitten heels",
-  heavy: "a heavy-set man with round glasses in a mustard sweater vest, red bow tie, brown shorts and knee socks",
-  ultra: "a hyper-muscular bodybuilder with enormous arms squeezed into a too-tight tweed suit",
+  slim: "a very tall slim woman in a long camel trench coat and white sneakers",
+  athletic: "an athletic man in a mint basketball jersey, shorts and high striped socks",
+  muscular: "a muscular woman in a cropped lilac tracksuit, hands on hips",
+  curvy: "a curvy woman in a flowing emerald maxi dress with gold embroidery and gold sandals",
+  heavy: "a big cheerful man in an orange tropical-print shirt, cargo shorts and sandals",
+  ultra: "a hyper-muscular bodybuilder squeezed into a tiny pink cardigan and pleated chinos",
 };
 const STYLE_OUTFIT = {
   modest: "a young Gulf Arab woman in an elegant black abaya and hijab with gold trim",
@@ -101,33 +104,56 @@ const STYLE_OUTFIT = {
 
 /** Hairstyles: one memorable person per cut (owner's references, 2026-10-24). */
 const HAIR = {
-  long: "a pale gaunt man with very long straight jet-black hair to the waist, black turtleneck, deadpan",
-  short: "a woman with a short platinum pixie crop, big gold hoop earrings, lilac shirt, deadpan",
-  braids: "a woman with long box braids decorated with gold cuffs, dark green velvet jacket, cool stare",
-  afro: "a man with a huge round afro, tiny round sunglasses, moustache, brown suede jacket",
-  buzz: "a man with a neat buzz cut, mustard turtleneck and brown blazer, deadpan",
-  bald: "a bald man with thick black glasses, white shirt and skinny black tie, deadpan",
-  bowl: "a man with a glossy black bowl cut, round red glasses, yellow sweater vest, startled look",
-  mullet: "a man with a curly ginger mullet and moustache, leopard-print shirt, side glance",
-  pigtails: "a woman with two high pigtails and bangs, oversized round glasses, navy sailor collar, pouting",
-  mohawk: "a pale punk with a spiky lime-green mohawk, safety-pin earrings, beige cardigan, deadpan",
-  bob: "a man with a sleek copper-red blunt bob, purple velvet blazer and mustard shirt, deadpan",
-  beehive: "a woman with a towering copper beehive, winged eyeliner, mustard turtleneck",
-  perm: "a man with a tight curly dome perm, tinted aviator glasses, pastel windbreaker",
-  hairHorns: "a young man with black hair sculpted into two devil horns, red satin shirt, deadpan",
-  curlSphere: "a woman with dense ginger curls shaped into a perfect sphere, cream blouse, wide eyes",
+  long: "a woman with ankle-length straight silver hair, black satin top, calm stare",
+  short: "a man with a short curly bleached crop, green bomber jacket",
+  braids: "a man with chunky two-strand twists tied up on top, cream knit sweater",
+  afro: "a woman with a huge pastel-pink afro, white tee, playful smile",
+  buzz: "a woman with a bleached buzz cut, gold earrings, cobalt shirt",
+  bald: "a bald woman with a gold ear cuff, black turtleneck, serene",
+  bowl: "an elderly man with a silver bowl cut, rectangular gold glasses, maroon cardigan",
+  mullet: "a woman with a sleek black mullet, studded leather jacket, smirk",
+  pigtails: "a man with two short spiky pigtails, tropical shirt, deadpan",
+  mohawk: "a woman with a tall violet liberty-spike mohawk, denim jacket",
+  bob: "a woman with a sharp platinum bob with blunt bangs, lime-green blouse",
+  beehive: "a man with a towering grey beehive, tweed waistcoat, very serious",
+  perm: "a woman with a big 80s blonde perm, neon windbreaker",
+  hairHorns: "a woman with platinum hair sculpted into two curled ram horns, black dress",
+  curlSphere: "a man with black curls shaped into a perfect sphere, mustard polo",
 };
 /** Ethnicity: dignified, characterful casting — the humour is in the styling, never the heritage. */
 const ETHNICITY = {
-  gulf: "a young Gulf Arab man in a crisp white ghutra and thobe, neat beard, deadpan stare",
-  middleEastern: "a Middle Eastern man with thick curly black hair, a strong moustache and bold brows, mint satin shirt, deadpan",
-  levant: "a Levantine woman with glossy dark waves, red lipstick and a cream ruffled blouse, unimpressed look",
-  northAfrica: "a North African woman with voluminous curly hair, gold hoop earrings and a mustard caftan collar, half smile",
-  african: "a tall Black man with a sculpted high-top fade, round tortoiseshell glasses and a mustard turtleneck, deadpan",
-  southAsian: "a South Asian woman with a high top-knot bun, oversized amber glasses and a teal paisley pussy-bow blouse, deadpan",
-  eastAsian: "an East Asian woman with a jet-black blunt bob with micro bangs and a white ruffled collar, deadpan",
-  european: "a pale lanky European man with a ginger side part, tweed jacket and brown knitted tie, deadpan",
-  mixed: "a mixed-heritage woman with a big curly auburn puff, red cat-eye glasses and a striped retro top, deadpan",
+  gulf: "a young Emirati woman in a black shayla with gold earrings, soft smile",
+  middleEastern: "a Middle Eastern woman with long wavy dark hair, kohl-lined eyes, olive linen shirt, calm",
+  levant: "a Levantine man with a salt-and-pepper beard, linen shirt, warm smile",
+  northAfrica: "a Moroccan man with short curly hair and an embroidered djellaba collar, half smile",
+  african: "a Black woman with a sleek shaved fade, bold geometric earrings, cobalt top",
+  southAsian: "a South Asian man with neat side-parted hair, round wire glasses, cream kurta",
+  eastAsian: "an East Asian man with a two-block haircut, oversized grey blazer, deadpan",
+  european: "a European woman with a strawberry-blonde braided crown, freckles, green knit",
+  mixed: "a mixed-heritage man with blond-tipped curls, a small silver hoop, denim jacket",
+};
+
+/** Facial hair and distinctive features: one original person each (never a reference person). */
+const FACIAL_HAIR = {
+  clean: "a young Gulf man, clean-shaven, neat short hair, white kandura collar, slight smile",
+  stubble: "a man with light stubble and slicked-back grey hair, navy polo",
+  beard: "a Gulf man with a long black groomed beard and a white ghutra",
+  goatee: "a man with a neat chin goatee, mustard beanie, olive overshirt",
+  moustache: "a man with a curled handlebar moustache, flat cap, striped shirt",
+  pushBroom: "an older man with a thick grey push-broom moustache, corduroy jacket",
+};
+const DISTINCTIVE = {
+  oddEyes: "a man with one green and one brown eye, wavy shoulder-length hair, white linen shirt",
+  faceTattoo: "a woman with a tiny fine-line star tattoo under one eye, braided bun",
+  piercing: "a man with a septum ring and bleached eyebrows, black hoodie",
+  earPiercing: "a woman with many gold ear cuffs, slick high ponytail, coral top",
+  browSlits: "a woman with one eyebrow slit, curly bangs, teal track jacket",
+  goldGrill: "a woman flashing a gold grill smile, long nails near her face, pink tracksuit",
+  braces: "a young man with metal braces and a buzz cut, yellow polo, huge grin",
+  scar: "a woman with a small scar through one eyebrow, sleek ponytail, leather jacket",
+  faceGems: "a man with silver face gems along the cheekbones, white tee",
+  bigLashes: "a man with dramatic long lashes and glittery eyelids, black mesh shirt",
+  elfEars: "a man with pointed elf ears and a long black braid, forest-green tunic",
 };
 
 /** One prompt per photo option (null = keep placeholder art, e.g. photo-mode-only options). */
@@ -137,7 +163,7 @@ function promptFor(group, option) {
   switch (group) {
     case "tier": return TIER[option.id];
     case "kind": return KIND[option.id] ?? null;
-    case "animal": return HEAD(`a ${option.id === "dog" ? "pug dog" : en} with ${ANIMAL_HAIR[option.id]}`);
+    case "animal": return HEAD(`a ${option.id === "dog" ? "saluki dog" : option.id === "cat" ? "fluffy Persian cat" : en} with ${ANIMAL_HAIR[option.id]}`);
     case "alien":
     case "robot": return HEAD(`${en}, expressive quirky face`);
     case "fantasy": return HEAD(`a ${option.id === "genie" || option.id === "dragonkin" ? "man" : "woman"} ${en}, playful expression`);
@@ -148,8 +174,8 @@ function promptFor(group, option) {
     case "expression": return HEAD(`${MUSE}, ${en}`);
     case "ethnicity": return HEAD(ETHNICITY[option.id] ?? `a young ${en} person with a striking natural look and a bold-coloured top`);
     case "age": return HEAD(`a Gulf Arab man ${en} with a quirky moustache and patterned shirt, deadpan look`);
-    case "facialHair": return HEAD(`a young man with ${en} and a slick side part, deadpan stare`);
-    case "distinctive": return HEAD(`a young woman with ${en}, edgy styling`);
+    case "facialHair": return HEAD(FACIAL_HAIR[option.id] ?? `a man with ${en}`);
+    case "distinctive": return HEAD(DISTINCTIVE[option.id] ?? `a person with ${en}`);
     case "build": return BODY(BUILD[option.id] ?? `a person with a ${en} build`);
     case "hair": return option.id === "hijab"
       ? HEAD("a young woman wearing an elegant emerald silk hijab, chic gold earrings")
@@ -176,8 +202,17 @@ if (DRY) {
   process.exit(0);
 }
 if (missing.length && !CREDENTIAL) {
-  console.error("Set HIGGSFIELD_API_KEY and HIGGSFIELD_API_SECRET in .env.local first.");
+  console.error("Set HIGGSFIELD_API_KEY in .env.local first (your Higgsfield API key; KEY_ID:KEY_SECRET if it has two parts).");
   process.exit(1);
+}
+if (missing.length) {
+  // Never print the key: only its shape, so a wrong paste is easy to spot.
+  const [id, secret] = CREDENTIAL.split(":");
+  console.log(
+    secret === undefined
+      ? `Using a single-value Higgsfield key (${id?.length ?? 0} chars).`
+      : `Using a Higgsfield key: id ${id?.length ?? 0} chars, secret ${secret.length} chars.`,
+  );
 }
 
 const headers = { authorization: `Key ${CREDENTIAL}`, "content-type": "application/json", accept: "application/json" };
@@ -209,8 +244,9 @@ async function generate(job) {
 
 const { default: sharp } = await import("sharp"); // ships with Next.js
 let done = 0;
+let fatal = null; // bad key / no credits: stop instead of failing every photo
 async function worker(queue) {
-  for (let job = queue.shift(); job; job = queue.shift()) {
+  for (let job = fatal ? undefined : queue.shift(); job; job = fatal ? undefined : queue.shift()) {
     try {
       const url = await generate(job);
       const bytes = Buffer.from(await (await fetch(url)).arrayBuffer());
@@ -219,11 +255,16 @@ async function worker(queue) {
       console.log(`✓ ${job.group}/${job.option.id} (${++done}/${missing.length})`);
     } catch (err) {
       console.error(`✗ ${job.group}/${job.option.id}: ${err.message}`);
+      if (/^submit (401|403)/.test(err.message)) fatal ??= err.message;
     }
   }
 }
 const queue = [...missing];
 await Promise.all([worker(queue), worker(queue), worker(queue)]);
+if (fatal) {
+  console.error(`\nStopped: ${fatal}`);
+  process.exitCode = 1;
+}
 
 // Manifest = every photo present on disk.
 const present = existsSync(OUT)
