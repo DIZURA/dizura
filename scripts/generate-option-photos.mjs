@@ -30,7 +30,7 @@ const SECRET = process.env.HIGGSFIELD_API_SECRET ?? "";
 const CREDENTIAL = KEY && SECRET ? `${KEY}:${SECRET}` : KEY.includes(":") ? KEY : "";
 
 /** Art direction: docs/design/option-photos.md. Bump VERSION when it changes (new idempotency keys). */
-const VERSION = "v2";
+const VERSION = "v3";
 const FORCE = process.argv.includes("--force");
 const ONLY = process.argv.find((a) => a.startsWith("--only="))?.slice(7).split(",") ?? null;
 
@@ -99,6 +99,37 @@ const STYLE_OUTFIT = {
   theatre: "a performer in a dramatic sequinned theatre costume with a feathered cape",
 };
 
+/** Hairstyles: one memorable person per cut (owner's references, 2026-10-24). */
+const HAIR = {
+  long: "a pale gaunt man with very long straight jet-black hair to the waist, black turtleneck, deadpan",
+  short: "a woman with a short platinum pixie crop, big gold hoop earrings, lilac shirt, deadpan",
+  braids: "a woman with long box braids decorated with gold cuffs, dark green velvet jacket, cool stare",
+  afro: "a man with a huge round afro, tiny round sunglasses, moustache, brown suede jacket",
+  buzz: "a man with a neat buzz cut, mustard turtleneck and brown blazer, deadpan",
+  bald: "a bald man with thick black glasses, white shirt and skinny black tie, deadpan",
+  bowl: "a man with a glossy black bowl cut, round red glasses, yellow sweater vest, startled look",
+  mullet: "a man with a curly ginger mullet and moustache, leopard-print shirt, side glance",
+  pigtails: "a woman with two high pigtails and bangs, oversized round glasses, navy sailor collar, pouting",
+  mohawk: "a pale punk with a spiky lime-green mohawk, safety-pin earrings, beige cardigan, deadpan",
+  bob: "a man with a sleek copper-red blunt bob, purple velvet blazer and mustard shirt, deadpan",
+  beehive: "a woman with a towering copper beehive, winged eyeliner, mustard turtleneck",
+  perm: "a man with a tight curly dome perm, tinted aviator glasses, pastel windbreaker",
+  hairHorns: "a young man with black hair sculpted into two devil horns, red satin shirt, deadpan",
+  curlSphere: "a woman with dense ginger curls shaped into a perfect sphere, cream blouse, wide eyes",
+};
+/** Ethnicity: dignified, characterful casting — the humour is in the styling, never the heritage. */
+const ETHNICITY = {
+  gulf: "a young Gulf Arab man in a crisp white ghutra and thobe, neat beard, deadpan stare",
+  middleEastern: "a Middle Eastern man with thick curly black hair, a strong moustache and bold brows, mint satin shirt, deadpan",
+  levant: "a Levantine woman with glossy dark waves, red lipstick and a cream ruffled blouse, unimpressed look",
+  northAfrica: "a North African woman with voluminous curly hair, gold hoop earrings and a mustard caftan collar, half smile",
+  african: "a tall Black man with a sculpted high-top fade, round tortoiseshell glasses and a mustard turtleneck, deadpan",
+  southAsian: "a South Asian woman with a high top-knot bun, oversized amber glasses and a teal paisley pussy-bow blouse, deadpan",
+  eastAsian: "an East Asian woman with a jet-black blunt bob with micro bangs and a white ruffled collar, deadpan",
+  european: "a pale lanky European man with a ginger side part, tweed jacket and brown knitted tie, deadpan",
+  mixed: "a mixed-heritage woman with a big curly auburn puff, red cat-eye glasses and a striped retro top, deadpan",
+};
+
 /** One prompt per photo option (null = keep placeholder art, e.g. photo-mode-only options). */
 function promptFor(group, option) {
   const en = option.en;
@@ -115,14 +146,14 @@ function promptFor(group, option) {
       ? "a young Gulf Arab man with a neat beard and a white ghutra, raised eyebrow"
       : "a young Gulf Arab woman in a pastel hijab, warm grin");
     case "expression": return HEAD(`${MUSE}, ${en}`);
-    case "ethnicity": return HEAD(`a young ${en} woman with a striking natural look and a bold-coloured top`);
+    case "ethnicity": return HEAD(ETHNICITY[option.id] ?? `a young ${en} person with a striking natural look and a bold-coloured top`);
     case "age": return HEAD(`a Gulf Arab man ${en} with a quirky moustache and patterned shirt, deadpan look`);
     case "facialHair": return HEAD(`a young man with ${en} and a slick side part, deadpan stare`);
     case "distinctive": return HEAD(`a young woman with ${en}, edgy styling`);
     case "build": return BODY(BUILD[option.id] ?? `a person with a ${en} build`);
     case "hair": return option.id === "hijab"
       ? HEAD("a young woman wearing an elegant emerald silk hijab, chic gold earrings")
-      : HEAD(`a quirky character with ${en}, deadpan expression, colourful retro outfit`);
+      : HEAD(HAIR[option.id] ?? `a quirky character with ${en}, deadpan expression, colourful retro outfit`);
     case "style": return BODY(STYLE_OUTFIT[option.id] ?? `a person dressed in ${en}`);
     case "accessories": return option.id === "none"
       ? HEAD(`${MUSE} without glasses, no accessories, plain white tee`)

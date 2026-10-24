@@ -54,6 +54,8 @@ export function InfluencerWorkspace() {
   const [strength, setStrength] = useState<number>(SOUL_ID.defaultStrength);
   const [photo, setPhoto] = useState<ReferencePhotoState | null>(null);
   const [photoError, setPhotoError] = useState(false);
+  const [styleRef, setStyleRef] = useState<ReferencePhotoState | null>(null);
+  const styleToken = mode !== "soul" ? (styleRef?.token ?? undefined) : undefined;
 
   // Step 1 — builder
   const [tier, setTier] = useState<Tier>("average");
@@ -68,7 +70,7 @@ export function InfluencerWorkspace() {
     : mode === "soul" ? composeSoulIdPrompt(selection, output, scene)
     : composeCharacterPrompt(selection, tier, output, scene);
   const characterPrompt = [base, details.trim()].filter(Boolean).join(". ");
-  const imageCost = generationCost({ kind: "image" }, usePrices(), mode === "photo");
+  const imageCost = generationCost({ kind: "image" }, usePrices(), mode === "photo" || !!styleToken);
 
   // Step 2 — Genjutsu
   const step2 = useRef<HTMLElement>(null);
@@ -105,6 +107,7 @@ export function InfluencerWorkspace() {
       characterId: soulCharacter?.id,
       characterStrength: soulCharacter ? strength : undefined,
       referencePhoto: mode === "photo" ? (photo?.token ?? undefined) : undefined,
+      styleReference: styleToken,
     });
   }
 
@@ -177,15 +180,24 @@ export function InfluencerWorkspace() {
           )}
 
           <div className="mt-5">
-            <CharacterBuilder tier={tier} onTier={changeTier} selection={selection} onSelection={setSelection} mode={mode} />
+            <CharacterBuilder
+              tier={tier}
+              onTier={changeTier}
+              selection={selection}
+              onSelection={setSelection}
+              mode={mode}
+              styleRef={styleRef}
+              onStyleRef={setStyleRef}
+              onReset={() => {
+                setSelection(mode === "photo" ? photoDefaults(DEFAULT_SELECTION, tier) : normalize(DEFAULT_SELECTION, tier, mode));
+                setStyleRef(null);
+              }}
+            />
           </div>
 
           <div className="mt-5 flex gap-2">
             <button type="button" onClick={() => setSelection(randomize(tier, selection, mode))} className="inline-flex items-center gap-1.5 rounded-lg border border-mint-500/40 px-3 py-1.5 text-xs font-semibold text-mint-300 transition hover:bg-mint-500/10">
               <span aria-hidden>⟳</span> {b.randomize}
-            </button>
-            <button type="button" onClick={() => setSelection(mode === "photo" ? photoDefaults(DEFAULT_SELECTION, tier) : normalize(DEFAULT_SELECTION, tier, mode))} className="rounded-lg border border-ink-700 px-3 py-1.5 text-xs text-ink-300 transition hover:text-ink-100">
-              {b.reset}
             </button>
           </div>
 

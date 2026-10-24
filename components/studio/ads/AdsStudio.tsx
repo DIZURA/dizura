@@ -97,9 +97,9 @@ export function AdsStudio() {
           <p className="mb-3 text-xs text-ink-500">{a.productHint}</p>
           <input ref={fileInput} type="file" accept="image/jpeg,image/png,image/webp" className="sr-only" tabIndex={-1} onChange={(e) => void chooseProduct(e.target.files?.[0])} />
           {product ? (
-            <div className="flex items-center gap-4 rounded-2xl border border-ink-700 bg-ink-950/50 p-3">
+            <div className="flex items-center gap-4 rounded-2xl border border-violet-400/40 bg-ink-950/50 p-3">
               {/* eslint-disable-next-line @next/next/no-img-element -- local preview */}
-              <img src={product.preview} alt={a.product} className="size-24 rounded-xl bg-ink-850 object-contain" />
+              <img src={product.preview} alt={a.product} className="size-24 rounded-2xl bg-paper object-contain ring-1 ring-ink-700" />
               <div className="flex flex-1 flex-col items-start gap-2 text-xs">
                 {product.failed ? (
                   <p role="alert" className="text-danger">{product.failed === "unavailable" ? a.uploadUnavailable : a.uploadFailed}</p>
@@ -122,10 +122,10 @@ export function AdsStudio() {
                 e.preventDefault();
                 void chooseProduct(e.dataTransfer.files[0]);
               }}
-              className="flex w-full flex-col items-center gap-2 rounded-2xl border border-dashed border-mint-500/40 bg-mint-500/[0.03] px-4 py-8 text-sm text-ink-300 transition hover:border-mint-500 hover:bg-mint-500/[0.06]"
+              className="flex w-full flex-col items-center gap-2 rounded-2xl border-2 border-dashed border-ink-700 bg-ink-950/40 px-4 py-9 text-sm text-ink-300 transition hover:border-violet-400/70 hover:bg-violet-500/[0.06]"
             >
-              <span aria-hidden className="grid size-11 place-items-center rounded-full border border-mint-500/40 text-xl text-mint-300">+</span>
-              <span className="font-semibold text-mint-300">{a.addProduct}</span>
+              <span aria-hidden className="grid size-14 place-items-center rounded-full bg-ink-800 text-xl text-ink-100 shadow-[0_8px_24px_-8px_var(--color-ink-950)]">🖼</span>
+              <span className="text-base font-semibold text-ink-100">{a.addProduct}</span>
             </button>
           )}
         </div>

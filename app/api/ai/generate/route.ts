@@ -29,10 +29,18 @@ const body = z
     characterStrength: z.number().min(0.1).max(1).optional(),
     /** Signed handle of the caller's own uploaded photo: the character is made from it (images only). */
     referencePhoto: z.string().min(10).max(2048).optional(),
+    /** Signed handle of the caller's own outfit photo: the character wears its clothes (images only). */
+    styleReference: z.string().min(10).max(2048).optional(),
   })
   .refine((b) => !b.characterId || b.kind === "image", { message: "Characters are used for images; animate the image afterwards." })
   .refine((b) => !b.sourceJob || b.kind === "video", { message: "Only videos can start from an image." })
-  .refine((b) => !b.referencePhoto || (b.kind === "image" && !b.characterId), { message: "A reference photo makes an image, without a DIZURA ID." });
+  .refine((b) => !b.referencePhoto || (b.kind === "image" && !b.characterId), { message: "A reference photo makes an image, without a DIZURA ID." })
+  .refine((b) => !b.styleReference || (b.kind === "image" && !b.characterId), { message: "A style reference makes an image, without a DIZURA ID." });
+
+/** Appended server-side whenever a style reference is sent (it is always the last reference image). */
+const STYLE_REFERENCE_DIRECTION =
+  "Dress the character exactly in the clothing, accessories and styling shown in the last reference image, replacing any outfit described above. " +
+  "Do not copy the face, body or identity of the person in that image";
 
 export const POST = route(async (req: Request) => {
   const user = await requireUser(req);
@@ -43,17 +51,20 @@ export const POST = route(async (req: Request) => {
   const sourceImageUrl = input.sourceJob ? await resolveJobImage(input.sourceJob, user.id) : undefined;
   const soulReference = input.characterId ? await resolveCharacter(input.characterId, user.id, input.characterStrength) : undefined;
   const photoUrl = input.referencePhoto ? resolveUploadImage(input.referencePhoto, user.id) : undefined;
+  const styleUrl = input.styleReference ? resolveUploadImage(input.styleReference, user.id) : undefined;
+  const imageUrls = [photoUrl, styleUrl].filter((u): u is string => !!u);
+  const prompt = styleUrl ? `${input.prompt}. ${STYLE_REFERENCE_DIRECTION}` : input.prompt;
 
-  const cost = generationCost(input, await getPrices(), !!input.referencePhoto);
+  const cost = generationCost(input, await getPrices(), imageUrls.length > 0);
   const referenceId = randomUUID();
   // Reserve credits first; refund if the provider rejects the job.
   await credits().apply({ userId: user.id, delta: -cost, reason: "generation", referenceId });
 
   let submitted: Awaited<ReturnType<typeof submit>>;
   try {
-    // A reference photo goes to the reference-image model (same as Ads Studio), at 2k / medium.
-    submitted = photoUrl
-      ? await submitAdImage({ prompt: input.prompt, imageUrls: [photoUrl], aspectRatio: input.aspectRatio, resolution: "2k", quality: "medium" }, referenceId)
+    // Reference photos (subject and/or outfit) go to the reference-image model (same as Ads Studio), at 2k / medium.
+    submitted = imageUrls.length
+      ? await submitAdImage({ prompt, imageUrls, aspectRatio: input.aspectRatio, resolution: "2k", quality: "medium" }, referenceId)
       : await submit({ ...input, sourceImageUrl, soulReference }, referenceId);
   } catch (err) {
     await credits().apply({ userId: user.id, delta: cost, reason: "refund", referenceId });

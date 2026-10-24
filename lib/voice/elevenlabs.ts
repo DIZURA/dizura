@@ -18,17 +18,48 @@ export const VOICES = {
   faisal: { id: "pNInz6obpgDQGcFmaJgB", gender: "male" },
   omar: { id: "ErXwobaYiN019PkySvjV", gender: "male" },
   khalid: { id: "TxGEqnHWrfWFTfGW9XjX", gender: "male" },
+  lily: { id: "pFZP5JQG7iQjIQuC4Bku", gender: "female" },
+  george: { id: "JBFqnCBsd6RMkjVDRZzb", gender: "male" },
 } as const;
 export type VoiceId = keyof typeof VOICES;
 
 export const DIALECTS = {
+  // Arabic — GCC
   najdi: "Saudi Najdi Arabic (Riyadh)",
   hijazi: "Saudi Hijazi Arabic (Jeddah)",
-  kuwaiti: "Kuwaiti Arabic",
   emirati: "Emirati Arabic",
+  kuwaiti: "Kuwaiti Arabic",
+  qatari: "Qatari Arabic",
+  bahraini: "Bahraini Arabic",
+  omani: "Omani Arabic",
   gulf: "general Gulf (Khaleeji) Arabic",
+  // Arabic — Levant, Iraq, Yemen
+  iraqi: "Iraqi Arabic (Baghdadi)",
+  yemeni: "Yemeni Arabic (Sanaani)",
+  jordanian: "Jordanian Arabic (Ammani)",
+  lebanese: "Lebanese Arabic (Beiruti)",
+  syrian: "Syrian Arabic (Damascene)",
+  palestinian: "Palestinian Arabic",
+  // Arabic — Egypt and North Africa
+  egyptian: "Egyptian Arabic (Cairene)",
+  sudanese: "Sudanese Arabic",
+  libyan: "Libyan Arabic",
+  tunisian: "Tunisian Arabic",
+  algerian: "Algerian Arabic",
+  moroccan: "Moroccan Arabic (Darija)",
   msa: "Modern Standard Arabic (Fusha)",
-  english: "natural, friendly English",
+  // English accents
+  american: "natural American English",
+  british: "natural British English (London)",
+  australian: "natural Australian English",
+  canadian: "natural Canadian English",
+  irish: "natural Irish English",
+  indian: "natural Indian English, with phrasing typical of India",
+  pakistani: "natural Pakistani English, with phrasing typical of Pakistan",
+  nigerian: "natural Nigerian English, with phrasing typical of Lagos",
+  southAfrican: "natural South African English",
+  kenyan: "natural Kenyan English",
+  filipino: "natural Filipino English, with phrasing typical of Manila",
 } as const;
 export type Dialect = keyof typeof DIALECTS;
 

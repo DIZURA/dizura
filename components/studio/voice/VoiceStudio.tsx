@@ -23,8 +23,16 @@ const VOICE_OPTIONS: { key: VoiceKey; gender: "female" | "male" }[] = [
   { key: "faisal", gender: "male" },
   { key: "omar", gender: "male" },
   { key: "khalid", gender: "male" },
+  { key: "lily", gender: "female" },
+  { key: "george", gender: "male" },
 ];
-const DIALECT_KEYS: DialectKey[] = ["najdi", "hijazi", "kuwaiti", "emirati", "gulf", "msa", "english"];
+/** Mirrors `DIALECTS` in lib/voice/elevenlabs.ts, grouped for the picker. */
+const DIALECT_GROUPS: { key: "gcc" | "levant" | "africa" | "english"; dialects: DialectKey[] }[] = [
+  { key: "gcc", dialects: ["najdi", "hijazi", "emirati", "kuwaiti", "qatari", "bahraini", "omani", "gulf"] },
+  { key: "levant", dialects: ["iraqi", "yemeni", "jordanian", "lebanese", "syrian", "palestinian"] },
+  { key: "africa", dialects: ["egyptian", "sudanese", "libyan", "tunisian", "algerian", "moroccan", "msa"] },
+  { key: "english", dialects: ["american", "british", "australian", "canadian", "irish", "indian", "pakistani", "nigerian", "southAfrican", "kenyan", "filipino"] },
+];
 const LENGTHS = [10, 20, 30, 45] as const;
 
 type Take = { key: string; token: string; text: string; voice: VoiceKey };
@@ -96,18 +104,25 @@ export function VoiceStudio() {
     <form onSubmit={generate} className="grid gap-6">
       <div>
         <p className="mb-2 text-sm font-semibold text-ink-100">{v.dialect}</p>
-        <div role="radiogroup" aria-label={v.dialect} className="flex flex-wrap gap-1.5">
-          {DIALECT_KEYS.map((d) => (
-            <button
-              key={d}
-              type="button"
-              role="radio"
-              aria-checked={dialect === d}
-              onClick={() => setDialect(d)}
-              className={cn("rounded-full border px-3 py-1.5 text-xs transition", dialect === d ? "border-violet-400/70 bg-violet-500/15 font-semibold text-mint-300" : "border-ink-700 text-ink-300 hover:text-ink-100")}
-            >
-              {v.dialects[d]}
-            </button>
+        <div role="radiogroup" aria-label={v.dialect} className="grid gap-3">
+          {DIALECT_GROUPS.map((group) => (
+            <div key={group.key}>
+              <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-ink-500">{v.dialectGroups[group.key]}</p>
+              <div className="flex flex-wrap gap-1.5">
+                {group.dialects.map((d) => (
+                  <button
+                    key={d}
+                    type="button"
+                    role="radio"
+                    aria-checked={dialect === d}
+                    onClick={() => setDialect(d)}
+                    className={cn("rounded-full border px-3 py-1.5 text-xs transition", dialect === d ? "border-violet-400/70 bg-violet-500/15 font-semibold text-mint-300" : "border-ink-700 text-ink-300 hover:text-ink-100")}
+                  >
+                    {v.dialects[d]}
+                  </button>
+                ))}
+              </div>
+            </div>
           ))}
         </div>
       </div>
