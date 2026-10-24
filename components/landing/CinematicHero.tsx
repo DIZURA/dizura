@@ -2,7 +2,6 @@ import Link from "next/link";
 import type { CSSProperties } from "react";
 import { buttonClass } from "@/components/ui/Button";
 import { cn } from "@/components/ui/cn";
-import { WELCOME_CREDITS } from "@/lib/credits/pricing";
 import type { Dictionary } from "@/lib/i18n/dictionaries";
 import { Hero3D } from "./Hero3D";
 
@@ -54,7 +53,7 @@ export function CinematicHero({ t }: { t: Dictionary }) {
             {l.explore}
           </Link>
         </div>
-        <p className="intro-rise mt-4 text-xs text-ink-100/60" style={delay(1.15)}>{h.free.replace("{n}", String(WELCOME_CREDITS))}</p>
+        <p className="intro-rise mt-4 text-xs text-ink-100/60" style={delay(1.15)}>{h.free}</p>
       </div>
       <a href="#studios" className="intro-rise absolute inset-x-0 bottom-6 z-10 mx-auto flex w-fit items-center gap-2 text-xs text-ink-100/70 hover:text-ink-100" style={delay(1.3)}>
         {h.explore} <span aria-hidden>↓</span>

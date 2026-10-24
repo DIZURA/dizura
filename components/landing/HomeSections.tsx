@@ -6,7 +6,7 @@ import { usePrices } from "@/components/billing/PricesProvider";
 import { useI18n } from "@/components/i18n/I18nProvider";
 import { buttonClass } from "@/components/ui/Button";
 import { cn } from "@/components/ui/cn";
-import { AGENCY_SERVICES, currencyFor, PLAN_IDS, PLANS, VOICE, WELCOME_CREDITS } from "@/lib/credits/pricing";
+import { AGENCY_SERVICES, currencyFor, PLAN_IDS, PLANS, VOICE } from "@/lib/credits/pricing";
 import { exampleSrc } from "@/components/studio/examples";
 
 /**
@@ -496,7 +496,7 @@ export function HomeSections() {
         <div className="mx-auto max-w-6xl px-5 py-16 text-center">
           <span aria-hidden className="text-3xl">✦</span>
           <h2 className="mt-4 text-3xl font-semibold leading-snug sm:text-4xl">{h.final.title}</h2>
-          <p className="mt-4 text-sm">{fill(h.final.body, { n: WELCOME_CREDITS })}</p>
+          <p className="mt-4 text-sm">{h.final.body}</p>
           <Link href="/login?mode=signup" className="mt-7 inline-flex h-12 items-center gap-2 rounded-full bg-ink-950 px-7 text-sm font-semibold text-ink-100 transition hover:bg-ink-900">
             {h.final.cta}
             <span aria-hidden className="flip-rtl">↗</span>
