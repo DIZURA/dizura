@@ -35,6 +35,9 @@ never their images — every photo is generated fresh by our own account with ou
 - UI: photo cards are white tiles with the label underneath (see `CharacterBuilder.tsx`);
   options without a photo fall back to DIZURA glyph/placeholder art.
 
+## Background
+Every card must sit on pure white. After generating, normalise the background to `#fff` and crop any letterbox/mirrored side bars; never let the clean-up touch the subject. Cards are shown on white tiles only — make a transparent cut-out (remove-background) only when a photo is used on a dark surface.
+
 ## Regenerating
 `npm run photos:options -- --dry` prints every prompt. `-- --force` regenerates all,
 `-- --only=animal,build` limits groups. Prompts live in `scripts/generate-option-photos.mjs`
