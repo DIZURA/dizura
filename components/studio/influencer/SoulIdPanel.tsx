@@ -1,5 +1,6 @@
 "use client";
 
+import { usePrices } from "@/components/billing/PricesProvider";
 import { useEffect, useRef, useState } from "react";
 import type { CharacterView } from "@/app/api/characters/view";
 import { openBuyCredits } from "@/components/billing/events";
@@ -23,6 +24,7 @@ export function SoulIdPanel({
   onDeleted: (id: string) => void;
 }) {
   const { t, locale } = useI18n();
+  const prices = usePrices();
   const s = t.soulId;
   const nf = new Intl.NumberFormat(locale);
   const [open, setOpen] = useState(false);
@@ -247,7 +249,7 @@ export function SoulIdPanel({
             <Button variant="ghost" onClick={() => setOpen(false)}>{t.common.close}</Button>
             <span className="ms-auto inline-flex items-center gap-1 rounded-full border border-ember-500/30 bg-ember-500/10 px-2.5 py-1 text-xs font-semibold text-ember-300">
               <span aria-hidden>⚡</span>
-              <span className="tabular-nums">{nf.format(SOUL_ID.trainingCredits)}</span>
+              <span className="tabular-nums">{nf.format(prices.soulId)}</span>
               <span className="font-normal">{t.gen.credits}</span>
             </span>
             <Button onClick={train} disabled={!canTrain} className="px-6">

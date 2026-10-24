@@ -2,12 +2,12 @@
 
 > Source of truth for architecture, decisions, routes and roadmap.
 > **Every session: read this first; update it in the same change as any architectural edit.**
-> Last updated: 2026-10-24 (Agency suite: Strategist, strategy files, swap, voice, agency services)
+> Last updated: 2026-10-24 (Subscriptions, automatic 60%-margin pricing, cinematic landing hero)
 
 ## 1. Product
 AI creative studio for GCC brands, Arabic-first (RTL) with English (LTR).
 Two studios (ADR 40): **Visual Character** (`/visual-character` — build a consistent character, make it act out (or swap into) any reference video, then add a dialect voiceover) and **Ads Creative Studio** (`/ads-studio` — product photo → ad creatives). Agency layer (ADR 50): **DIZURA Strategist** chat drawer in every studio, **Strategy files** (`/blueprints`) and done-for-you **Agency** services (`/agency`, 3000 SAR each). The UI shows only the DIZURA brand — never provider/model names (ADR 42).
-Monetisation: prepaid **credits** bought via **Tap Payments** (KWD default).
+Monetisation (ADR 51): **monthly plans** (Starter / Pro / Agency) billed via **Tap Payments** — SAR in Arabic, USD in English — granting credits each month; every action's credit price is derived automatically from live provider costs at a ≥ 60% margin.
 
 ## 2. Stack
 | Layer | Choice |
@@ -28,7 +28,7 @@ Scripts: `npm run dev | build | start | lint | typecheck | scan:secrets | check`
 ```
 app/
   layout.tsx                 html lang/dir from locale cookie, fonts, I18nProvider
-  page.tsx                   Landing: hero + two StudioShowcase cards (example collages) + SiteFooter
+  page.tsx                   Landing: CinematicHero (full-screen black stage, glass pill, masked two-line headline, planet + mint flame + violet clouds; ADR 52) + #studios StudioShowcase cards + SiteFooter
   (workspaces)/layout.tsx    TopBar with tool nav (no sidebar), full-width main
   (workspaces)/visual-character/page.tsx   StudioHero + InfluencerWorkspace (Step 1 builder → Step 2 make-it-act; CanvasPanel: Workspace | How it works)
   (workspaces)/blueprints/page.tsx   Strategy files: list (search/tags) · wizard (?new=1: goal → details → ⚡15) · document (?id=: Strategy | 2-week plan | UGC scripts | Prompt formulas, copy buttons, rename/tags/delete)
@@ -41,13 +41,14 @@ app/
   auth/callback/route.ts     Email-link target: PKCE ?code= or ?token_hash=&type= -> session -> safe redirect
   actions/auth.ts            Server Actions: signIn, signUp, requestPasswordReset, updatePassword, signOut
   billing/return/page.tsx    Tap redirect target (re-verifies + fulfils idempotently)
-  pricing/page.tsx           Public pricing: credit packs (PackGrid; guests → /login?next=/pricing) + per-feature cost table + notes (one-time, no subscription)
+  pricing/page.tsx           Public pricing: monthly plans (PlanGrid; guests → /login?next=/pricing; current plan → Manage) + live per-action credit table with ≈ SAR/USD + auto-pricing note
+  billing/page.tsx           Billing & plan (signed-in): status (Active / Payment issue / Cancels on), next renewal, amount, credits/month, balance, cancel (confirm) / resume
   actions/locale.ts          Server Action: set dz_locale cookie
   api/…                      see §5
 components/
   ui/            Button (+buttonClass), Card, Modal (<dialog>), cn
   layout/        SiteFooter (© + Privacy/Terms/contact), LegalDocument, TopBar (nav prop), NavLinks (active state, mobile scroll row), CreditsBadge, nav.ts (TOOLS + EXTRAS)
-  landing/       Hero3D (reduced-motion aware) -> Hero3DScene (R3F): mint wireframe globe + DIZURA S-band emblem, orbit ring, pulse; StudioShowcase
+  landing/       CinematicHero, Hero3D (reduced-motion aware, `className` sizes it) -> Hero3DScene (R3F): mint wireframe globe + DIZURA S-band emblem, orbit ring, pulse; StudioShowcase
   studio/        StudioHero, CanvasPanel (Workspace | How it works tabs; guide until first result), StudioGuide (Higgsfield-style "The idea" carousel w/ step strip),
                  examples.ts (manifest of public/examples/*.webp), useGenerator (shared submit → poll w/ 2→10 s backoff + jitter → result; generate / transfer / ad)
   studio/ads/    AdsStudio
@@ -57,7 +58,7 @@ components/
   agency/        AgencyServices (cards + order modal)
   studio/voice/  VoiceStudio (Step 3: dialect, voice, "Write it for me" ⚡2, script, speed, takes w/ audio + download; lip-sync "Coming soon")
   ui/CostChip    ember ⚡ cost chip
-  billing/       PackGrid (packs from CREDIT_PACKS → POST /api/payments/checkout → Tap hosted page), BuyCreditsModal (opened by the credits badge or `insufficient_credits`), events.ts (openBuyCredits)
+  billing/       PlanGrid (plans from PLANS → POST /api/subscriptions → Tap hosted page), BillingPlan (plan card + cancel/resume), PricesProvider/usePrices (live PriceList from the root layout), BuyCreditsModal ("Choose a plan", opened by the credits badge or `insufficient_credits`), events.ts (openBuyCredits)
   i18n/          I18nProvider/useI18n, LanguageToggle
   auth/          AuthForms (SignIn/SignUp/ForgotPassword/ResetPassword, useActionState), AuthCard, fields (TextField, PasswordField w/ show-hide), FormStatus
   layout/AccountMenu  Sign-in button or user + sign-out (server component)
@@ -76,9 +77,11 @@ lib/
   voice/         elevenlabs.ts (VOICES, DIALECTS, synthesize), store.ts (private `voiceovers` bucket `<userId>/<uuid>.mp3`; memory in dev)
   supabase/rest.ts  serviceRest() + restRows() helpers for service-role REST stores
   ads/formats.ts AD_FORMATS (7 ad formats → English prompt templates, server-side) + composeAdPrompt
-  tap/client.ts  createCharge, retrieveCharge, verifyWebhookHash (HMAC hashstring)
+  tap/client.ts  createSubscriptionCharge (save_card), chargeSavedCard (token from saved card + payment_agreement, customer_initiated:false), createServiceCharge, retrieveCharge, verifyWebhookHash (HMAC hashstring)
   tap/fulfill.ts fulfillCharge() — re-fetch, validate amount, idempotent grant
-  credits/       pricing.ts (packs + generationCost + SOUL_ID + GENJUTSU/genjutsuCost + AD_IMAGE tiers), store.ts (CreditStore: memory dev / Supabase RPC)
+  credits/       pricing.ts (client-safe: PLANS, margin formula creditsFor/priceList, BASE_COST_USD, limits, generationCost/genjutsuCost/voiceCost(…, PriceList)), costs.ts (server-only: live provider_costs table → getPrices(); recordUsage EMA; refreshProviderCosts via Higgsfield /estimate with guards), store.ts (CreditStore: memory dev / Supabase RPC)
+  subscriptions/ store.ts (SubscriptionStore: conditional PATCHes, renewal_claim, due()), billing.ts (startSubscription, fulfillSubscription, renewDue)
+  dev-singleton.ts  devSingleton(): one in-memory dev store per process (pages + route handlers share it)
   characters/    store.ts (CharacterStore: Supabase REST as service role w/ uuid-validated filters / memory in dev)
   auth/session.ts getCurrentUser() (React cache) + requireUser(req): getClaims() on cookie or Bearer; same-origin check for cookie-auth writes
   auth/redirect.ts safeNext() (open-redirect guard), PROTECTED_PREFIXES, GUEST_ONLY
@@ -95,10 +98,13 @@ supabase/migrations/20261022083415_0004_welcome_credits_30.sql   welcome bonus 1
 supabase/migrations/20261022215306_0005_characters.sql   characters table (Soul ID), RLS select-own, no anon/authenticated privileges (APPLIED)
 supabase/migrations/20261022215528_0006_service_role_grants.sql   grant service_role EXECUTE on credit RPCs + CRUD on characters (APPLIED — fixes prod credit ledger)
 supabase/migrations/20261023014838_0007_reference_videos_bucket.sql   private `reference-videos` bucket (50 MB, mp4/mov), no client policies (APPLIED)
+supabase/migrations/20261024023212_0009_subscriptions_and_provider_costs.sql   subscriptions (one live per user, RLS select-own) + provider_costs (server-only) (APPLIED)
+supabase/migrations/20261024023322_0010_provider_costs_explicit_policy.sql   explicit deny-all client policy on provider_costs (APPLIED; advisors clean)
+netlify/functions/hourly.mts   Netlify Scheduled Function (@hourly, production only) → POST /api/cron/hourly with CRON_SECRET
 supabase/migrations/20261024014147_0008_agency_suite.sql   blueprints + service_orders (RLS select-own, service_role grants) + private `voiceovers` bucket (APPLIED 2026-10-24; advisors: only INFO unused-index on the new tables + the dashboard-level leaked-password warning)
 scripts/import-examples.mjs  Imports Lovable-designed example JPGs → public/influencer/options/<group>/<id>.webp (256 px) + public/examples/<name>.webp (1280 px) and rewrites both manifests
 scripts/generate-option-photos.mjs  `npm run photos:options [-- --dry|--force|--only=g1,g2]` — Soul 2 option photos (white bg, quirky; art direction docs/design/option-photos.md) → public/influencer/options/<group>/<id>.webp (320 px square) + manifest
-scripts/check-margins.mjs  `npm run margins [-- --live]` — gross margin per action from pricing.ts (+ live Higgsfield /estimate)
+scripts/check-margins.mjs  `npm run margins [-- --live]` — credits + margin per action at every plan's credit price (+ raw Higgsfield /estimate)
 scripts/scan-secrets.mjs  Zero-dep secret scanner (pre-commit hook in .githooks/, CI in .github/workflows/security.yml)
 proxy.ts         Session refresh + page guards (guest -> /login?next=, signed-in away from /login) + per-request nonce CSP
 ```
@@ -154,6 +160,8 @@ proxy.ts         Session refresh + page guards (guest -> /login?next=, signed-in
 | 48 | **Option photos v2 = white-background, quirky casting** (art direction in `docs/design/option-photos.md`, inspired by the owner's Higgsfield builder references — style only, no Higgsfield images stored). `scripts/generate-option-photos.mjs` v2: 122 prompts covering every photo group incl. kinds/animals/aliens/robots/fantasy/looks (animals wear human hairstyles; builds and outfits played for kind humour; GCC styling), square 1:1 → 320 px WebP, `--force` / `--only=` / `--dry`, idempotency keys versioned. Photo cards render as white "paper" tiles with the label underneath (`--color-paper` token); options without a photo keep glyph/placeholder art. Generation runs on the owner's machine/Codespace with their Higgsfield API keys (sandbox can't reach the API; MCP account has 0 credits). | Owner (2026-10-23): "characters with white background and different styles… looking like this… and more from your imagination". |
 | 49 | **Margin-based pricing**: every action keeps ≥ ~60% gross margin when paid with the cheapest credit (Studio pack ≈ $0.106/credit, 1 KWD = $3.25) after ~3% payment fees. Provider costs live in `PROVIDER_COST_USD` (`lib/credits/pricing.ts`, sourced from open.higgsfield.ai model pages; `estimate: true` where our exact settings aren't published); `npm run margins` prints the table, `-- --live` queries `POST /estimate/{model}` with the owner's keys. New prices: DIZURA ID 40 → **65**; Motion 4/8/16 → **8/17/40** cr/s (480/720/1080p); Ads 3/6/10 → **3/8/20**; images stay **5**. | Owner (2026-10-23): "make the calculation to make great profits". Old Motion 1080p (16 cr/s ≈ $1.70 vs $1.632 cost) and Ultra ads (10 cr ≈ $1.06 vs $0.72) ran at ~4% / ~32% margin. The pricing page couldn't be fetched from the sandbox (DNS), so figures came from Higgsfield's model pages via search — confirm with `--live`. |
 | 50 | **Agency suite** (owner, 2026-10-23). (a) **DIZURA Strategist** = Claude API, server-only (`lib/ai/claude.ts`), never named in the UI (ADR 42); a collapsible drawer in every studio, 2 credits per reply, refunded if the call fails; chat lives in sessionStorage only. (b) **Strategy files** (`blueprints` table): 15 credits charged once at creation (`bp:<id>`), then the client calls one route per section (strategy / 14-day plan / 3 UGC scripts / 6 prompt formulas) so each request stays far under Netlify's 60 s limit; each section is its own jsonb column written with a conditional PATCH (`<section>=is.null`), so parallel writes and retries never overwrite or double-bill; unfinished sections are generated when the file is reopened. Output is Zod-validated structured JSON rendered as text (no HTML). (c) **Swap mode** = Genjutsu with the product photo appended as the last reference image + a fixed swap direction (no new provider). (d) **DIZURA Voice** = ElevenLabs TTS, 1 credit / 100 chars (min 2, ≤ 2500 chars), refunded on failure; MP3 stored in the private `voiceovers` bucket and streamed through `/api/voice/audio/[token]` (signed 7-day handle, owner check); "Write it for me" drafts the script in the dialect via Claude (2 credits). Lip-sync shows *Coming soon* (no verified API). (e) **Agency services**: 4 fixed-price services (3000 SAR) in `AGENCY_SERVICES`; client sends only the service id + brief; Tap charge metadata `kind: service` → `fulfillService` re-fetches the charge, checks amount/currency/order, marks the order paid (idempotent) and logs `[agency] new paid order`. Margins: chat 78%, blueprint 80%, voice 71% (`npm run margins`). | Owner: "AI Agency features, strategy management, and local voice dubbing". Lovable workspace ran out of credits mid-design, so screens were built in our codebase from its drafts. |
+| 51 | **Monthly subscriptions + automatic 60%-margin pricing** (owner, 2026-10-24; supersedes the one-time KWD packs of ADR 44 and the hand-set prices of ADR 49). **Plans** (`PLANS`): Starter 150 cr $29 / 110 SAR, Pro 500 cr $79 / 295 SAR, Agency 1,500 cr $210 / 790 SAR per month; currency follows the UI language. **Prices**: credits per action = ceil(provider cost ÷ (cheapest credit $0.14 × 0.97 fees) ÷ 0.4) — the cheapest credit is the Agency plan, so every action keeps ≥ 60% on every plan (`npm run margins`). Provider costs live in `provider_costs` and update **automatically**: hourly cron asks Higgsfield `POST /estimate/{model}` with our exact settings (each key ≤ daily); every Claude call records tokens × model rate and every voiceover records characters × `ELEVENLABS_USD_PER_1K_CHARS` (moving average, 20% weight). Guards: values outside 0.5×–20× of `BASE_COST_USD` are rejected (increases are taken, big drops are not); tier families (480/720/1080p, standard/high/ultra) must stay ascending or the family keeps its previous cost; any failure falls back to the baseline list. Prices are cached 5 min per server instance; the browser gets them from the root layout (`PricesProvider`) and the server re-prices every charge. **Billing**: first payment = Tap hosted page with `save_card: true` (3-D Secure) → card, customer and payment-agreement ids stored server-side only; renewals = hourly cron → token from the saved card → merchant-initiated charge (`customer_initiated: false`, agreement id). Each period is claimed (`renewal_claim`) before charging so overlapping crons/webhooks can't double-charge; credits are granted once per charge id (ledger); declined → `past_due`, retried daily, canceled after 3 attempts; an unknown outcome keeps the claim and counts as failed after 6 h unless the webhook completes it. Cancel = at period end (credits + access stay); one live plan per user (switch = cancel, then subscribe). | Owner spec "DIZURA Dynamic Pricing & 60% Margin": the spec's per-action prices were below cost (e.g. motion video $0.32 per *video* vs $0.68 per *second*) and its ×1.6 formula is a 37.5% margin, so the owner chose a true 60% margin, monthly auto-renew and fully automatic repricing (2026-10-24). Anthropic/ElevenLabs publish no pricing API, hence measured usage. Tap recurring flow from developers.tap.company (save card → token → MIT charge); **verify in Tap test mode before going live, incl. mada cards**. |
+| 52 | **Cinematic landing hero**: full-screen black stage (`100svh` − header) with centred glass pill, a two-line headline revealed through line masks, 50%-white sub-line and ghost + solid CTAs; the DIZURA planet (existing three.js globe, enlarged) rises from the bottom between mint flame light and violet cloud banks (new `--color-violet-*` tokens, landing only) and CSS twinkling stars. Entrance ≈ 1.7 s in pure CSS (no inline script → CSP stays nonce-only), off for `prefers-reduced-motion`. Studio cards follow below (`#studios`). | Owner reference ("Orbit" hero, 2026-10-24): concept only — no third-party video/image assets; atmosphere is gradients (ADR 47: no large backdrop-filter). |
 | 19 | Migration files named `<remote version>_<name>.sql`, matching `supabase_migrations.schema_migrations` exactly. New migrations: apply via MCP/CLI, then name the file with the version Supabase records. Migrations must also replay cleanly on a fresh preview branch (guard project-specific objects). | Supabase GitHub integration (Preview check) fails when remote versions are missing locally. |
 | 29 | `APP_SECRET` optional at boot (Netlify agent, PR #4); `signed-token.ts` enforces presence + ≥32 chars at use (→ 503 `not_configured`); `/api/ai/generate` checks it before reserving credits | `lib/env.ts` is evaluated during `next build` (page-data collection), so a missing/short secret was failing Netlify builds. |
 
@@ -180,10 +188,13 @@ proxy.ts         Session refresh + page guards (guest -> /login?next=, signed-in
 | GET | `/api/voice/audio/[token]` | user (owner) | – | streams the MP3 |
 | POST | `/api/voice/script` | user | 20/10 min | `{ dialect, brief, seconds 5–90 }` → `{ script }` (⚡2) |
 | GET/POST | `/api/agency/orders` | user | 60/min · 5/10 min | list · `{ service, brief{brand, phone, link?, notes?} }` → `{ redirectUrl, orderId }` (Tap, price server-side; 503 without Tap keys) |
-| POST | `/api/payments/checkout` | user | 5/min/user | `{ packId }` → `{ redirectUrl, chargeId }` (Tap hosted page) |
+| GET/POST | `/api/subscriptions` | user | 60/min · 5/min | current plan view (no Tap ids) · `{ plan, currency: SAR|USD }` → `{ redirectUrl, chargeId }` (Tap hosted page, card saved; 400 if a plan is live) |
+| POST | `/api/subscriptions/cancel` | user | 10/min | `{ cancel: boolean }` → cancel at period end / resume |
+| POST | `/api/cron/hourly` | Bearer `CRON_SECRET` | – | renew due subscriptions + refresh provider costs (dev only: `?now=` simulates a date) |
 | POST | `/api/webhooks/tap` | Tap HMAC | – | Verify + fulfil; 401 bad sig, 500 → Tap retries |
 | Page | `/billing/return?tap_id=` | – | – | Re-verify + idempotent fulfil, show status |
-| Page | `/pricing` | – (buy needs user) | – | Credit packs + cost table; Buy → `/api/payments/checkout` |
+| Page | `/pricing` | – (subscribe needs user) | – | Plans + live cost table |
+| Page | `/billing` | user | – | Billing & plan |
 
 "user" = Supabase session cookie or `Authorization: Bearer <access token>`; cookie-auth writes must be same-origin (403 otherwise).
 
@@ -191,7 +202,7 @@ Error codes → HTTP: bad_request 400, unauthorized 401, insufficient_credits 40
 
 ## 6. Environment variables
 Template: `.env.example` (committed). Real values: `.env.local` (gitignored via `.env.*`, chmod 600; `APP_SECRET` auto-generated).
-Server-only: `APP_SECRET`, `DATABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `HIGGSFIELD_API_KEY` + `HIGGSFIELD_API_SECRET` (or combined `KEY_ID:KEY_SECRET` in the key), optional `HIGGSFIELD_API_BASE_URL` (default `https://api.higgsfield.ai`), `TAP_SECRET_KEY`, `TAP_API_BASE_URL`, `ANTHROPIC_API_KEY` (+ optional `ANTHROPIC_MODEL`), `ELEVENLABS_API_KEY` (+ optional `ELEVENLABS_MODEL_ID`, `ELEVENLABS_API_BASE_URL`). The Anthropic SDK also honours `ANTHROPIC_BASE_URL` (tests only).
+Server-only: `APP_SECRET`, `DATABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `HIGGSFIELD_API_KEY` + `HIGGSFIELD_API_SECRET` (or combined `KEY_ID:KEY_SECRET` in the key), optional `HIGGSFIELD_API_BASE_URL` (default `https://api.higgsfield.ai`), `TAP_SECRET_KEY`, `TAP_API_BASE_URL`, `ANTHROPIC_API_KEY` (+ optional `ANTHROPIC_MODEL`), `ELEVENLABS_API_KEY` (+ optional `ELEVENLABS_MODEL_ID`, `ELEVENLABS_API_BASE_URL`, `ELEVENLABS_USD_PER_1K_CHARS` default 0.30), `CRON_SECRET` (≥ 32 chars; also read by the scheduled function). The Anthropic SDK also honours `ANTHROPIC_BASE_URL` (tests only).
 Public: `NEXT_PUBLIC_APP_URL` (optional; see ADR 24), `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, `NEXT_PUBLIC_TAP_PUBLIC_KEY`.
 Rule: never add a secret with the `NEXT_PUBLIC_` prefix; add every new var to `.env.example` + `lib/env.ts` schema.
 Dev/test only: `DEV_STARTING_CREDITS` (read only by the in-memory credit store, which never runs in production).
@@ -204,16 +215,12 @@ Dev/test only: `DEV_STARTING_CREDITS` (read only by the in-memory credit store, 
 - Scopes: `NEXT_PUBLIC_*` → Builds; server secrets → Builds + Functions. Tick "Contains secret values" for all non-public keys.
 - **Supabase → Authentication → URL Configuration** (owner): Site URL `https://sparkly-swan-cf292e.netlify.app` (or custom domain); Redirect URLs: `http://localhost:3000/**`, `https://sparkly-swan-cf292e.netlify.app/**`, `https://*--sparkly-swan-cf292e.netlify.app/**` (single `*` — never `**` before the host, which could match an attacker-controlled host).
 
-## 7. Credit economy (`lib/credits/pricing.ts`)
+## 7. Credit economy (`lib/credits/pricing.ts` + live `provider_costs`, ADR 51)
 Welcome bonus: **30 credits** on email confirmation (ADR 25).
-Pricing rule (ADR 49): ≥ ~60% margin at the cheapest credit ($0.106, Studio pack); `npm run margins`.
-Soul ID training: **65 credits** (Higgsfield ≈ $2.50/request) — needs a credit purchase after the welcome bonus.
-Packs: starter 100cr/5 KWD · pro 500cr/20 KWD · studio 2000cr/65 KWD.
-Costs: image **5** (every studio); video **8 cr/s** for every studio, 3–15 s, default 3 s (= 24). Character + first video = 29 ≤ welcome 30.
-Ads Creative Studio: **3 / 8 / 20 credits** per ad (Standard 1k / High 2k / Ultra 4k; Ultra cost $0.7219 published, others estimated — `npm run margins -- --live`).
-Strategist: **2** credits per reply · Strategy file: **15** (all four sections) · Voice: **1 per 100 characters** (min 2) · "Write it for me": **2**.
-Agency services (not credits): **3000 SAR** each — Single Product Store, Landing Page, Print on Demand, Shopify (Tap).
-Genjutsu (influencer Step 2): **8 / 17 / 40 cr per second** of reference video at 480p / 720p / 1080p, 4–30 s (e.g. 6 s at 720p = 102). Welcome credits (30) cover 6 characters or 10 standard ads; videos need a pack.
+Plans (monthly, auto-renew): **Starter** 150 cr — $29 / 110 SAR · **Pro** 500 cr — $79 / 295 SAR · **Agency** 1,500 cr — $210 / 790 SAR. Unused credits roll over.
+Rule: credits = ceil(cost ÷ ($0.14 × 0.97) ÷ 0.4) → ≥ 60% margin on every plan (`npm run margins`).
+At baseline costs: character image **2** (from a photo 2) · DIZURA ID **47** · motion **6 / 13 / 31** cr/s (480p/720p/1080p, 4–30 s) · ads **1 / 6 / 14** (Standard/High/Ultra) · Strategist message **1** · "Write it for me" **1** · strategy file **6** · voice **1 / 100 chars** (min 2). These move automatically with provider costs.
+Agency services (not credits): **3000 SAR** each (Tap).
 
 ## 8. Verified status (2026-10-22)
 - `typecheck`, `lint`, `build` all clean. All pages 200, no browser console errors, RTL/LTR + mobile screenshots checked.
@@ -244,6 +251,9 @@ Genjutsu (influencer Step 2): **8 / 17 / 40 cr per second** of reference video a
 ## 9. Open items / things to VERIFY before launch
 - [x] Migration 0008 applied (2026-10-24): `blueprints`, `service_orders` (RLS on, no anon/authenticated privileges, service_role CRUD), private `voiceovers` bucket.
 - [ ] Supabase → Authentication → enable **Leaked password protection** (security advisor WARN; dashboard setting, not SQL).
+- [ ] Netlify: set `CRON_SECRET` (64 random chars, secret, Builds + Functions, Production) — without it the hourly job (renewals + price refresh) returns 503. Optional `ELEVENLABS_USD_PER_1K_CHARS` = your ElevenLabs plan rate.
+- [ ] Tap: enable recurring / saved cards (payment agreements) and SAR + USD on the account; test subscribe → renew (merchant-initiated) → decline in **test mode**, incl. a mada card. Register the webhook URL.
+- [ ] Confirm Higgsfield `/estimate` bodies for Genjutsu (`duration`/`resolution` without a video) on the first live refresh — guards keep the previous cost if the quote looks wrong.
 - [ ] Netlify (Production): `ANTHROPIC_API_KEY` (Strategist, Strategy files, "Write it for me") and `ELEVENLABS_API_KEY` (DIZURA Voice); without them those features return 503 before charging.
 - [ ] Agency orders: paid orders appear in `service_orders` + function logs (`[agency] new paid order`) — add an email/WhatsApp notification to the team.
 - [x] **Higgsfield** paths/auth/response shape now match the official docs; verified against a mock of the documented API (request path, `Key` header, Idempotency-Key, body, status polling, image/video/nsfw results). **Still to do: one live generation with real keys** (sandbox can't reach api.higgsfield.ai).
@@ -256,7 +266,7 @@ Genjutsu (influencer Step 2): **8 / 17 / 40 cr per second** of reference video a
 
 ## 10. Roadmap
 1. ~~Login UI~~ ✅ (email/password, confirm, reset). ~~Google OAuth button~~ ✅ (ADR 39; provider must be enabled in Supabase). Next: `profiles` (plan via `app_metadata`/table), ~~welcome credits~~ ✅, **custom SMTP** (Supabase built-in email hit its rate limit on 2026-10-23).
-2. ~~Pricing/checkout UI~~ ✅ (ADR 44; live once Tap keys are set + webhook registered). Next: monthly subscription plans (Tap saved card + recurring charge + monthly credit grant).
+2. ~~Pricing/checkout UI~~ ✅ → ~~monthly subscription plans~~ ✅ (ADR 51). Next: plan upgrades with proration, card update without re-subscribing, email receipts.
 2b. ~~Influencer animate (i2v)~~ ✅ → replaced by ~~Genjutsu motion transfer~~ ✅ (ADR 36, verified vs mocks; first live run still to confirm). ~~Soul ID~~ ✅. Next: run `npm run photos:options` once the Higgsfield account has credits; purge reference videos after N days (storage lifecycle / scheduled delete via Storage API); copy outputs to our storage. Next: Motion photo upload + i2v (reuse `/api/uploads/image`), copy outputs to Supabase Storage (provider URLs expire ≥7 d), price check via `/estimate`, real thumbnails for style/idea cards.
 3. Persist generation jobs (history gallery per workspace) + media upload for reference images.
 4. Shared rate limiter (Upstash Redis or Postgres) before multi-instance deploy.

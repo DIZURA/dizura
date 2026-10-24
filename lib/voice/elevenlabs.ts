@@ -1,5 +1,7 @@
 import "server-only";
 import { env, requireEnv } from "@/lib/env";
+import { after } from "next/server";
+import { recordUsage } from "@/lib/credits/costs";
 import { providerFetch } from "@/lib/http";
 
 /**
@@ -43,5 +45,7 @@ export async function synthesize(text: string, voice: VoiceId, speed: number): P
     }),
     timeoutMs: 50_000,
   });
+  // Billed per character on our ElevenLabs plan (ELEVENLABS_USD_PER_1K_CHARS) → live price table (ADR 51).
+  after(() => recordUsage("voicePer100Chars", env.ELEVENLABS_USD_PER_1K_CHARS / 10));
   return new Uint8Array(await res.arrayBuffer());
 }

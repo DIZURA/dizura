@@ -3,6 +3,7 @@ import { randomUUID } from "node:crypto";
 import { z } from "zod";
 import type { AgencyServiceId } from "@/lib/credits/pricing";
 import { assertIds, restRows, serviceRest } from "@/lib/supabase/rest";
+import { devSingleton } from "@/lib/dev-singleton";
 
 /** A done-for-you service order (ADR 50). Becomes `paid` only after Tap confirms the charge. */
 export type ServiceOrder = {
@@ -121,6 +122,6 @@ let store: ServiceOrderStore | undefined;
 export function serviceOrders(): ServiceOrderStore {
   if (store) return store;
   const conn = serviceRest();
-  store = conn ? new SupabaseServiceOrderStore(conn) : new MemoryServiceOrderStore();
+  store = conn ? new SupabaseServiceOrderStore(conn) : devSingleton("service-orders", () => new MemoryServiceOrderStore());
   return store;
 }

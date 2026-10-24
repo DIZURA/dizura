@@ -1,5 +1,6 @@
 "use client";
 
+import { usePrices } from "@/components/billing/PricesProvider";
 import { useMemo, useRef, useState, type FormEvent, type ReactNode } from "react";
 import { useI18n } from "@/components/i18n/I18nProvider";
 import { Button } from "@/components/ui/Button";
@@ -67,7 +68,7 @@ export function InfluencerWorkspace() {
     : mode === "soul" ? composeSoulIdPrompt(selection, output, scene)
     : composeCharacterPrompt(selection, tier, output, scene);
   const characterPrompt = [base, details.trim()].filter(Boolean).join(". ");
-  const imageCost = generationCost({ workspace: "visual-character", kind: "image" });
+  const imageCost = generationCost({ kind: "image" }, usePrices(), mode === "photo");
 
   // Step 2 — Genjutsu
   const step2 = useRef<HTMLElement>(null);

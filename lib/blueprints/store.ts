@@ -3,6 +3,7 @@ import { randomUUID } from "node:crypto";
 import { z } from "zod";
 import { BLUEPRINT_GOALS, BLUEPRINT_SECTIONS, type BlueprintGoal, type BlueprintInputs, type BlueprintSection, type Locale } from "@/lib/ai/claude";
 import { assertIds, restRows, serviceRest } from "@/lib/supabase/rest";
+import { devSingleton } from "@/lib/dev-singleton";
 
 /** A saved strategy blueprint (ADR 50). Sections fill in independently while generating. */
 export type Blueprint = {
@@ -140,6 +141,6 @@ let store: BlueprintStore | undefined;
 export function blueprints(): BlueprintStore {
   if (store) return store;
   const conn = serviceRest();
-  store = conn ? new SupabaseBlueprintStore(conn) : new MemoryBlueprintStore();
+  store = conn ? new SupabaseBlueprintStore(conn) : devSingleton("blueprints", () => new MemoryBlueprintStore());
   return store;
 }

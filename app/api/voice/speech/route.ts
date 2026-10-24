@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import { z } from "zod";
 import { requireUser } from "@/lib/auth/session";
 import { VOICE, voiceCost } from "@/lib/credits/pricing";
+import { getPrices } from "@/lib/credits/costs";
 import { credits } from "@/lib/credits/store";
 import { requireEnv } from "@/lib/env";
 import { ok, parseJson, route } from "@/lib/http";
@@ -29,7 +30,7 @@ export const POST = route(async (req: Request) => {
   requireEnv("ELEVENLABS_API_KEY"); // fail before charging
   assertSigningConfigured();
 
-  const cost = voiceCost(input.text.length);
+  const cost = voiceCost(input.text.length, await getPrices());
   const referenceId = randomUUID();
   await credits().apply({ userId: user.id, delta: -cost, reason: "generation", referenceId });
   try {

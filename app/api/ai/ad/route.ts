@@ -6,6 +6,7 @@ import { resolveUploadImage } from "@/lib/ai/resolve";
 import { AD_FORMAT_IDS, composeAdPrompt } from "@/lib/ads/formats";
 import { requireUser } from "@/lib/auth/session";
 import { AD_IMAGE, AD_RATIOS, type AdQuality } from "@/lib/credits/pricing";
+import { getPrices } from "@/lib/credits/costs";
 import { credits } from "@/lib/credits/store";
 import { ok, parseJson, route } from "@/lib/http";
 import { rateLimit } from "@/lib/security/rate-limit";
@@ -32,7 +33,7 @@ export const POST = route(async (req: Request) => {
 
   const productUrl = resolveUploadImage(input.product, user.id);
   const tier = AD_IMAGE[input.quality as AdQuality];
-  const cost = tier.credits;
+  const cost = (await getPrices()).ad[input.quality as AdQuality];
   const referenceId = randomUUID();
   await credits().apply({ userId: user.id, delta: -cost, reason: "generation", referenceId });
   let submitted: Awaited<ReturnType<typeof submitAdImage>>;

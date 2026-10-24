@@ -3,6 +3,7 @@ import { randomUUID } from "node:crypto";
 import { z } from "zod";
 import { env, NotConfiguredError } from "@/lib/env";
 import { ApiError } from "@/lib/http";
+import { devSingleton } from "@/lib/dev-singleton";
 
 /** A Soul ID character. `providerReferenceId` never leaves the server. */
 export type CharacterStatus = "uploading" | "not_ready" | "queued" | "in_progress" | "completed" | "failed";
@@ -150,7 +151,7 @@ export function characters(): CharacterStore {
   if (env.NEXT_PUBLIC_SUPABASE_URL && env.SUPABASE_SERVICE_ROLE_KEY) {
     store = new SupabaseCharacterStore(env.NEXT_PUBLIC_SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY);
   } else if (env.NODE_ENV !== "production") {
-    store = new MemoryCharacterStore();
+    store = devSingleton("characters", () => new MemoryCharacterStore());
   } else {
     throw new NotConfiguredError(["NEXT_PUBLIC_SUPABASE_URL", "SUPABASE_SERVICE_ROLE_KEY"]);
   }

@@ -1,5 +1,6 @@
 "use client";
 
+import { usePrices } from "@/components/billing/PricesProvider";
 import { useState, type FormEvent } from "react";
 import { openBuyCredits } from "@/components/billing/events";
 import { useI18n } from "@/components/i18n/I18nProvider";
@@ -8,7 +9,7 @@ import { Button } from "@/components/ui/Button";
 import { cn } from "@/components/ui/cn";
 import { CostChip } from "@/components/ui/CostChip";
 import { api, ClientApiError } from "@/lib/api-client";
-import { STRATEGY, VOICE, voiceCost } from "@/lib/credits/pricing";
+import { VOICE, voiceCost } from "@/lib/credits/pricing";
 import type { Dictionary } from "@/lib/i18n/dictionaries";
 
 type DialectKey = keyof Dictionary["voice"]["dialects"];
@@ -49,7 +50,8 @@ export function VoiceStudio() {
   const [takes, setTakes] = useState<Take[]>([]);
 
   const trimmed = text.trim();
-  const cost = voiceCost(trimmed.length || 1);
+  const prices = usePrices();
+  const cost = voiceCost(trimmed.length || 1, prices);
 
   function fail(err: unknown) {
     const code = err instanceof ClientApiError ? err.code : "internal";
@@ -166,7 +168,7 @@ export function VoiceStudio() {
             className="ms-auto inline-flex items-center gap-1.5 rounded-lg border border-mint-500/40 px-3 py-1.5 text-xs font-semibold text-mint-300 transition hover:bg-mint-500/10 disabled:opacity-40"
           >
             <span aria-hidden>✦</span> {writing ? t.strategist.thinking : v.writeForMe}
-            <span className="font-normal text-ember-300">⚡{nf.format(STRATEGY.chatCredits)}</span>
+            <span className="font-normal text-ember-300">⚡{nf.format(prices.chat)}</span>
           </button>
         </div>
       </div>

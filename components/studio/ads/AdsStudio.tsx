@@ -1,5 +1,6 @@
 "use client";
 
+import { usePrices } from "@/components/billing/PricesProvider";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { useI18n } from "@/components/i18n/I18nProvider";
 import { Button } from "@/components/ui/Button";
@@ -32,7 +33,8 @@ export function AdsStudio() {
   const [ratio, setRatio] = useState<AspectRatio>("1:1");
   const [quality, setQuality] = useState<AdQuality>("standard");
   const [notes, setNotes] = useState("");
-  const cost = AD_IMAGE[quality].credits;
+  const prices = usePrices();
+  const cost = prices.ad[quality];
 
   const preview = product?.preview;
   useEffect(() => () => void (preview && URL.revokeObjectURL(preview)), [preview]);
@@ -165,7 +167,7 @@ export function AdsStudio() {
                   className={cn("rounded-lg px-2.5 py-1.5 text-xs transition", quality === q ? "bg-mint-500 font-semibold text-ink-950" : "text-ink-300 hover:text-ink-100")}
                 >
                   {a.qualities[q]}
-                  <span className={cn("ms-1 text-[10px]", quality === q ? "text-ink-950/70" : "text-ink-500")}>⚡{nf.format(AD_IMAGE[q].credits)}</span>
+                  <span className={cn("ms-1 text-[10px]", quality === q ? "text-ink-950/70" : "text-ink-500")}>⚡{nf.format(prices.ad[q])}</span>
                 </button>
               ))}
             </div>

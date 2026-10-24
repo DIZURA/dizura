@@ -12,10 +12,15 @@ export async function AccountMenu() {
   const label = user.name || user.email;
   return (
     <div className="flex items-center gap-2">
-      <span title={user.email} dir="auto" className="hidden max-w-40 truncate text-sm text-ink-300 sm:inline">{label}</span>
-      <span aria-hidden className="grid size-8 place-items-center rounded-full bg-mint-500/15 text-sm font-semibold uppercase text-mint-300">
-        {label.slice(0, 1)}
-      </span>
+      <Link href="/billing" title={user.email} dir="auto" className="hidden max-w-40 truncate text-sm text-ink-300 transition hover:text-ink-100 sm:inline">{label}</Link>
+      <Link
+        href="/billing"
+        title={t.nav.billing}
+        aria-label={t.nav.billing}
+        className="grid size-8 place-items-center rounded-full bg-mint-500/15 text-sm font-semibold uppercase text-mint-300 transition hover:bg-mint-500/25"
+      >
+        <span aria-hidden>{label.slice(0, 1)}</span>
+      </Link>
       <form action={signOut}>
         <button
           type="submit"

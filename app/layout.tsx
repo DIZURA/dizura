@@ -1,7 +1,9 @@
 import type { Metadata, Viewport } from "next";
 import { IBM_Plex_Sans_Arabic, Inter } from "next/font/google";
 import type { ReactNode } from "react";
+import { PricesProvider } from "@/components/billing/PricesProvider";
 import { I18nProvider } from "@/components/i18n/I18nProvider";
+import { getPrices } from "@/lib/credits/costs";
 import { getI18n } from "@/lib/i18n/server";
 import "./globals.css";
 
@@ -24,11 +26,13 @@ export const metadata: Metadata = {
 export const viewport: Viewport = { themeColor: "#0e0e10", colorScheme: "dark" };
 
 export default async function RootLayout({ children }: { children: ReactNode }) {
-  const { locale, dir, t } = await getI18n();
+  const [{ locale, dir, t }, prices] = await Promise.all([getI18n(), getPrices()]);
   return (
     <html lang={locale} dir={dir} className={`${inter.variable} ${plexArabic.variable}`}>
       <body>
-        <I18nProvider value={{ locale, dir, t }}>{children}</I18nProvider>
+        <I18nProvider value={{ locale, dir, t }}>
+          <PricesProvider value={prices}>{children}</PricesProvider>
+        </I18nProvider>
       </body>
     </html>
   );

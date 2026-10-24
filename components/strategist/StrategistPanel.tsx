@@ -1,5 +1,6 @@
 "use client";
 
+import { usePrices } from "@/components/billing/PricesProvider";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { openBuyCredits } from "@/components/billing/events";
@@ -15,13 +16,14 @@ const STUDIOS = ["visual-character", "ads-studio", "blueprints"] as const;
 
 /**
  * DIZURA Strategist: a collapsible chat drawer on the inline-end side of every studio. Each reply
- * costs STRATEGY.chatCredits (refunded server-side on failure). The chat lives in sessionStorage;
+ * costs prices.chat (refunded server-side on failure). The chat lives in sessionStorage;
  * "Turn into blueprint" hands the transcript to the /blueprints wizard as context.
  */
 export function StrategistPanel() {
   const { t, locale } = useI18n();
   const s = t.strategist;
   const nf = new Intl.NumberFormat(locale);
+  const prices = usePrices();
   const router = useRouter();
   const pathname = usePathname();
   const studio = STUDIOS.find((x) => pathname.startsWith(`/${x}`)) ?? "visual-character";
@@ -200,7 +202,7 @@ export function StrategistPanel() {
               className="w-full resize-none bg-transparent px-1 text-sm text-ink-100 placeholder:text-ink-500 focus:outline-none"
             />
             <div className="flex items-center gap-2">
-              <span className="text-[11px] text-ember-300">⚡ {s.perMessage.replace("{n}", nf.format(STRATEGY.chatCredits))}</span>
+              <span className="text-[11px] text-ember-300">⚡ {s.perMessage.replace("{n}", nf.format(prices.chat))}</span>
               <button type="submit" disabled={busy || !draft.trim()} className="ms-auto rounded-lg bg-mint-500 px-4 py-1.5 text-xs font-semibold text-ink-950 transition hover:bg-mint-400 disabled:opacity-40">
                 {s.send}
               </button>

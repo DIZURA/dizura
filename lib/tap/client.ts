@@ -1,7 +1,7 @@
 import "server-only";
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { z } from "zod";
-import type { CreditPack, SessionUser, TapCharge } from "@/types";
+import type { SessionUser, TapCharge } from "@/types";
 import { env, requireEnv } from "@/lib/env";
 import { providerFetch } from "@/lib/http";
 
@@ -16,6 +16,9 @@ const chargeSchema = z.object({
   gateway: z.object({ reference: z.string().optional() }).optional(),
   transaction: z.object({ created: z.union([z.string(), z.number()]).optional(), url: z.string().optional() }).optional(),
   metadata: z.record(z.string(), z.string()).optional(),
+  card: z.object({ id: z.string().optional() }).passthrough().nullish(),
+  customer: z.object({ id: z.string().optional() }).passthrough().nullish(),
+  payment_agreement: z.object({ id: z.string().optional() }).passthrough().nullish(),
 });
 
 function auth() {
@@ -32,19 +35,75 @@ function normalise(raw: z.infer<typeof chargeSchema>): TapCharge {
     status: raw.status as TapCharge["status"],
     currency: raw.currency as TapCharge["currency"],
     transaction: raw.transaction && { url: raw.transaction.url, created: raw.transaction.created?.toString() },
+    card: raw.card?.id ? { id: raw.card.id } : undefined,
+    customer: raw.customer?.id ? { id: raw.customer.id } : undefined,
+    payment_agreement: raw.payment_agreement?.id ? { id: raw.payment_agreement.id } : undefined,
   };
 }
 
-/** Creates a hosted-page charge. Amount comes from the server-side pack table, never the client. */
-export function createCharge(pack: CreditPack, user: SessionUser, orderId: string): Promise<TapCharge> {
+/**
+ * First payment of a subscription (ADR 51): hosted page, 3-D Secure, and `save_card: true` so Tap
+ * returns a card id, customer id and payment agreement for the monthly renewals. Price from PLANS.
+ */
+export function createSubscriptionCharge(
+  sub: { id: string; plan: string; amount: number; currency: string; credits: number },
+  user: SessionUser,
+): Promise<TapCharge> {
   return hostedCharge({
-    amount: pack.price,
-    currency: pack.currency,
-    description: `DIZURA ${pack.credits} credits`,
+    amount: sub.amount,
+    currency: sub.currency,
+    description: `DIZURA ${sub.plan} plan — ${sub.credits} credits / month`,
     user,
-    orderId,
-    metadata: { userId: user.id, packId: pack.id, orderId },
+    orderId: sub.id,
+    saveCard: true,
+    metadata: { userId: user.id, kind: "subscription", phase: "start", subscriptionId: sub.id, plan: sub.plan },
   });
+}
+
+const tokenSchema = z.object({ id: z.string().regex(/^tok_[A-Za-z0-9_]+$/) });
+
+/**
+ * Renewal (merchant-initiated): a saved card can't be charged directly — Tap needs a single-use
+ * token from the card + customer, then a charge with the payment agreement and
+ * `customer_initiated: false` (no 3-D Secure, no customer present).
+ */
+export async function chargeSavedCard(c: {
+  amount: number;
+  currency: string;
+  description: string;
+  customerId: string;
+  cardId: string;
+  agreementId: string;
+  reference: string;
+  metadata: Record<string, string>;
+}): Promise<TapCharge> {
+  const { base, headers } = auth();
+  const appUrl = env.NEXT_PUBLIC_APP_URL.replace(/\/$/, "");
+  const tokenRes = await providerFetch("Tap", `${base}/tokens`, {
+    method: "POST",
+    headers,
+    body: JSON.stringify({ saved_card: { card_id: c.cardId, customer_id: c.customerId } }),
+  });
+  const token = tokenSchema.parse(await tokenRes.json());
+  const res = await providerFetch("Tap", `${base}/charges`, {
+    method: "POST",
+    headers,
+    body: JSON.stringify({
+      amount: c.amount,
+      currency: c.currency,
+      customer_initiated: false,
+      threeDSecure: false,
+      save_card: false,
+      payment_agreement: { id: c.agreementId },
+      description: c.description,
+      customer: { id: c.customerId },
+      source: { id: token.id },
+      metadata: c.metadata,
+      reference: { transaction: c.reference, order: c.reference },
+      post: { url: `${appUrl}/api/webhooks/tap` },
+    }),
+  });
+  return normalise(chargeSchema.parse(await res.json()));
 }
 
 /** Charge for a done-for-you DIZURA Agency service (ADR 50); price from AGENCY_SERVICES, never the client. */
@@ -70,6 +129,7 @@ async function hostedCharge(c: {
   user: SessionUser;
   orderId: string;
   metadata: Record<string, string>;
+  saveCard?: boolean;
 }): Promise<TapCharge> {
   const { base, headers } = auth();
   const appUrl = env.NEXT_PUBLIC_APP_URL.replace(/\/$/, "");
@@ -80,7 +140,8 @@ async function hostedCharge(c: {
       amount: c.amount,
       currency: c.currency,
       threeDSecure: true,
-      save_card: false,
+      save_card: c.saveCard ?? false,
+      ...(c.saveCard ? { customer_initiated: true } : {}),
       description: c.description,
       customer: { first_name: c.user.name ?? "DIZURA", email: c.user.email },
       source: { id: "src_all" },

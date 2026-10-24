@@ -43,6 +43,10 @@ const schema = z.object({
   ELEVENLABS_API_KEY: optional,
   ELEVENLABS_MODEL_ID: z.string().trim().min(1).default("eleven_multilingual_v2"),
   ELEVENLABS_API_BASE_URL: z.url().default("https://api.elevenlabs.io"),
+  /** What 1,000 characters cost on our ElevenLabs plan (feeds the live price table, ADR 51). */
+  ELEVENLABS_USD_PER_1K_CHARS: z.preprocess((v) => (v === "" ? undefined : v), z.coerce.number().positive().default(0.3)),
+  /** Shared secret for the hourly scheduled function → /api/cron/hourly (subscription renewals, price refresh). */
+  CRON_SECRET: optional, // length (≥ 32) enforced at use
 
   TAP_API_BASE_URL: z.url().default("https://api.tap.company/v2"),
   TAP_SECRET_KEY: optional.refine((v) => v === undefined || /^sk_(test|live)_/.test(v), {

@@ -1,53 +1,121 @@
-import type { CreditPack, GenerationRequest } from "@/types";
+import type { GenerationRequest } from "@/types";
 
 /** Granted once when a user confirms their email (DB trigger, migrations 0003/0004 — keep in sync). */
 export const WELCOME_CREDITS = 30;
 
-/**
- * Pricing rule (ADR 49): every action keeps ≥ ~60% gross margin even when paid with the cheapest
- * credit (Studio pack: 65 KWD / 2000 = 0.0325 KWD ≈ $0.106) after ~3% payment fees.
- * credits ≥ providerUSD / (CHEAPEST_CREDIT_USD × (1 − PAYMENT_FEE)) / (1 − TARGET_MARGIN).
- * `scripts/check-margins.mjs` prints the table; re-run it whenever a provider price changes.
- */
-export const USD_PER_KWD = 3.25;
+// ---------------------------------------------------------------------------
+// Plans (ADR 51): monthly subscriptions, SAR in Arabic, USD in English
+// ---------------------------------------------------------------------------
+
+export const PLAN_IDS = ["starter", "pro", "agency"] as const;
+export type PlanId = (typeof PLAN_IDS)[number];
+export const PLAN_CURRENCIES = ["SAR", "USD"] as const;
+export type PlanCurrency = (typeof PLAN_CURRENCIES)[number];
+
+/** Single source of truth for subscription prices. Server-side checks always use this table. */
+export const PLANS: Record<PlanId, { credits: number; prices: Record<PlanCurrency, number>; popular?: true }> = {
+  starter: { credits: 150, prices: { USD: 29, SAR: 110 } },
+  pro: { credits: 500, prices: { USD: 79, SAR: 295 }, popular: true },
+  agency: { credits: 1500, prices: { USD: 210, SAR: 790 } },
+};
+
+/** Arabic UI bills in SAR, English in USD. */
+export const currencyFor = (locale: string): PlanCurrency => (locale === "ar" ? "SAR" : "USD");
+
+// ---------------------------------------------------------------------------
+// Margin rule (ADR 51): credits = provider cost / (cheapest credit × (1 − fee)) / (1 − 60%)
+// ---------------------------------------------------------------------------
+
+export const USD_PER_SAR = 1 / 3.75; // SAR is pegged to USD
 export const PAYMENT_FEE = 0.03;
 export const TARGET_MARGIN = 0.6;
 
+/** Lowest revenue per credit across every plan and currency (the Agency plan): margin is guaranteed even there. */
+export const CHEAPEST_CREDIT_USD = Math.min(
+  ...Object.values(PLANS).flatMap((p) => [p.prices.USD / p.credits, (p.prices.SAR * USD_PER_SAR) / p.credits]),
+);
+
+/** Credits that keep ≥ TARGET_MARGIN on a provider cost (whole credits, at least 1). */
+export const creditsFor = (usd: number) => Math.max(1, Math.ceil(usd / (CHEAPEST_CREDIT_USD * (1 - PAYMENT_FEE)) / (1 - TARGET_MARGIN)));
+
 /**
- * Provider (Higgsfield API) cost per unit in USD, from open.higgsfield.ai model pages (2026-10-23).
- * `estimate: true` = not published for our exact settings; derived from neighbouring tiers with
- * headroom — confirm with `POST /estimate/{model}` (scripts/check-margins.mjs --live).
+ * What one unit costs us at each provider, in USD. These are the fallback/baseline values: in
+ * production the live table (`provider_costs`, lib/credits/costs.ts) replaces them automatically
+ * from Higgsfield's /estimate endpoint and from the measured usage of every Claude/ElevenLabs call.
  */
-export const PROVIDER_COST_USD = {
-  /** Soul 2, per image (published $0.0032 @720p / $0.0057 @1080p; one developer measured ~$0.094 billed). */
-  characterImage: { usd: 0.094, estimate: true },
-  /** Marketing Studio Image 2k / medium (published: 2k low $0.0222). Used by "From a photo". */
-  photoCharacter: { usd: 0.06, estimate: true },
+export const BASE_COST_USD = {
+  /** Soul 2 image (one developer measured ~$0.094 billed). */
+  characterImage: 0.094,
+  /** Marketing Studio Image 2k / medium ("From a photo"). */
+  photoCharacter: 0.06,
   /** Soul ID training per character. */
-  soulId: { usd: 2.5, estimate: false },
+  soulId: 2.5,
   /** Genjutsu motion transfer, per second of reference video. */
-  genjutsu: { "480p": 0.318, "720p": 0.681, "1080p": 1.632 },
-  /** Marketing Studio Image per ad: 1k/medium, 2k/high, 4k/high (published: 1k low $0.0162, 4k high $0.7219). */
-  adImage: { standard: 0.05, high: 0.3, ultra: 0.7219 },
-  /** Claude Opus 5.5 ($4 / $20 per MTok): chat turn ≈ 3k in + 1.5k out at low effort (estimate). */
-  strategyChat: { usd: 0.045, estimate: true },
-  /** Blueprint ≈ 4k in + 12k out incl. thinking at medium effort (estimate). */
-  blueprint: { usd: 0.3, estimate: true },
-  /** ElevenLabs multilingual TTS per 100 characters (estimate; plan-dependent). */
-  voicePer100Chars: { usd: 0.03, estimate: true },
+  motion480p: 0.318,
+  motion720p: 0.681,
+  motion1080p: 1.632,
+  /** Marketing Studio Image per ad: 1k/medium, 2k/high, 4k/high. */
+  adStandard: 0.05,
+  adHigh: 0.3,
+  adUltra: 0.7219,
+  /** One Strategist reply / "Write it for me" draft (Claude, low effort). */
+  strategyChat: 0.045,
+  /** A full blueprint (four sections). */
+  blueprint: 0.3,
+  /** ElevenLabs multilingual TTS per 100 characters. */
+  voicePer100Chars: 0.03,
 } as const;
+export type CostKey = keyof typeof BASE_COST_USD;
+export type Costs = Record<CostKey, number>;
 
-/** DIZURA Strategist (ADR 50): chat turn + full blueprint (strategy, 14-day plan, 3 UGC scripts, prompt formulas). */
-export const STRATEGY = {
-  chatCredits: 2,
-  blueprintCredits: 15,
-  maxChatTurns: 20,
-  maxMessageChars: 2000,
-} as const;
+export const MOTION_RESOLUTIONS = ["480p", "720p", "1080p"] as const;
+export type GenjutsuResolution = (typeof MOTION_RESOLUTIONS)[number];
+export const AD_QUALITIES = ["standard", "high", "ultra"] as const;
+export type AdQuality = (typeof AD_QUALITIES)[number];
 
-/** DIZURA Voice (ADR 50): credits per started 100 characters of script. */
-export const VOICE = { creditsPer100Chars: 1, minCredits: 2, maxChars: 2500 } as const;
-export const voiceCost = (chars: number) => Math.max(VOICE.minCredits, Math.ceil(chars / 100) * VOICE.creditsPer100Chars);
+/** Credits per action, derived from the current provider costs. Sent to the browser for display. */
+export type PriceList = {
+  image: number;
+  photoCharacter: number;
+  soulId: number;
+  /** Per second of reference video. */
+  motion: Record<GenjutsuResolution, number>;
+  ad: Record<AdQuality, number>;
+  chat: number;
+  blueprint: number;
+  /** Per started 100 characters. */
+  voicePer100: number;
+};
+
+export function priceList(c: Costs): PriceList {
+  return {
+    image: creditsFor(c.characterImage),
+    photoCharacter: creditsFor(c.photoCharacter),
+    soulId: creditsFor(c.soulId),
+    motion: { "480p": creditsFor(c.motion480p), "720p": creditsFor(c.motion720p), "1080p": creditsFor(c.motion1080p) },
+    ad: { standard: creditsFor(c.adStandard), high: creditsFor(c.adHigh), ultra: creditsFor(c.adUltra) },
+    chat: creditsFor(c.strategyChat),
+    blueprint: creditsFor(c.blueprint),
+    voicePer100: creditsFor(c.voicePer100Chars),
+  };
+}
+
+export const DEFAULT_PRICES: PriceList = priceList(BASE_COST_USD);
+
+/** Approximate money value of `credits` at a plan's rate (for display only). */
+export const creditValue = (credits: number, currency: PlanCurrency, plan: PlanId = "pro") =>
+  (credits * PLANS[plan].prices[currency]) / PLANS[plan].credits;
+
+// ---------------------------------------------------------------------------
+// Limits and per-action helpers (prices always come from a PriceList)
+// ---------------------------------------------------------------------------
+
+/** DIZURA Strategist (ADR 50). */
+export const STRATEGY = { maxChatTurns: 20, maxMessageChars: 2000 } as const;
+
+/** DIZURA Voice (ADR 50). */
+export const VOICE = { minCredits: 2, maxChars: 2500 } as const;
+export const voiceCost = (chars: number, p: PriceList) => Math.max(VOICE.minCredits, Math.ceil(chars / 100) * p.voicePer100);
 
 /** DIZURA Agency done-for-you services (ADR 50): fixed price per service, charged via Tap in SAR. */
 export const AGENCY_SERVICES = {
@@ -58,29 +126,18 @@ export const AGENCY_SERVICES = {
 } as const;
 export type AgencyServiceId = keyof typeof AGENCY_SERVICES;
 
-/** Single source of truth for credit packs. Prices are server-side only — never trust client amounts. */
-export const CREDIT_PACKS: Record<CreditPack["id"], CreditPack> = {
-  starter: { id: "starter", credits: 100, price: 5, currency: "KWD" },
-  pro: { id: "pro", credits: 500, price: 20, currency: "KWD" },
-  studio: { id: "studio", credits: 2000, price: 65, currency: "KWD" },
-};
+/** Legacy WAN 3.0 text/image-to-video via /api/ai/generate (not used by the UI): priced like 720p motion. */
+export const VIDEO_DURATION = { min: 3, max: 15, default: 3 } as const;
 
-/** Credit cost of a generation, computed server-side. */
-export const VIDEO_CREDITS_PER_SECOND = 8; // every video runs on WAN 3.0 Prime
-export const VIDEO_DURATION = { min: 3, max: 15, default: 3 } as const; // 3 s = 24 credits, fits the welcome bonus
-
-export function generationCost(req: Pick<GenerationRequest, "workspace" | "kind" | "durationSec">): number {
-  if (req.kind === "image") return 5; // ≥ 80% margin (PROVIDER_COST_USD.characterImage / photoCharacter)
+/** Credit cost of a /api/ai/generate request, computed server-side. */
+export function generationCost(req: Pick<GenerationRequest, "kind" | "durationSec">, p: PriceList, photo = false): number {
+  if (req.kind === "image") return photo ? p.photoCharacter : p.image;
   const seconds = Math.max(VIDEO_DURATION.min, Math.min(req.durationSec ?? VIDEO_DURATION.default, VIDEO_DURATION.max));
-  return seconds * VIDEO_CREDITS_PER_SECOND;
+  return seconds * p.motion["720p"];
 }
 
-/**
- * Soul ID (consistent character) training. Higgsfield lists it at ~$2.50/request; at pack prices a
- * credit is ~$0.16, so 40 credits (~$6.50) covers provider cost + margin. Owner can tune here.
- */
+/** Soul ID (consistent character) training limits; price is `PriceList.soulId`. */
 export const SOUL_ID = {
-  trainingCredits: 65, // $2.50 provider → ~62% margin at the cheapest credit
   minPhotos: 5,
   maxPhotos: 30,
   maxCharacters: 5,
@@ -90,37 +147,27 @@ export const SOUL_ID = {
 } as const;
 
 /**
- * Genjutsu motion transfer (your character performs a reference video). Higgsfield bills per second
- * of input video: $0.318 (480p), $0.681 (720p), $1.632 (1080p). At ~$0.16 per credit these rates
- * keep a ~1.6–2× margin. Duration comes from the uploaded file (server-side), rounded up, 4–30 s
- * (the provider trims anything longer to 30 s).
+ * Genjutsu motion transfer limits. Billed per second of the uploaded reference video (duration read
+ * server-side, rounded up, 4–30 s — the provider trims anything longer to 30 s).
  */
 export const GENJUTSU = {
-  // $0.318 / $0.681 / $1.632 per second → ~61% / ~61% / ~60% margin at the cheapest credit
-  creditsPerSecond: { "480p": 8, "720p": 17, "1080p": 40 },
-  defaultResolution: "720p",
+  defaultResolution: "720p" as GenjutsuResolution,
   minSeconds: 4,
   maxSeconds: 30,
   maxImages: 8,
   /** Direct-to-storage upload cap (matches the `reference-videos` bucket limit). */
   maxVideoBytes: 50 * 1024 * 1024,
 } as const;
-export type GenjutsuResolution = keyof typeof GENJUTSU.creditsPerSecond;
 
-export function genjutsuCost(durationSec: number, resolution: GenjutsuResolution): number {
+export function genjutsuCost(durationSec: number, resolution: GenjutsuResolution, p: PriceList): number {
   const seconds = Math.min(GENJUTSU.maxSeconds, Math.max(GENJUTSU.minSeconds, Math.ceil(durationSec)));
-  return seconds * GENJUTSU.creditsPerSecond[resolution];
+  return seconds * p.motion[resolution];
 }
 
-/**
- * Ads Creative Studio (Higgsfield Marketing Studio Image) — credits per ad by quality tier.
- * Provider cost per tier: PROVIDER_COST_USD.adImage (ultra published; standard/high estimated —
- * confirm with `scripts/check-margins.mjs --live`). Prices stay server-side only.
- */
+/** Ads Creative Studio output settings per quality tier; price is `PriceList.ad[quality]`. */
 export const AD_IMAGE = {
-  standard: { credits: 3, resolution: "1k", quality: "medium" },
-  high: { credits: 8, resolution: "2k", quality: "high" },
-  ultra: { credits: 20, resolution: "4k", quality: "high" },
-} as const;
-export type AdQuality = keyof typeof AD_IMAGE;
+  standard: { resolution: "1k", quality: "medium" },
+  high: { resolution: "2k", quality: "high" },
+  ultra: { resolution: "4k", quality: "high" },
+} as const satisfies Record<AdQuality, unknown>;
 export const AD_RATIOS = ["1:1", "3:4", "9:16", "16:9"] as const;

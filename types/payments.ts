@@ -1,4 +1,4 @@
-import type { CreditPack, SupportedCurrency } from "./credits";
+import type { SupportedCurrency } from "./credits";
 
 /** Subset of Tap's Charge object we rely on. https://developers.tap.company/reference/charges */
 export type TapChargeStatus =
@@ -23,10 +23,15 @@ export interface TapCharge {
   gateway?: { reference?: string };
   transaction?: { created?: string; url?: string };
   metadata?: Record<string, string>;
+  /** Present when the card was saved (`save_card: true`) — used for subscription renewals. */
+  card?: { id?: string };
+  customer?: { id?: string };
+  payment_agreement?: { id?: string };
 }
 
-export interface CheckoutRequest {
-  packId: CreditPack["id"];
+export interface SubscribeRequest {
+  plan: "starter" | "pro" | "agency";
+  currency: "SAR" | "USD";
 }
 
 export interface CheckoutResponse {
