@@ -77,7 +77,16 @@ export function GenjutsuStep({
   // The product photo counts towards the provider's image limit in swap mode.
   const maxImages = GENJUTSU.maxImages - (mode === "swap" ? 1 : 0);
   const cost = video ? genjutsuCost(video.duration, resolution, prices) : null;
-  const canSubmit = !busy && !!video?.token && total > 0 && total <= maxImages && !photos.some((p) => !p.token && !p.failed) && (mode === "standard" || !!product?.token);
+  const photosUploading = photos.some((p) => !p.token && !p.failed);
+  const canSubmit = !busy && !!video?.token && total > 0 && total <= maxImages && !photosUploading && (mode === "standard" || !!product?.token);
+  // Why Generate is disabled, so it never looks broken.
+  const blocker = busy ? null
+    : !video || video.error ? s.needVideo
+    : !video.token ? s.needVideoUpload
+    : photosUploading ? s.photoUploading
+    : total === 0 ? (photos.some((p) => p.failed) ? s.photoFailed : s.needCharacter)
+    : mode === "swap" && !product?.token ? sw.needProduct
+    : null;
 
   // Release object URLs on unmount.
   const urls = useRef<string[]>([]);
@@ -91,7 +100,9 @@ export function GenjutsuStep({
   async function chooseVideo(file: File | undefined) {
     if (!file) return;
     const base = { name: file.name, preview: objectUrl(file), duration: 0, ratio: "9:16" as AspectRatio, progress: 0, token: null };
-    if (!["video/mp4", "video/quicktime"].includes(file.type)) return setVideo({ ...base, error: s.badType });
+    // Some iOS pickers hand over an empty type; fall back to the extension (the server checks the bytes).
+    const kind = file.type || (/\.(mov|qt)$/i.test(file.name) ? "video/quicktime" : /\.(mp4|m4v)$/i.test(file.name) ? "video/mp4" : "");
+    if (!["video/mp4", "video/quicktime"].includes(kind)) return setVideo({ ...base, error: s.badType });
     if (file.size > GENJUTSU.maxVideoBytes) return setVideo({ ...base, error: s.tooLarge });
     const meta = await videoMeta(file).catch(() => null);
     if (!meta) return setVideo({ ...base, error: s.badType });
@@ -323,6 +334,7 @@ export function GenjutsuStep({
           {busy ? t.gen.generating : s.generate}
         </Button>
       </div>
+      {blocker && !error && <p className="-mt-3 text-xs text-ink-300">{blocker}</p>}
       {error && <p role="alert" className="-mt-3 text-sm text-danger">{error}</p>}
     </form>
   );
