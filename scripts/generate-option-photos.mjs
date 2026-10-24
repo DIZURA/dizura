@@ -25,9 +25,11 @@ const OUT = join(ROOT, "public/influencer/options");
 const MANIFEST = join(ROOT, "components/studio/influencer/option-photos.ts");
 const DRY = process.argv.includes("--dry");
 const BASE = (process.env.HIGGSFIELD_API_BASE_URL || "https://api.higgsfield.ai").replace(/\/$/, "");
-const KEY = process.env.HIGGSFIELD_API_KEY ?? "";
-const SECRET = process.env.HIGGSFIELD_API_SECRET ?? "";
-const CREDENTIAL = KEY && SECRET ? `${KEY}:${SECRET}` : KEY.includes(":") ? KEY : "";
+const KEY = (process.env.HIGGSFIELD_API_KEY ?? "").trim().replace(/^["']|["']$/g, "");
+const SECRET = (process.env.HIGGSFIELD_API_SECRET ?? "").trim().replace(/^["']|["']$/g, "");
+const SDK = (process.env.HF_CREDENTIALS ?? "").trim().replace(/^["']|["']$/g, "");
+// Same order as lib/higgsfield/client.ts: a combined KEY_ID:KEY_SECRET wins over a leftover secret.
+const CREDENTIAL = KEY.includes(":") ? KEY : KEY && SECRET ? `${KEY}:${SECRET}` : SDK.includes(":") ? SDK : "";
 
 /** Art direction: docs/design/option-photos.md. Bump VERSION when it changes (new idempotency keys). */
 const VERSION = "v4";
@@ -199,8 +201,13 @@ if (DRY) {
   process.exit(0);
 }
 if (missing.length && !CREDENTIAL) {
-  console.error("Set HIGGSFIELD_API_KEY and HIGGSFIELD_API_SECRET in .env.local first.");
+  console.error("Set HIGGSFIELD_API_KEY (KEY_ID:KEY_SECRET, or the id with HIGGSFIELD_API_SECRET) in .env.local first.");
   process.exit(1);
+}
+if (missing.length) {
+  // Never print the key: only its shape, so a wrong paste is easy to spot.
+  const [id, secret] = CREDENTIAL.split(":");
+  console.log(`Using a Higgsfield key: id ${id?.length ?? 0} chars, secret ${secret?.length ?? 0} chars.`);
 }
 
 const headers = { authorization: `Key ${CREDENTIAL}`, "content-type": "application/json", accept: "application/json" };
@@ -232,8 +239,9 @@ async function generate(job) {
 
 const { default: sharp } = await import("sharp"); // ships with Next.js
 let done = 0;
+let fatal = null; // bad key / no credits: stop instead of failing every photo
 async function worker(queue) {
-  for (let job = queue.shift(); job; job = queue.shift()) {
+  for (let job = fatal ? undefined : queue.shift(); job; job = fatal ? undefined : queue.shift()) {
     try {
       const url = await generate(job);
       const bytes = Buffer.from(await (await fetch(url)).arrayBuffer());
@@ -242,11 +250,16 @@ async function worker(queue) {
       console.log(`✓ ${job.group}/${job.option.id} (${++done}/${missing.length})`);
     } catch (err) {
       console.error(`✗ ${job.group}/${job.option.id}: ${err.message}`);
+      if (/^submit (401|403)/.test(err.message)) fatal ??= err.message;
     }
   }
 }
 const queue = [...missing];
 await Promise.all([worker(queue), worker(queue), worker(queue)]);
+if (fatal) {
+  console.error(`\nStopped: ${fatal}`);
+  process.exitCode = 1;
+}
 
 // Manifest = every photo present on disk.
 const present = existsSync(OUT)
