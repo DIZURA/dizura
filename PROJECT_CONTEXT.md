@@ -2,7 +2,7 @@
 
 > Source of truth for architecture, decisions, routes and roadmap.
 > **Every session: read this first; update it in the same change as any architectural edit.**
-> Last updated: 2026-10-23 (Tap secret key set on Netlify)
+> Last updated: 2026-10-23 (Margin-based pricing)
 
 ## 1. Product
 AI creative studio for GCC brands, Arabic-first (RTL) with English (LTR).
@@ -83,6 +83,7 @@ supabase/migrations/20261022215528_0006_service_role_grants.sql   grant service_
 supabase/migrations/20261023014838_0007_reference_videos_bucket.sql   private `reference-videos` bucket (50 MB, mp4/mov), no client policies (APPLIED)
 scripts/import-examples.mjs  Imports Lovable-designed example JPGs → public/influencer/options/<group>/<id>.webp (256 px) + public/examples/<name>.webp (1280 px) and rewrites both manifests
 scripts/generate-option-photos.mjs  `npm run photos:options [-- --dry|--force|--only=g1,g2]` — Soul 2 option photos (white bg, quirky; art direction docs/design/option-photos.md) → public/influencer/options/<group>/<id>.webp (320 px square) + manifest
+scripts/check-margins.mjs  `npm run margins [-- --live]` — gross margin per action from pricing.ts (+ live Higgsfield /estimate)
 scripts/scan-secrets.mjs  Zero-dep secret scanner (pre-commit hook in .githooks/, CI in .github/workflows/security.yml)
 proxy.ts         Session refresh + page guards (guest -> /login?next=, signed-in away from /login) + per-request nonce CSP
 ```
@@ -136,6 +137,7 @@ proxy.ts         Session refresh + page guards (guest -> /login?next=, signed-in
 | 46 | **Auth links return to the host the flow started on** (amends ADR 24 for auth only): `callbackUrl()` uses the request `Host` **only** if it equals the app host or is a Netlify alias of it (`<deploy-id>--<app host>`, `[a-z0-9-]+` prefix, https); anything else falls back to `NEXT_PUBLIC_APP_URL`. Supabase Redirect URLs must include `https://*--sparkly-swan-cf292e.netlify.app/**`. | 2026-10-23 logs: Google sign-in + password reset failed with "PKCE code verifier not found" — the owner used the deploy permalink (`6adb…--sparkly-swan…`), so the verifier cookie lived there while links returned to the main host. Spoofed hosts (evil.com, `evil.com/--site`, `a.b--site`) tested → main host. |
 | 47 | **Scroll performance budget**: no `backdrop-filter` on large or scrolling areas (`glass` panels, sticky top bar, canvas tabs, image labels) — use near-opaque token backgrounds instead. The 3D globe renders only while on screen and the tab is visible (IntersectionObserver + `visibilitychange`), at 30 fps via `frameloop="demand"` + a ticker, `dpr` ≤ 1.5, `powerPreference: "low-power"`. | Owner (2026-10-23): "black brightness when I scrolled… lagging". Measured (prod build, headless Chromium, scroll test): /visual-character 69.9 → 17.0 ms/frame (116 → 0 janky frames), /ads-studio 69.4 → 16.7, landing 44.4 → 22.2; background work after scrolling past the globe ~1000 → ~30 ms/s. Large blurred layers are also what render as black tiles on some GPUs. |
 | 48 | **Option photos v2 = white-background, quirky casting** (art direction in `docs/design/option-photos.md`, inspired by the owner's Higgsfield builder references — style only, no Higgsfield images stored). `scripts/generate-option-photos.mjs` v2: 122 prompts covering every photo group incl. kinds/animals/aliens/robots/fantasy/looks (animals wear human hairstyles; builds and outfits played for kind humour; GCC styling), square 1:1 → 320 px WebP, `--force` / `--only=` / `--dry`, idempotency keys versioned. Photo cards render as white "paper" tiles with the label underneath (`--color-paper` token); options without a photo keep glyph/placeholder art. Generation runs on the owner's machine/Codespace with their Higgsfield API keys (sandbox can't reach the API; MCP account has 0 credits). | Owner (2026-10-23): "characters with white background and different styles… looking like this… and more from your imagination". |
+| 49 | **Margin-based pricing**: every action keeps ≥ ~60% gross margin when paid with the cheapest credit (Studio pack ≈ $0.106/credit, 1 KWD = $3.25) after ~3% payment fees. Provider costs live in `PROVIDER_COST_USD` (`lib/credits/pricing.ts`, sourced from open.higgsfield.ai model pages; `estimate: true` where our exact settings aren't published); `npm run margins` prints the table, `-- --live` queries `POST /estimate/{model}` with the owner's keys. New prices: DIZURA ID 40 → **65**; Motion 4/8/16 → **8/17/40** cr/s (480/720/1080p); Ads 3/6/10 → **3/8/20**; images stay **5**. | Owner (2026-10-23): "make the calculation to make great profits". Old Motion 1080p (16 cr/s ≈ $1.70 vs $1.632 cost) and Ultra ads (10 cr ≈ $1.06 vs $0.72) ran at ~4% / ~32% margin. The pricing page couldn't be fetched from the sandbox (DNS), so figures came from Higgsfield's model pages via search — confirm with `--live`. |
 | 19 | Migration files named `<remote version>_<name>.sql`, matching `supabase_migrations.schema_migrations` exactly. New migrations: apply via MCP/CLI, then name the file with the version Supabase records. Migrations must also replay cleanly on a fresh preview branch (guard project-specific objects). | Supabase GitHub integration (Preview check) fails when remote versions are missing locally. |
 | 29 | `APP_SECRET` optional at boot (Netlify agent, PR #4); `signed-token.ts` enforces presence + ≥32 chars at use (→ 503 `not_configured`); `/api/ai/generate` checks it before reserving credits | `lib/env.ts` is evaluated during `next build` (page-data collection), so a missing/short secret was failing Netlify builds. |
 
@@ -180,11 +182,12 @@ Dev/test only: `DEV_STARTING_CREDITS` (read only by the in-memory credit store, 
 
 ## 7. Credit economy (`lib/credits/pricing.ts`)
 Welcome bonus: **30 credits** on email confirmation (ADR 25).
-Soul ID training: **40 credits** (Higgsfield ≈ $2.50/request; 1 credit ≈ $0.16 at pack prices) — needs a credit purchase after the welcome bonus.
+Pricing rule (ADR 49): ≥ ~60% margin at the cheapest credit ($0.106, Studio pack); `npm run margins`.
+Soul ID training: **65 credits** (Higgsfield ≈ $2.50/request) — needs a credit purchase after the welcome bonus.
 Packs: starter 100cr/5 KWD · pro 500cr/20 KWD · studio 2000cr/65 KWD.
 Costs: image **5** (every studio); video **8 cr/s** for every studio, 3–15 s, default 3 s (= 24). Character + first video = 29 ≤ welcome 30.
-Ads Creative Studio: **3 / 6 / 10 credits** per ad (Standard 1k / High 2k / Ultra 4k) — provider cost to confirm via `/estimate` (ADR 41).
-Genjutsu (influencer Step 2): **4 / 8 / 16 cr per second** of reference video at 480p / 720p / 1080p, 4–30 s (e.g. 6 s at 720p = 48). Shortest 720p run (4 s = 32) needs more than the 30 welcome credits; 480p (16) fits.
+Ads Creative Studio: **3 / 8 / 20 credits** per ad (Standard 1k / High 2k / Ultra 4k; Ultra cost $0.7219 published, others estimated — `npm run margins -- --live`).
+Genjutsu (influencer Step 2): **8 / 17 / 40 cr per second** of reference video at 480p / 720p / 1080p, 4–30 s (e.g. 6 s at 720p = 102). Welcome credits (30) cover 6 characters or 10 standard ads; videos need a pack.
 
 ## 8. Verified status (2026-10-22)
 - `typecheck`, `lint`, `build` all clean. All pages 200, no browser console errors, RTL/LTR + mobile screenshots checked.
