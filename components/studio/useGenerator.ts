@@ -34,6 +34,8 @@ export type GenerateInput = {
   characterStrength?: number;
   /** Signed upload token of a reference photo the character is made from (images only). */
   referencePhoto?: string;
+  /** Signed upload token of an outfit photo (Style reference). */
+  styleReference?: string;
 };
 
 export type TransferInput = {
@@ -129,7 +131,7 @@ export function useGenerator(workspace: Workspace) {
   );
 
   const generate = useCallback(
-    ({ prompt, kind, ratio, durationSec, cost, source, characterId, characterStrength, referencePhoto }: GenerateInput) =>
+    ({ prompt, kind, ratio, durationSec, cost, source, characterId, characterStrength, referencePhoto, styleReference }: GenerateInput) =>
       run({ prompt, kind, ratio, cost, animatedFrom: source?.key }, () =>
         api<GenerationJob>("/api/ai/generate", {
           method: "POST",
@@ -143,6 +145,7 @@ export function useGenerator(workspace: Workspace) {
             characterId,
             characterStrength: characterId ? characterStrength : undefined,
             referencePhoto,
+            styleReference,
           }),
         }),
       ),

@@ -94,7 +94,7 @@ export const GROUPS = [
     { id: "surprised", en: "a surprised, wide-eyed expression" }, { id: "dreamy", en: "a soft, dreamy gaze" },
   ] },
   { id: "ethnicity", tab: "builder", max: 1, identity: true, kinds: ["human"], options: [
-    { id: "gulf", en: "Gulf Arab" }, { id: "levant", en: "Levantine Arab" }, { id: "northAfrica", en: "North African" },
+    { id: "gulf", en: "Gulf Arab" }, { id: "middleEastern", en: "Middle Eastern" }, { id: "levant", en: "Levantine Arab" }, { id: "northAfrica", en: "North African" },
     { id: "african", en: "African" }, { id: "southAsian", en: "South Asian" }, { id: "eastAsian", en: "East Asian" },
     { id: "european", en: "European" }, { id: "mixed", en: "mixed-heritage" },
   ] },
@@ -216,6 +216,9 @@ function genderOf(sel: Selection): "female" | "male" {
 export function kindOf(sel: Selection, mode: IdentityMode = "new"): Kind {
   return mode === "soul" ? "human" : (sel.kind[0] ?? "human");
 }
+
+/** Most options a group allows (1 = single choice). */
+export const groupMax = (id: GroupId): number => groupById(id).max;
 
 /** Options shown for a group given the character type, gender and identity mode. */
 export function visibleOptions(groupId: GroupId, tier: Tier, sel: Selection, mode: IdentityMode = "new"): readonly AnyOption[] {
@@ -493,4 +496,18 @@ export const SWATCHES: Partial<Record<GroupId, Record<string, string>>> = {
     black: "#141414", darkBrown: "#3b2619", chestnut: "#6b3b22", ginger: "#b5561f", red: "#9e1f1f", blonde: "#d9b56a", platinum: "#e9e4d6",
     grey: "#9a9a9a", white: "#f2f2f2", pink: "#f2a9c4", lilac: "#c3a5e0", blue: "#3d6fd1", green: "#3f9e6b",
   },
+};
+
+/** Accordion order of the builder (most visual first, fine face details last). */
+export const GROUP_ORDER: readonly GroupId[] = [
+  "kind", "animal", "animalForm", "alien", "robot", "fantasy", "look", "gender", "build", "hair", "hairColor", "style",
+  "ethnicity", "age", "skin", "expression", "height", "proportions", "head", "neck", "eyeShape", "eyeColor", "features",
+  "facialHair", "distinctive", "accessories",
+];
+
+/** Small header icon per builder group. */
+export const GROUP_ICONS: Record<GroupId, string> = {
+  kind: "🧬", animal: "🐾", animalForm: "🎩", alien: "👽", robot: "🤖", fantasy: "✨", look: "🎨", gender: "⚥", build: "💪",
+  hair: "💇", hairColor: "🎨", style: "👔", ethnicity: "🌐", age: "⏳", skin: "🖐", expression: "🙂", height: "↕", proportions: "📐",
+  head: "🗿", neck: "🦒", eyeShape: "👁", eyeColor: "🎨", features: "✦", facialHair: "🧔", distinctive: "✦", accessories: "🕶",
 };

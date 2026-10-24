@@ -1,21 +1,29 @@
 "use client";
 
-import { useId, useState, type KeyboardEvent } from "react";
+import { useId, useState } from "react";
 import { useI18n } from "@/components/i18n/I18nProvider";
 import { cn } from "@/components/ui/cn";
 import { OPTION_PHOTOS } from "./option-photos";
+import type { ReferencePhotoState } from "./ReferencePhoto";
+import { StyleReference } from "./StyleReference";
 import {
-  GLYPHS, GROUPS, groupVisible, PHOTO_GROUPS, SWATCHES, TABS, TIERS, toggle, visibleOptions,
-  type GroupId, type IdentityMode, type Selection, type Tab, type Tier,
+  GLYPHS, GROUP_ICONS, GROUP_ORDER, groupMax, groupVisible, PHOTO_GROUPS, SWATCHES, TIERS, toggle, visibleOptions,
+  type GroupId, type IdentityMode, type Selection, type Tier,
 } from "./traits";
 
 /** Groups whose placeholder art shows a full body rather than a face. */
 const BODY_GROUPS: ReadonlySet<GroupId> = new Set<GroupId>(["build", "style", "gender"]);
+/** Picked-settings chips shown before "Show more". */
+const CHIPS_COLLAPSED = 8;
+
+/** Selected tile: violet ring with a mint glow (the DIZURA duo), clearly different from every other tile. */
+const ON = "ring-[3px] ring-violet-400 shadow-[0_0_26px_-6px_var(--color-mint-500)]";
+const OFF = "ring-1 ring-ink-700/70 hover:ring-ink-500";
 
 /**
- * Character builder: character type (Average / Bold / Extreme) + trait groups in
- * Builder · Face · Body · Style tabs. Visual groups are photo cards, colours are swatches,
- * fine details are chips. With a DIZURA ID or a reference photo the identity groups are hidden.
+ * Character builder as one accordion: character type, then every trait group (icon · name · count,
+ * with the current pick in the header). Visual groups are white photo tiles, colours are swatches,
+ * fine details are text tiles. A "Picked settings" bar keeps every choice visible.
  */
 export function CharacterBuilder({
   tier,
@@ -23,244 +31,294 @@ export function CharacterBuilder({
   selection,
   onSelection,
   mode,
+  styleRef,
+  onStyleRef,
+  onReset,
 }: {
   tier: Tier;
   onTier: (tier: Tier) => void;
   selection: Selection;
   onSelection: (next: Selection) => void;
   mode: IdentityMode;
+  /** Outfit photo for the Style group (not with a DIZURA ID). */
+  styleRef: ReferencePhotoState | null;
+  onStyleRef: (next: ReferencePhotoState | null) => void;
+  onReset: () => void;
 }) {
   const { t, locale } = useI18n();
   const b = t.builder;
   const nf = new Intl.NumberFormat(locale);
   const baseId = useId();
-  const [tab, setTab] = useState<Tab>("builder");
+  const [open, setOpen] = useState<ReadonlySet<string>>(() => new Set(["tier"]));
+  const [allChips, setAllChips] = useState(false);
 
-  const groups = GROUPS.filter((g) => g.tab === tab && groupVisible(g.id, selection, mode));
+  const groups = GROUP_ORDER.filter((id) => groupVisible(id, selection, mode));
+  const label = (g: GroupId, id: string) => (b.opts[g] as Record<string, string>)[id] ?? id;
+  const flip = (key: string) =>
+    setOpen((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
 
-  function onTabKey(e: KeyboardEvent<HTMLButtonElement>) {
-    if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") return;
-    const rtl = getComputedStyle(e.currentTarget).direction === "rtl";
-    const step = (e.key === "ArrowRight") !== rtl ? 1 : -1;
-    const next = TABS[(TABS.indexOf(tab) + step + TABS.length) % TABS.length]!;
-    setTab(next);
-    document.getElementById(`${baseId}-tab-${next}`)?.focus();
+  function reveal(key: string) {
+    setOpen((prev) => new Set(prev).add(key));
+    requestAnimationFrame(() => document.getElementById(`${baseId}-${key}`)?.scrollIntoView({ block: "nearest", behavior: "smooth" }));
   }
 
+  const chips = [
+    { key: "tier", text: b.tiers[tier] },
+    ...groups
+      .filter((g) => !(g === "style" && styleRef?.token))
+      .flatMap((g) => (selection[g] as string[]).filter((id) => label(g, id)).map((id) => ({ key: g, text: label(g, id) }))),
+    ...(styleRef?.token ? [{ key: "style", text: b.styleRef.active }] : []),
+  ];
+  const shownChips = allChips ? chips : chips.slice(0, CHIPS_COLLAPSED);
+
   return (
-    <div>
-      <p className="mb-2.5 text-sm font-semibold text-ink-100">{b.tiersLabel}</p>
-      <div role="radiogroup" aria-label={b.tiersLabel} className="grid grid-cols-3 gap-2">
-        {TIERS.map((key, i) =>
-          hasPhoto("tier", key) ? (
-            <button
-              key={key}
-              type="button"
-              role="radio"
-              aria-checked={tier === key}
-              onClick={() => onTier(key)}
-              className={cn(paperCard(tier === key), "rounded-2xl")}
-            >
-              <PaperPhoto group="tier" id={key} on={tier === key} />
-              <span className="block px-2 pb-2 pt-1 text-center">
-                <span className="block text-sm font-semibold text-ink-950">{b.tiers[key]}</span>
-                <span className="hidden text-[11px] leading-snug text-ink-500 sm:block">{b.tierHints[key]}</span>
-              </span>
-            </button>
-          ) : (
-          <button
-            key={key}
-            type="button"
-            role="radio"
-            aria-checked={tier === key}
-            onClick={() => onTier(key)}
-            className={cn(
-              "group relative flex aspect-[4/5] flex-col justify-end overflow-hidden rounded-2xl border text-start transition sm:aspect-[5/4]",
-              tier === key ? "border-mint-500 shadow-[0_0_26px_-8px_var(--color-mint-500)]" : "border-ink-700/70 hover:border-ink-500",
-            )}
-          >
-            <OptionArt group="tier" id={key} index={i} body />
-            <span className="relative bg-gradient-to-t from-ink-950/95 via-ink-950/70 to-transparent p-2.5 pt-8">
-              <span aria-hidden className="mb-1.5 flex gap-0.5">
-                {TIERS.map((_, dot) => (
-                  <span key={dot} className={cn("h-1 w-4 rounded-full", dot <= i ? "bg-mint-500" : "bg-ink-700")} />
-                ))}
-              </span>
-              <span className={cn("block text-sm font-semibold", tier === key ? "text-mint-300" : "text-ink-100")}>{b.tiers[key]}</span>
-              <span className="mt-0.5 hidden text-[11px] leading-snug text-ink-300 sm:block">{b.tierHints[key]}</span>
-            </span>
-          </button>
-          ),
-        )}
-      </div>
-
-      <div role="tablist" aria-label={b.tiersLabel} className="mt-6 flex gap-1 rounded-xl border border-ink-700 bg-ink-950/50 p-1">
-        {TABS.map((key) => (
-          <button
-            key={key}
-            id={`${baseId}-tab-${key}`}
-            type="button"
-            role="tab"
-            aria-selected={tab === key}
-            aria-controls={`${baseId}-panel`}
-            tabIndex={tab === key ? 0 : -1}
-            onClick={() => setTab(key)}
-            onKeyDown={onTabKey}
-            className={cn(
-              "flex-1 rounded-lg px-2 py-1.5 text-xs font-semibold transition sm:text-sm",
-              tab === key ? "bg-violet-500 text-ink-100" : "text-ink-300 hover:text-ink-100",
-            )}
-          >
-            {b.tabs[key]}
-          </button>
-        ))}
-      </div>
-
-      <div id={`${baseId}-panel`} role="tabpanel" aria-labelledby={`${baseId}-tab-${tab}`} className="mt-5 grid gap-6">
-        {groups.length === 0 ? (
-          <p className="rounded-xl border border-dashed border-mint-500/30 p-4 text-sm text-ink-300">{b.soulLocked}</p>
-        ) : (
-          groups.map((g) => {
-            const multi = g.max > 1;
-            const picked = selection[g.id] as string[];
-            const labels = b.opts[g.id] as Record<string, string>;
-            const swatches = SWATCHES[g.id];
-            const photo = PHOTO_GROUPS.has(g.id);
-            const options = visibleOptions(g.id, tier, selection, mode);
-            const pick = (id: string) => onSelection(toggle(selection, g.id as GroupId, id, tier, mode));
-            const state = (on: boolean) =>
-              multi ? { "aria-pressed": on } : { role: "radio" as const, "aria-checked": on };
+    <div className="grid gap-2">
+      <Section
+        id={`${baseId}-tier`}
+        icon="🎭"
+        title={b.tiersLabel}
+        count={nf.format(TIERS.length)}
+        summary={b.tiers[tier]}
+        open={open.has("tier")}
+        onToggle={() => flip("tier")}
+      >
+        <div role="radiogroup" aria-label={b.tiersLabel} className="grid grid-cols-3 gap-2.5">
+          {TIERS.map((key) => {
+            const on = tier === key;
             return (
-              <div key={g.id} role={multi ? "group" : "radiogroup"} aria-label={b.groups[g.id]}>
-                <p className="mb-2 flex items-baseline gap-2 text-xs font-medium text-ink-300">
-                  {b.groups[g.id]}
-                  {multi && <span className="text-[11px] text-ink-500">{b.upTo.replace("{n}", nf.format(g.max))}</span>}
-                </p>
-                {photo ? (
-                  <div className="grid grid-cols-4 gap-2 sm:grid-cols-5">
-                    {options.map((o, i) => {
-                      const on = picked.includes(o.id);
-                      if (hasPhoto(g.id, o.id)) {
-                        return (
-                          <button key={o.id} type="button" {...state(on)} onClick={() => pick(o.id)} className={paperCard(on)}>
-                            <PaperPhoto group={g.id} id={o.id} on={on} />
-                            <span className="block truncate px-1 pb-1.5 pt-0.5 text-center text-[11px] font-semibold text-ink-950">{labels[o.id]}</span>
-                          </button>
-                        );
-                      }
-                      return (
-                        <button
-                          key={o.id}
-                          type="button"
-                          {...state(on)}
-                          onClick={() => pick(o.id)}
-                          className={cn(
-                            "group relative flex aspect-[3/4] flex-col justify-end overflow-hidden rounded-xl border-2 text-start transition",
-                            on ? "border-mint-500 shadow-[0_0_20px_-6px_var(--color-mint-500)]" : "border-transparent hover:border-ink-500",
-                            o.bold && !on && "border-dashed border-ink-500",
-                          )}
-                        >
-                          <OptionArt group={g.id} id={o.id} index={i} body={BODY_GROUPS.has(g.id)} glyph={GLYPHS[g.id]?.[o.id]} />
-                          {on && (
-                            <span aria-hidden className="absolute end-1.5 top-1.5 grid size-5 place-items-center rounded-full bg-mint-500 text-[11px] font-bold text-ink-950">✓</span>
-                          )}
-                          <span className="relative bg-gradient-to-t from-ink-950/95 to-transparent px-1.5 pb-1.5 pt-5 text-[11px] font-medium leading-tight text-ink-100">
-                            {labels[o.id]}
-                          </span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                ) : swatches ? (
-                  <div className="flex flex-wrap gap-x-3 gap-y-2.5">
-                    {options.map((o) => {
-                      const on = picked.includes(o.id);
-                      return (
-                        <button key={o.id} type="button" {...state(on)} onClick={() => pick(o.id)} className="flex w-14 flex-col items-center gap-1 text-[11px] text-ink-300">
-                          <span
-                            aria-hidden
-                            className={cn(
-                              "size-9 rounded-full border border-ink-950/40 transition",
-                              on ? "ring-2 ring-mint-500 ring-offset-2 ring-offset-ink-900" : "hover:scale-105",
-                            )}
-                            style={{ background: swatches[o.id] }}
-                          />
-                          <span className={cn("text-center leading-tight", on && "text-mint-300")}>{labels[o.id]}</span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                ) : (
-                  <div className="flex flex-wrap gap-1.5">
-                    {options.map((o) => {
-                      const on = picked.includes(o.id);
-                      return (
-                        <button
-                          key={o.id}
-                          type="button"
-                          {...state(on)}
-                          onClick={() => pick(o.id)}
-                          className={cn(
-                            "rounded-full border px-3 py-1 text-xs transition",
-                            on
-                              ? "border-violet-400/70 bg-violet-500/15 text-violet-200 shadow-[0_0_14px_-4px_var(--color-mint-500)]"
-                              : "border-ink-700 text-ink-300 hover:border-ink-500 hover:text-ink-100",
-                            o.bold && "border-dashed",
-                          )}
-                        >
-                          {labels[o.id]}
-                        </button>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
+              <button key={key} type="button" role="radio" aria-checked={on} onClick={() => onTier(key)} className={tile(on, "bg-paper")}>
+                <TileArt group="tier" id={key} index={TIERS.indexOf(key)} />
+                <span className="block px-1.5 pb-2 pt-1 text-center">
+                  <span className={cn("block text-sm font-semibold", on ? "text-violet-700" : "text-ink-950")}>{b.tiers[key]}</span>
+                  <span className="hidden text-[11px] leading-snug text-ink-500 sm:block">{b.tierHints[key]}</span>
+                </span>
+                {on && <Check />}
+              </button>
             );
-          })
-        )}
+          })}
+        </div>
+      </Section>
+
+      {groups.length === 0 && <p className="rounded-xl border border-dashed border-violet-400/30 p-4 text-sm text-ink-300">{b.soulLocked}</p>}
+
+      {groups.map((g) => {
+        const options = visibleOptions(g, tier, selection, mode);
+        const picked = selection[g] as string[];
+        const max = groupMax(g);
+        const multi = max > 1;
+        const swatches = SWATCHES[g];
+        const photo = PHOTO_GROUPS.has(g);
+        const pick = (id: string) => onSelection(toggle(selection, g, id, tier, mode));
+        const state = (on: boolean) => (multi ? { "aria-pressed": on } : { role: "radio" as const, "aria-checked": on });
+        const withStyleRef = g === "style" && mode !== "soul";
+        const summary =
+          g === "style" && styleRef?.token ? b.styleRef.active : picked.map((id) => label(g, id)).filter(Boolean).join(" · ");
+        return (
+          <Section
+            key={g}
+            id={`${baseId}-${g}`}
+            icon={GROUP_ICONS[g]}
+            title={b.groups[g]}
+            count={nf.format(options.length)}
+            hint={multi ? b.upTo.replace("{n}", nf.format(max)) : undefined}
+            summary={summary}
+            open={open.has(g)}
+            onToggle={() => flip(g)}
+          >
+            <div role={multi ? "group" : "radiogroup"} aria-label={b.groups[g]} className="grid grid-cols-3 gap-2.5">
+              {withStyleRef && <StyleReference value={styleRef} onChange={onStyleRef} />}
+              {options.map((o, i) => {
+                const on = picked.includes(o.id) && !(g === "style" && styleRef?.token);
+                const name = label(g, o.id);
+                if (swatches) {
+                  return (
+                    <button
+                      key={o.id}
+                      type="button"
+                      {...state(on)}
+                      onClick={() => pick(o.id)}
+                      className={cn("rounded-2xl p-2 text-center transition", on ? cn(ON, "bg-violet-500/15") : "hover:bg-ink-800")}
+                    >
+                      <span aria-hidden className="relative grid h-14 place-items-center rounded-xl" style={{ background: swatches[o.id] }}>
+                        {on && <span className="grid size-6 place-items-center rounded-full bg-mint-500 text-xs font-bold text-ink-950 ring-2 ring-ink-950">✓</span>}
+                      </span>
+                      <span className={cn("mt-1.5 block truncate text-xs font-medium", on ? "text-violet-200" : "text-ink-100")}>{name}</span>
+                    </button>
+                  );
+                }
+                if (photo || GLYPHS[g]?.[o.id]) {
+                  return (
+                    <button
+                      key={o.id}
+                      type="button"
+                      {...state(on)}
+                      onClick={() => pick(o.id)}
+                      title={name}
+                      aria-label={name}
+                      className={tile(on, hasPhoto(g, o.id) ? "bg-paper" : "bg-ink-850")}
+                    >
+                      <TileArt group={g} id={o.id} index={i} body={BODY_GROUPS.has(g)} glyph={GLYPHS[g]?.[o.id]} />
+                      <span
+                        className={cn(
+                          "absolute inset-x-0 bottom-0 bg-gradient-to-t from-ink-950/90 via-ink-950/50 to-transparent px-2 pb-1.5 pt-8 text-start text-xs font-semibold leading-tight transition",
+                          on ? "text-violet-200 opacity-100" : "text-ink-100 opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100",
+                          !hasPhoto(g, o.id) && "opacity-100",
+                        )}
+                      >
+                        {name}
+                      </span>
+                      {on && <Check />}
+                    </button>
+                  );
+                }
+                return (
+                  <button
+                    key={o.id}
+                    type="button"
+                    {...state(on)}
+                    onClick={() => pick(o.id)}
+                    className={cn(
+                      "min-h-12 rounded-2xl px-2.5 py-2 text-start text-sm font-medium transition",
+                      on ? cn(ON, "bg-violet-500/15 text-violet-100") : cn(OFF, "text-ink-300 hover:text-ink-100"),
+                      o.bold && !on && "border border-dashed border-ink-600",
+                    )}
+                  >
+                    {name}
+                  </button>
+                );
+              })}
+            </div>
+          </Section>
+        );
+      })}
+
+      <div className="sticky bottom-0 z-10 -mx-1 mt-2 rounded-2xl border border-ink-700/70 bg-ink-900 px-3 pb-3 pt-2.5 shadow-[0_-12px_24px_-12px_var(--color-ink-950)]">
+        <div className="flex items-center justify-between gap-3">
+          <p className="text-xs font-semibold text-ink-300">{b.picked}</p>
+          <button type="button" onClick={onReset} className="text-xs text-ink-500 transition hover:text-ink-100">
+            {b.resetAll}
+          </button>
+        </div>
+        <ul className="mt-2 flex flex-wrap gap-1.5">
+          {shownChips.map((c, i) => (
+            <li key={`${c.key}-${i}`}>
+              <button
+                type="button"
+                onClick={() => reveal(c.key)}
+                className="rounded-full border border-ink-700 bg-ink-850 px-2.5 py-1 text-xs text-ink-100 transition hover:border-violet-400/70"
+              >
+                {c.text}
+              </button>
+            </li>
+          ))}
+          {chips.length > CHIPS_COLLAPSED && (
+            <li>
+              <button
+                type="button"
+                onClick={() => setAllChips((v) => !v)}
+                className="rounded-full px-2.5 py-1 text-xs font-semibold text-violet-300 hover:text-violet-200"
+              >
+                {allChips ? b.showLess : b.showMore}
+              </button>
+            </li>
+          )}
+        </ul>
       </div>
     </div>
   );
 }
 
+function Section({
+  id,
+  icon,
+  title,
+  count,
+  hint,
+  summary,
+  open,
+  onToggle,
+  children,
+}: {
+  id: string;
+  icon: string;
+  title: string;
+  count: string;
+  hint?: string;
+  summary?: string;
+  open: boolean;
+  onToggle: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <section id={id} className={cn("rounded-[1.4rem] border transition", open ? "border-ink-700 bg-ink-900/80" : "border-transparent bg-ink-850/70 hover:bg-ink-800/80")}>
+      <h3>
+        <button type="button" aria-expanded={open} aria-controls={`${id}-body`} onClick={onToggle} className="flex w-full items-center gap-3 px-4 py-3 text-start">
+          <span aria-hidden className="grid size-6 shrink-0 place-items-center text-base grayscale-[0.3]">{icon}</span>
+          <span className="min-w-0 flex-1">
+            <span className="flex items-baseline gap-1.5 text-[15px] font-semibold text-ink-100">
+              {title}
+              <span className="text-ink-500">•</span>
+              <span className="font-medium text-ink-500">{count}</span>
+              {hint && <span className="ms-1 text-[11px] font-normal text-ink-500">{hint}</span>}
+            </span>
+            {summary && !open && <span className="mt-0.5 block truncate text-xs text-violet-300">{summary}</span>}
+          </span>
+          <svg aria-hidden viewBox="0 0 20 20" className={cn("size-4 shrink-0 text-ink-500 transition-transform motion-reduce:transition-none", open && "rotate-180")}>
+            <path d="M5 7.5l5 5 5-5" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        </button>
+      </h3>
+      {open && (
+        <div id={`${id}-body`} className="px-3 pb-3">
+          <div className="rounded-2xl bg-ink-950/50 p-2.5">{children}</div>
+        </div>
+      )}
+    </section>
+  );
+}
+
 const hasPhoto = (group: string, id: string) => OPTION_PHOTOS.has(`${group}/${id}`);
 
-/** White tile for a generated option photo (art direction: docs/design/option-photos.md). */
-const paperCard = (on: boolean) =>
+/** Square option tile (white "paper" behind generated photos, see docs/design/option-photos.md). */
+const tile = (on: boolean, bg: string) =>
   cn(
-    "group relative flex flex-col overflow-hidden rounded-xl border-2 bg-paper text-start transition",
-    on ? "border-mint-500 shadow-[0_0_20px_-6px_var(--color-mint-500)]" : "border-transparent hover:border-ink-500",
+    "group relative flex flex-col overflow-hidden rounded-2xl text-start transition duration-200 motion-reduce:transition-none",
+    bg,
+    on ? cn(ON, "scale-[1.02]") : OFF,
   );
 
-function PaperPhoto({ group, id, on }: { group: string; id: string; on: boolean }) {
+function Check() {
   return (
-    <span className="relative block aspect-square overflow-hidden">
-      {/* eslint-disable-next-line @next/next/no-img-element -- small static thumbnails */}
-      <img src={`/influencer/options/${group}/${id}.webp`} alt="" loading="lazy" className="size-full object-cover transition duration-300 group-hover:scale-105 motion-reduce:transition-none" />
-      {on && (
-        <span aria-hidden className="absolute end-1.5 top-1.5 grid size-5 place-items-center rounded-full bg-mint-500 text-[11px] font-bold text-ink-950">✓</span>
-      )}
+    <span aria-hidden className="absolute end-2 top-2 grid size-6 place-items-center rounded-full bg-mint-500 text-xs font-bold text-ink-950 shadow-[0_2px_8px_var(--color-ink-950)]">
+      ✓
     </span>
   );
 }
 
 /** Option photo when generated (see option-photos.ts), else a glyph or DIZURA placeholder art. */
-function OptionArt({ group, id, index, body, glyph }: { group: string; id: string; index: number; body?: boolean; glyph?: string }) {
-  if (glyph && !OPTION_PHOTOS.has(`${group}/${id}`)) {
+function TileArt({ group, id, index, body, glyph }: { group: string; id: string; index: number; body?: boolean; glyph?: string }) {
+  if (OPTION_PHOTOS.has(`${group}/${id}`)) {
     return (
-      <span aria-hidden className="absolute inset-0 grid place-items-center pb-5 text-4xl sm:text-5xl" style={{ background: `var(--art-${index % 6})` }}>
+      <span className="relative block aspect-square overflow-hidden">
+        {/* eslint-disable-next-line @next/next/no-img-element -- small static thumbnails */}
+        <img src={`/influencer/options/${group}/${id}.webp`} alt="" loading="lazy" className="size-full object-cover transition duration-300 group-hover:scale-105 motion-reduce:transition-none" />
+      </span>
+    );
+  }
+  if (glyph) {
+    return (
+      <span aria-hidden className="relative grid aspect-square place-items-center pb-5 text-4xl sm:text-5xl" style={{ background: `var(--art-${index % 6})` }}>
         <span className="drop-shadow-[0_6px_14px_var(--color-ink-950)] transition duration-300 group-hover:scale-110 motion-reduce:transition-none">{glyph}</span>
       </span>
     );
   }
-  if (OPTION_PHOTOS.has(`${group}/${id}`)) {
-    return (
-      // eslint-disable-next-line @next/next/no-img-element -- small static thumbnails
-      <img src={`/influencer/options/${group}/${id}.webp`} alt="" loading="lazy" className="absolute inset-0 size-full object-cover transition duration-300 group-hover:scale-105 motion-reduce:transition-none" />
-    );
-  }
   return (
-    <span aria-hidden className="absolute inset-0 overflow-hidden" style={{ background: `var(--art-${index % 6})` }}>
+    <span aria-hidden className="relative block aspect-square overflow-hidden" style={{ background: `var(--art-${index % 6})` }}>
       <svg
         viewBox={body ? "0 0 60 160" : "0 0 100 120"}
         className={cn("absolute bottom-0 start-1/2 -translate-x-1/2 text-ink-950/35 rtl:translate-x-1/2", body ? "h-[88%]" : "h-[78%]")}

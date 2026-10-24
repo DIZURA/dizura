@@ -173,7 +173,7 @@ export function GenjutsuStep({
         <p className="mb-3 text-xs text-ink-500">{s.videoHint}</p>
         <input ref={videoInput} type="file" accept={VIDEO_ACCEPT} className="sr-only" tabIndex={-1} onChange={(e) => void chooseVideo(e.target.files?.[0])} />
         {video ? (
-          <div className="flex gap-4 rounded-2xl border border-ink-700 bg-ink-950/50 p-3">
+          <div className="flex gap-4 rounded-2xl border border-violet-400/40 bg-ink-950/50 p-3">
             <video src={video.preview} muted playsInline loop autoPlay className="h-36 w-auto max-w-[45%] rounded-xl bg-ink-850 object-cover motion-reduce:[animation:none]" />
             <div className="flex min-w-0 flex-1 flex-col gap-2 text-xs">
               <p className="truncate font-medium text-ink-100" dir="auto">{video.name}</p>
@@ -191,7 +191,7 @@ export function GenjutsuStep({
                 <div>
                   <p className="mb-1 text-ink-300">{s.uploading.replace("{p}", nf.format(Math.round(video.progress * 100)))}</p>
                   <div className="h-1.5 overflow-hidden rounded-full bg-ink-800">
-                    <div className="h-full rounded-full bg-mint-500 transition-[width]" style={{ width: `${Math.round(video.progress * 100)}%` }} />
+                    <div className="h-full rounded-full bg-signature transition-[width]" style={{ width: `${Math.round(video.progress * 100)}%` }} />
                   </div>
                 </div>
               )}
@@ -209,10 +209,10 @@ export function GenjutsuStep({
               e.preventDefault();
               void chooseVideo(e.dataTransfer.files[0]);
             }}
-            className="flex w-full flex-col items-center gap-2 rounded-2xl border border-dashed border-mint-500/40 bg-mint-500/[0.03] px-4 py-8 text-sm text-ink-300 transition hover:border-mint-500 hover:bg-mint-500/[0.06]"
+            className="flex w-full flex-col items-center gap-2 rounded-2xl border-2 border-dashed border-ink-700 bg-ink-950/40 px-4 py-9 text-sm text-ink-300 transition hover:border-violet-400/70 hover:bg-violet-500/[0.06]"
           >
-            <span aria-hidden className="grid size-11 place-items-center rounded-full border border-mint-500/40 text-lg text-mint-300">▶</span>
-            <span className="font-semibold text-mint-300">{s.dropVideo}</span>
+            <span aria-hidden className="grid size-14 place-items-center rounded-full bg-ink-800 text-lg text-ink-100 shadow-[0_8px_24px_-8px_var(--color-ink-950)]">▶</span>
+            <span className="text-base font-semibold text-ink-100">{s.dropVideo}</span>
           </button>
         )}
       </div>

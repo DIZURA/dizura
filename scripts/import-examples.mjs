@@ -7,13 +7,16 @@
  * and rewrites both manifests (option-photos.ts, examples.ts) from what is on disk.
  *
  *   node scripts/import-examples.mjs <folder-with-lovable-jpgs>
+ *   node scripts/import-examples.mjs --options <folder>   # option photo set v3: <group>-<optionId>.jpg
+ *                                                           # (src/assets/options in Lovable) → 320 px squares
  */
 import { existsSync, mkdirSync, readdirSync, writeFileSync } from "node:fs";
 import { basename, dirname, extname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
-const SRC = process.argv[2];
+const OPTIONS_MODE = process.argv.includes("--options");
+const SRC = process.argv.slice(2).find((a) => !a.startsWith("--"));
 if (!SRC || !existsSync(SRC)) {
   console.error("Usage: node scripts/import-examples.mjs <folder-with-lovable-jpgs>");
   process.exit(1);
@@ -35,6 +38,15 @@ for (const file of readdirSync(SRC)) {
   if (!/\.(jpe?g|png|webp)$/i.test(file)) continue;
   const name = basename(file, extname(file));
   const [prefix, ...rest] = name.split("-");
+  if (OPTIONS_MODE) {
+    // v3 set: file names already use our group and option ids (e.g. hair-hairHorns, ethnicity-middleEastern).
+    if (!/^[a-zA-Z]+$/.test(prefix) || rest.length !== 1 || !/^[a-zA-Z0-9]+$/.test(rest[0])) continue;
+    const out = join(ROOT, "public/influencer/options", prefix, `${rest[0]}.webp`);
+    mkdirSync(dirname(out), { recursive: true });
+    await sharp(join(SRC, file)).resize({ width: 320, height: 320, fit: "cover" }).webp({ quality: 78 }).toFile(out);
+    options++;
+    continue;
+  }
   const group = GROUPS[prefix];
   if (group) {
     const raw = rest.join("-");
