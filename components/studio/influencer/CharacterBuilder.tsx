@@ -108,7 +108,7 @@ export function CharacterBuilder({
             onKeyDown={onTabKey}
             className={cn(
               "flex-1 rounded-lg px-2 py-1.5 text-xs font-semibold transition sm:text-sm",
-              tab === key ? "bg-mint-500 text-ink-950" : "text-ink-300 hover:text-ink-100",
+              tab === key ? "bg-violet-500 text-ink-100" : "text-ink-300 hover:text-ink-100",
             )}
           >
             {b.tabs[key]}
@@ -203,7 +203,7 @@ export function CharacterBuilder({
                           className={cn(
                             "rounded-full border px-3 py-1 text-xs transition",
                             on
-                              ? "border-mint-500/70 bg-mint-500/10 text-mint-300 shadow-[0_0_14px_-4px_var(--color-mint-500)]"
+                              ? "border-violet-400/70 bg-violet-500/15 text-violet-200 shadow-[0_0_14px_-4px_var(--color-mint-500)]"
                               : "border-ink-700 text-ink-300 hover:border-ink-500 hover:text-ink-100",
                             o.bold && "border-dashed",
                           )}

@@ -82,13 +82,13 @@ export function AdsStudio() {
                 role="radio"
                 aria-checked={mode === m}
                 onClick={() => setMode(m)}
-                className={cn("rounded-full px-4 py-1.5 text-xs font-semibold transition", mode === m ? "bg-mint-500 text-ink-950" : "text-ink-300 hover:text-ink-100")}
+                className={cn("rounded-full px-4 py-1.5 text-xs font-semibold transition", mode === m ? "bg-violet-500 text-ink-100" : "text-ink-300 hover:text-ink-100")}
               >
                 {a.modes[m]}
               </button>
             ))}
           </div>
-          <span dir="ltr" className="rounded-full border border-mint-500/30 bg-mint-500/10 px-2.5 py-1 text-[11px] font-semibold tracking-wide text-mint-300">DIZURA Ads</span>
+          <span dir="ltr" className="rounded-full border border-violet-400/40 bg-violet-500/15 px-2.5 py-1 text-[11px] font-semibold tracking-wide text-violet-200">DIZURA Ads</span>
         </div>
 
         {/* Product photo */}
@@ -143,7 +143,7 @@ export function AdsStudio() {
                   role="radio"
                   aria-checked={motion === m}
                   onClick={() => setMotion(m)}
-                  className={cn("flex items-start gap-2 rounded-xl border p-2.5 text-start transition", motion === m ? "border-mint-500/70 bg-mint-500/10" : "border-ink-700 hover:border-ink-500")}
+                  className={cn("flex items-start gap-2 rounded-xl border p-2.5 text-start transition", motion === m ? "border-violet-400/70 bg-violet-500/15" : "border-ink-700 hover:border-ink-500")}
                 >
                   <span aria-hidden className="grid size-8 shrink-0 place-items-center rounded-lg bg-ink-800 text-sm">{MOTION_GLYPH[m]}</span>
                   <span className="min-w-0">
@@ -202,7 +202,7 @@ export function AdsStudio() {
                   role="radio"
                   aria-checked={ratio === r}
                   onClick={() => setRatio(r)}
-                  className={cn("rounded-lg px-2.5 py-1.5 text-xs transition", ratio === r ? "bg-mint-500 font-semibold text-ink-950" : "text-ink-300 hover:text-ink-100")}
+                  className={cn("rounded-lg px-2.5 py-1.5 text-xs transition", ratio === r ? "bg-violet-500 font-semibold text-ink-100" : "text-ink-300 hover:text-ink-100")}
                 >
                   {r}
                 </button>
@@ -220,7 +220,7 @@ export function AdsStudio() {
                     role="radio"
                     aria-checked={seconds === n}
                     onClick={() => setSeconds(n)}
-                    className={cn("rounded-lg px-2.5 py-1.5 text-xs tabular-nums transition", seconds === n ? "bg-mint-500 font-semibold text-ink-950" : "text-ink-300 hover:text-ink-100")}
+                    className={cn("rounded-lg px-2.5 py-1.5 text-xs tabular-nums transition", seconds === n ? "bg-violet-500 font-semibold text-ink-100" : "text-ink-300 hover:text-ink-100")}
                   >
                     {a.seconds.replace("{n}", nf.format(n))}
                   </button>
@@ -238,10 +238,10 @@ export function AdsStudio() {
                   role="radio"
                   aria-checked={quality === q}
                   onClick={() => setQuality(q)}
-                  className={cn("rounded-lg px-2.5 py-1.5 text-xs transition", quality === q ? "bg-mint-500 font-semibold text-ink-950" : "text-ink-300 hover:text-ink-100")}
+                  className={cn("rounded-lg px-2.5 py-1.5 text-xs transition", quality === q ? "bg-violet-500 font-semibold text-ink-100" : "text-ink-300 hover:text-ink-100")}
                 >
                   {a.qualities[q]}
-                  <span className={cn("ms-1 text-[10px]", quality === q ? "text-ink-950/70" : "text-ink-500")}>{nf.format(prices.ad[q])}</span>
+                  <span className={cn("ms-1 text-[10px]", quality === q ? "text-ink-100/70" : "text-ink-500")}>{nf.format(prices.ad[q])}</span>
                 </button>
               ))}
             </div>
@@ -260,10 +260,10 @@ export function AdsStudio() {
                   role="radio"
                   aria-checked={resolution === r}
                   onClick={() => setResolution(r)}
-                  className={cn("rounded-lg px-3 py-1.5 text-xs transition", resolution === r ? "bg-mint-500 font-semibold text-ink-950" : "text-ink-300 hover:text-ink-100")}
+                  className={cn("rounded-lg px-3 py-1.5 text-xs transition", resolution === r ? "bg-violet-500 font-semibold text-ink-100" : "text-ink-300 hover:text-ink-100")}
                 >
                   {r}
-                  <span dir="auto" className={cn("ms-1 text-[10px]", resolution === r ? "text-ink-950/70" : "text-ink-500")}>{a.perSecond.replace("{n}", nf.format(prices.adVideo[r]))}</span>
+                  <span dir="auto" className={cn("ms-1 text-[10px]", resolution === r ? "text-ink-100/70" : "text-ink-500")}>{a.perSecond.replace("{n}", nf.format(prices.adVideo[r]))}</span>
                 </button>
               ))}
             </div>

@@ -126,7 +126,7 @@ export function SoulIdPanel({
     <section aria-labelledby="soul-title" className="glass rounded-[var(--radius-card)] p-5 sm:p-7">
       <header className="mb-5 flex flex-wrap items-start justify-between gap-3">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-mint-400">
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-violet-300">
             {s.badge} <span className="ms-1 rounded bg-ink-800 px-1.5 py-0.5 text-[10px] normal-case tracking-normal text-ink-300">{s.optional}</span>
           </p>
           <h2 id="soul-title" className="mt-1 text-xl font-bold sm:text-2xl">{s.title}</h2>

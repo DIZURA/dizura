@@ -25,7 +25,7 @@ export default async function BillingPage() {
     <>
       <TopBar brand={t.brand} nav />
       <main className="mx-auto max-w-3xl px-4 pb-20 pt-12 sm:px-5">
-        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-mint-300">{b.eyebrow}</p>
+        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-violet-300">{b.eyebrow}</p>
         <h1 className="mt-2 text-3xl font-black sm:text-4xl">{b.title}</h1>
         <p className="mt-2 text-ink-300">{b.subtitle}</p>
         <div className="mt-8">

@@ -16,10 +16,12 @@
     "scan:secrets": "node scripts/scan-secrets.mjs",
     "photos:options": "node --env-file-if-exists=.env.local --experimental-strip-types scripts/generate-option-photos.mjs",
     "prepare": "git config core.hooksPath .githooks || true",
-    "margins": "node --env-file-if-exists=.env.local --experimental-strip-types scripts/check-margins.mjs"
+    "margins": "node --env-file-if-exists=.env.local --experimental-strip-types scripts/check-margins.mjs",
+    "example:seedance": "node --env-file-if-exists=.env.local --experimental-strip-types examples/seedance/index.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "0.132.1",
+    "@higgsfield/client": "0.2.6",
     "@react-three/fiber": "^9.8.2",
     "@supabase/ssr": "0.12.7",
     "@supabase/supabase-js": "2.117.3",

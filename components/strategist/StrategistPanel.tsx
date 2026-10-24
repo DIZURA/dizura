@@ -108,7 +108,7 @@ export function StrategistPanel() {
         aria-expanded={open}
         aria-controls="strategist"
         className={cn(
-          "fixed bottom-5 end-5 z-30 inline-flex items-center gap-2 rounded-full border border-mint-500/50 bg-ink-900 px-4 py-2.5 text-sm font-semibold text-mint-300 shadow-[0_0_32px_-8px_var(--color-mint-500)] transition hover:bg-ink-850",
+          "fixed bottom-5 end-5 z-30 inline-flex items-center gap-2 rounded-full border border-violet-400/50 bg-ink-900 px-4 py-2.5 text-sm font-semibold text-mint-300 shadow-[0_0_32px_-8px_var(--color-mint-500)] transition hover:bg-ink-850",
           open && "pointer-events-none opacity-0",
         )}
       >
@@ -127,7 +127,7 @@ export function StrategistPanel() {
         )}
       >
         <header className="flex items-start gap-3 border-b border-ink-700 px-5 py-4">
-          <span aria-hidden className="grid size-9 shrink-0 place-items-center rounded-full bg-mint-500/15 text-mint-300">✦</span>
+          <span aria-hidden className="grid size-9 shrink-0 place-items-center rounded-full bg-violet-500/20 text-violet-200">✦</span>
           <div className="min-w-0 flex-1">
             <h2 className="font-semibold">{s.title}</h2>
             <p className="text-xs text-ink-500">{s.subtitle}</p>

@@ -35,6 +35,8 @@ const schema = z.object({
   HIGGSFIELD_API_BASE_URL: z.url().default("https://api.higgsfield.ai"),
   HIGGSFIELD_API_KEY: optional,
   HIGGSFIELD_API_SECRET: optional,
+  /** "KEY_ID:KEY_SECRET" for the official SDK example (examples/seedance); read by @higgsfield/client itself. */
+  HF_CREDENTIALS: optional,
 
   // Strategy chat + blueprints (Claude API). Model id is configurable; default = current Opus.
   ANTHROPIC_API_KEY: optional,
