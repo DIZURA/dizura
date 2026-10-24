@@ -68,3 +68,7 @@ export async function uploadVideo(file: File, onProgress?: (fraction: number) =>
   });
   return slot.token;
 }
+
+/** "unavailable" when the service itself can't take uploads right now (keys/account), else "failed". */
+export const uploadErrorKind = (err: unknown): "unavailable" | "failed" =>
+  err instanceof ClientApiError && err.code === "not_configured" ? "unavailable" : "failed";

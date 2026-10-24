@@ -20,3 +20,25 @@ export const AD_FORMAT_IDS = Object.keys(AD_FORMATS) as AdFormat[];
 export function composeAdPrompt(format: AdFormat, notes: string): string {
   return [AD_FORMATS[format], notes.trim(), KEEP_PRODUCT].filter(Boolean).join(". ");
 }
+
+/**
+ * Video ads (WAN 3.0 Prime image-to-video): the product photo is the first frame, so the product
+ * stays exact; the prompt describes only camera and scene motion.
+ */
+const KEEP_PRODUCT_VIDEO =
+  "The product from the first frame stays exactly the same shape, colours, label and text throughout. Smooth, stable, cinematic commercial video, no text overlays, no warping";
+
+export const VIDEO_AD_MOTIONS = {
+  push_in: "Slow cinematic dolly push-in towards the product with soft light shimmering across its surface",
+  orbit: "Smooth 360-degree turntable orbit around the product on a clean pedestal, premium studio lighting",
+  reveal: "A beam of light sweeps across the dark scene and reveals the product, subtle particles in the air",
+  lifestyle: "A hand gently picks up the product in a bright modern Gulf home, natural daylight, shallow depth of field",
+  unbox: "The product is lifted out of an elegant gift box, ribbon falling away, warm festive light",
+  splash: "Dynamic splash of water and light particles bursting around the product in slow motion",
+} as const;
+export type VideoAdMotion = keyof typeof VIDEO_AD_MOTIONS;
+export const VIDEO_AD_MOTION_IDS = Object.keys(VIDEO_AD_MOTIONS) as VideoAdMotion[];
+
+export function composeVideoAdPrompt(motion: VideoAdMotion, notes: string): string {
+  return [VIDEO_AD_MOTIONS[motion], notes.trim(), KEEP_PRODUCT_VIDEO].filter(Boolean).join(". ");
+}

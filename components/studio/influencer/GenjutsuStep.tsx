@@ -293,7 +293,7 @@ export function GenjutsuStep({
                 className={cn("rounded-lg px-3 py-1.5 text-xs transition", resolution === r ? "bg-mint-500 font-semibold text-ink-950" : "text-ink-300 hover:text-ink-100")}
               >
                 {r}
-                <span className={cn("ms-1 text-[10px]", resolution === r ? "text-ink-950/70" : "text-ink-500")}>⚡{s.perSecond.replace("{n}", nf.format(prices.motion[r]))}</span>
+                <span dir="auto" className={cn("ms-1 text-[10px]", resolution === r ? "text-ink-950/70" : "text-ink-500")}>{s.perSecond.replace("{n}", nf.format(prices.motion[r]))}</span>
               </button>
             ))}
           </div>
@@ -314,7 +314,6 @@ export function GenjutsuStep({
       <div className="flex flex-wrap items-center gap-3 border-t border-ink-700/60 pt-5">
         {cost !== null && (
           <span className="inline-flex items-center gap-1 rounded-full border border-ember-500/30 bg-ember-500/10 px-2.5 py-1 text-xs font-semibold text-ember-300">
-            <span aria-hidden>⚡</span>
             <span className="tabular-nums">{nf.format(cost)}</span>
             <span className="font-normal">{t.gen.credits}</span>
             <span className="font-normal text-ember-300/70">· {s.seconds.replace("{n}", nf.format(Math.max(GENJUTSU.minSeconds, seconds)))}</span>

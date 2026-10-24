@@ -202,7 +202,7 @@ export function StrategistPanel() {
               className="w-full resize-none bg-transparent px-1 text-sm text-ink-100 placeholder:text-ink-500 focus:outline-none"
             />
             <div className="flex items-center gap-2">
-              <span className="text-[11px] text-ember-300">⚡ {s.perMessage.replace("{n}", nf.format(prices.chat))}</span>
+              <span className="text-[11px] text-ember-300">{s.perMessage.replace("{n}", nf.format(prices.chat))}</span>
               <button type="submit" disabled={busy || !draft.trim()} className="ms-auto rounded-lg bg-mint-500 px-4 py-1.5 text-xs font-semibold text-ink-950 transition hover:bg-mint-400 disabled:opacity-40">
                 {s.send}
               </button>

@@ -22,3 +22,7 @@ export async function submitMotionTransfer(...args: Parameters<typeof higgsfield
 export async function submitAdImage(...args: Parameters<typeof higgsfield.submitAdImage>) {
   return higgsfield.submitAdImage(...args);
 }
+
+export async function submitAdVideo(...args: Parameters<typeof higgsfield.submitAdVideo>) {
+  return higgsfield.submitAdVideo(...args);
+}
