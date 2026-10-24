@@ -113,6 +113,10 @@ export async function recordUsage(key: CostKey, sampleUsd: number): Promise<void
   }
 }
 
+/** Placeholder media for quotes: /estimate requires video_url / image_url in the body but prices by settings. */
+const PROBE_IMAGE = "https://example.com/dizura-estimate.jpg";
+const PROBE_VIDEO = "https://example.com/dizura-estimate.mp4";
+
 /** Higgsfield probes with our exact request settings. Genjutsu is quoted for 10 s and divided. */
 const PROBES: { key: CostKey; model: string; body: Record<string, unknown>; per?: number }[] = [
   { key: "characterImage", model: MODELS.image, body: { prompt: "estimate", aspect_ratio: "9:16", resolution: "720p", batch_size: 1 } },
@@ -120,12 +124,12 @@ const PROBES: { key: CostKey; model: string; body: Record<string, unknown>; per?
   { key: "adStandard", model: MODELS.adImage, body: { prompt: "estimate", image_urls: [], aspect_ratio: "1:1", resolution: "1k", quality: "medium" } },
   { key: "adHigh", model: MODELS.adImage, body: { prompt: "estimate", image_urls: [], aspect_ratio: "1:1", resolution: "2k", quality: "high" } },
   { key: "adUltra", model: MODELS.adImage, body: { prompt: "estimate", image_urls: [], aspect_ratio: "1:1", resolution: "4k", quality: "high" } },
-  { key: "motion480p", model: MODELS.motionTransfer, body: { prompt: "", image_urls: [], resolution: "480p", duration: 10 }, per: 10 },
-  { key: "motion720p", model: MODELS.motionTransfer, body: { prompt: "", image_urls: [], resolution: "720p", duration: 10 }, per: 10 },
-  { key: "motion1080p", model: MODELS.motionTransfer, body: { prompt: "", image_urls: [], resolution: "1080p", duration: 10 }, per: 10 },
-  { key: "adVideo480p", model: MODELS.imageToVideo, body: { prompt: "estimate", aspect_ratio: "9:16", resolution: "480p", duration: 10 }, per: 10 },
-  { key: "adVideo720p", model: MODELS.imageToVideo, body: { prompt: "estimate", aspect_ratio: "9:16", resolution: "720p", duration: 10 }, per: 10 },
-  { key: "adVideo1080p", model: MODELS.imageToVideo, body: { prompt: "estimate", aspect_ratio: "9:16", resolution: "1080p", duration: 10 }, per: 10 },
+  { key: "motion480p", model: MODELS.motionTransfer, body: { prompt: "", video_url: PROBE_VIDEO, image_urls: [PROBE_IMAGE], resolution: "480p", duration: 10 }, per: 10 },
+  { key: "motion720p", model: MODELS.motionTransfer, body: { prompt: "", video_url: PROBE_VIDEO, image_urls: [PROBE_IMAGE], resolution: "720p", duration: 10 }, per: 10 },
+  { key: "motion1080p", model: MODELS.motionTransfer, body: { prompt: "", video_url: PROBE_VIDEO, image_urls: [PROBE_IMAGE], resolution: "1080p", duration: 10 }, per: 10 },
+  { key: "adVideo480p", model: MODELS.imageToVideo, body: { prompt: "estimate", image_url: PROBE_IMAGE, aspect_ratio: "9:16", resolution: "480p", duration: 10 }, per: 10 },
+  { key: "adVideo720p", model: MODELS.imageToVideo, body: { prompt: "estimate", image_url: PROBE_IMAGE, aspect_ratio: "9:16", resolution: "720p", duration: 10 }, per: 10 },
+  { key: "adVideo1080p", model: MODELS.imageToVideo, body: { prompt: "estimate", image_url: PROBE_IMAGE, aspect_ratio: "9:16", resolution: "1080p", duration: 10 }, per: 10 },
 ];
 
 /** Refreshes Higgsfield prices (each key at most once a day unless forced). Returns what changed. */

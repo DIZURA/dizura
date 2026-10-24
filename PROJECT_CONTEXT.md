@@ -260,7 +260,7 @@ Agency services (not credits): **3000 SAR** each (Tap).
 - [ ] Supabase → Authentication → enable **Leaked password protection** (security advisor WARN; dashboard setting, not SQL).
 - [ ] Netlify: set `CRON_SECRET` (64 random chars, secret, Builds + Functions, Production) — without it the hourly job (renewals + price refresh) returns 503. Optional `ELEVENLABS_USD_PER_1K_CHARS` = your ElevenLabs plan rate.
 - [ ] **Tap: saved cards are NOT enabled (error 1108 on every subscribe, 2026-10-24)** — ask Tap support to enable save card / recurring (payment agreements) and SAR + USD on the account; test subscribe → renew (merchant-initiated) → decline in **test mode**, incl. a mada card. Register the webhook URL.
-- [ ] Confirm Higgsfield `/estimate` bodies for Genjutsu (`duration`/`resolution` without a video) on the first live refresh — guards keep the previous cost if the quote looks wrong.
+- [x] Higgsfield `/estimate` live (2026-10-24 06:00 cron): ad image tiers quoted and applied (standard $0.054, high $0.373, ultra $0.614). Genjutsu and WAN i2v quotes require `video_url` / `image_url` → probes now send placeholder URLs. Soul 2 quoted $0.004 (below the 0.5× guard → rejected, baseline kept) — check the Soul 2 per-image price on the Higgsfield dashboard.
 - [ ] Netlify (Production): `ANTHROPIC_API_KEY` (Strategist, Strategy files, "Write it for me") and `ELEVENLABS_API_KEY` (DIZURA Voice); without them those features return 503 before charging.
 - [ ] Agency orders: paid orders appear in `service_orders` + function logs (`[agency] new paid order`) — add an email/WhatsApp notification to the team.
 - [x] **Higgsfield** paths/auth/response shape now match the official docs; verified against a mock of the documented API (request path, `Key` header, Idempotency-Key, body, status polling, image/video/nsfw results). **Still to do: one live generation with real keys** (sandbox can't reach api.higgsfield.ai).
@@ -269,7 +269,7 @@ Agency services (not credits): **3000 SAR** each (Tap).
 - [ ] Regenerate the remaining option photos from the v4 prompts (original casting) — Lovable workspace and Higgsfield account are both out of credits (2026-10-24); import with `scripts/import-examples.mjs --options`.
 - [ ] Tap: confirm `hashstring` field order for the account's API version; register webhook URL in Tap dashboard.
 - [x] `TAP_SECRET_KEY` set on Netlify (2026-10-23, all contexts, **`sk_test_` = test mode**; switch Production to `sk_live_` to take real payments). Register webhook `https://sparkly-swan-cf292e.netlify.app/api/webhooks/tap` in Tap.
-- [ ] **Higgsfield key on Netlify is rejected (`401 Invalid credentials`, 2026-10-24 logs)** — photo uploads, characters, ads and videos all fail until `HIGGSFIELD_API_KEY` + `HIGGSFIELD_API_SECRET` (or `KEY_ID:KEY_SECRET`) are replaced with a valid pair from Higgsfield → API keys, then redeploy.
+- [x] Higgsfield key on Netlify accepted (2026-10-24 06:00 cron: no 401; single-value key supported, ADR 56).
 - [ ] `SUPABASE_SERVICE_ROLE_KEY` on Netlify is only 10 characters — looks like a placeholder, not a real key. Credit ledger, payment fulfilment, DIZURA ID and video uploads fail (503) until it is replaced with the real `service_role`/`sb_secret_` key (Production only).
 
 ## 10. Roadmap
