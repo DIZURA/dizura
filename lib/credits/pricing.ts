@@ -1,7 +1,8 @@
 import type { GenerationRequest } from "@/types";
 
-/** Granted once when a user confirms their email (DB trigger, migrations 0003/0004 — keep in sync). */
-export const WELCOME_CREDITS = 30;
+/** No free credits (owner, 2026-10-24): credits come only from paid plans. Migration 0011 turned the
+ * welcome trigger into a no-op — keep in sync if a welcome bonus ever returns. */
+export const WELCOME_CREDITS = 0;
 
 // ---------------------------------------------------------------------------
 // Plans (ADR 51): monthly subscriptions, SAR in Arabic, USD in English
