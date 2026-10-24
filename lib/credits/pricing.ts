@@ -29,7 +29,34 @@ export const PROVIDER_COST_USD = {
   genjutsu: { "480p": 0.318, "720p": 0.681, "1080p": 1.632 },
   /** Marketing Studio Image per ad: 1k/medium, 2k/high, 4k/high (published: 1k low $0.0162, 4k high $0.7219). */
   adImage: { standard: 0.05, high: 0.3, ultra: 0.7219 },
+  /** Claude Opus 5.5 ($4 / $20 per MTok): chat turn ≈ 3k in + 1.5k out at low effort (estimate). */
+  strategyChat: { usd: 0.045, estimate: true },
+  /** Blueprint ≈ 4k in + 12k out incl. thinking at medium effort (estimate). */
+  blueprint: { usd: 0.3, estimate: true },
+  /** ElevenLabs multilingual TTS per 100 characters (estimate; plan-dependent). */
+  voicePer100Chars: { usd: 0.03, estimate: true },
 } as const;
+
+/** DIZURA Strategist (ADR 50): chat turn + full blueprint (strategy, 14-day plan, 3 UGC scripts, prompt formulas). */
+export const STRATEGY = {
+  chatCredits: 2,
+  blueprintCredits: 15,
+  maxChatTurns: 20,
+  maxMessageChars: 2000,
+} as const;
+
+/** DIZURA Voice (ADR 50): credits per started 100 characters of script. */
+export const VOICE = { creditsPer100Chars: 1, minCredits: 2, maxChars: 2500 } as const;
+export const voiceCost = (chars: number) => Math.max(VOICE.minCredits, Math.ceil(chars / 100) * VOICE.creditsPer100Chars);
+
+/** DIZURA Agency done-for-you services (ADR 50): fixed price per service, charged via Tap in SAR. */
+export const AGENCY_SERVICES = {
+  single_product: { price: 3000, currency: "SAR", deliveryDays: 7 },
+  landing_page: { price: 3000, currency: "SAR", deliveryDays: 5 },
+  pod: { price: 3000, currency: "SAR", deliveryDays: 7 },
+  shopify: { price: 3000, currency: "SAR", deliveryDays: 10 },
+} as const;
+export type AgencyServiceId = keyof typeof AGENCY_SERVICES;
 
 /** Single source of truth for credit packs. Prices are server-side only — never trust client amounts. */
 export const CREDIT_PACKS: Record<CreditPack["id"], CreditPack> = {

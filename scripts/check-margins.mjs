@@ -9,7 +9,7 @@
  * never in the browser, never committed) and prints the raw estimate next to our assumption.
  */
 import {
-  AD_IMAGE, CREDIT_PACKS, GENJUTSU, PAYMENT_FEE, PROVIDER_COST_USD as COST, SOUL_ID, TARGET_MARGIN, USD_PER_KWD, generationCost,
+  AD_IMAGE, CREDIT_PACKS, GENJUTSU, PAYMENT_FEE, PROVIDER_COST_USD as COST, SOUL_ID, STRATEGY, TARGET_MARGIN, USD_PER_KWD, VOICE, generationCost,
 } from "../lib/credits/pricing.ts";
 
 const perCredit = Object.values(CREDIT_PACKS).map((p) => ({ id: p.id, usd: (p.price * USD_PER_KWD) / p.credits }));
@@ -22,6 +22,9 @@ const rows = [
   ["DIZURA ID training", SOUL_ID.trainingCredits, COST.soulId.usd, COST.soulId.estimate],
   ...Object.entries(GENJUTSU.creditsPerSecond).map(([r, c]) => [`Motion ${r} (per second)`, c, COST.genjutsu[r], false]),
   ...Object.entries(AD_IMAGE).map(([q, t]) => [`Ad ${q} (${t.resolution}/${t.quality})`, t.credits, COST.adImage[q], q !== "ultra"]),
+  ["Strategist chat message", STRATEGY.chatCredits, COST.strategyChat.usd, COST.strategyChat.estimate],
+  ["Strategy blueprint", STRATEGY.blueprintCredits, COST.blueprint.usd, COST.blueprint.estimate],
+  ["Voice (per 100 characters)", VOICE.creditsPer100Chars, COST.voicePer100Chars.usd, COST.voicePer100Chars.estimate],
 ];
 
 console.log(`Credit value: ${perCredit.map((p) => `${p.id} $${p.usd.toFixed(3)}`).join(" · ")}  (cheapest $${cheapest.toFixed(3)}, fee ${PAYMENT_FEE * 100}%)\n`);

@@ -36,22 +36,56 @@ function normalise(raw: z.infer<typeof chargeSchema>): TapCharge {
 }
 
 /** Creates a hosted-page charge. Amount comes from the server-side pack table, never the client. */
-export async function createCharge(pack: CreditPack, user: SessionUser, orderId: string): Promise<TapCharge> {
+export function createCharge(pack: CreditPack, user: SessionUser, orderId: string): Promise<TapCharge> {
+  return hostedCharge({
+    amount: pack.price,
+    currency: pack.currency,
+    description: `DIZURA ${pack.credits} credits`,
+    user,
+    orderId,
+    metadata: { userId: user.id, packId: pack.id, orderId },
+  });
+}
+
+/** Charge for a done-for-you DIZURA Agency service (ADR 50); price from AGENCY_SERVICES, never the client. */
+export function createServiceCharge(
+  order: { id: string; service: string; amount: number; currency: string },
+  user: SessionUser,
+  description: string,
+): Promise<TapCharge> {
+  return hostedCharge({
+    amount: order.amount,
+    currency: order.currency,
+    description,
+    user,
+    orderId: order.id,
+    metadata: { userId: user.id, kind: "service", serviceOrderId: order.id, service: order.service },
+  });
+}
+
+async function hostedCharge(c: {
+  amount: number;
+  currency: string;
+  description: string;
+  user: SessionUser;
+  orderId: string;
+  metadata: Record<string, string>;
+}): Promise<TapCharge> {
   const { base, headers } = auth();
   const appUrl = env.NEXT_PUBLIC_APP_URL.replace(/\/$/, "");
   const res = await providerFetch("Tap", `${base}/charges`, {
     method: "POST",
     headers,
     body: JSON.stringify({
-      amount: pack.price,
-      currency: pack.currency,
+      amount: c.amount,
+      currency: c.currency,
       threeDSecure: true,
       save_card: false,
-      description: `DIZURA ${pack.credits} credits`,
-      customer: { first_name: user.name ?? "DIZURA", email: user.email },
+      description: c.description,
+      customer: { first_name: c.user.name ?? "DIZURA", email: c.user.email },
       source: { id: "src_all" },
-      metadata: { userId: user.id, packId: pack.id, orderId },
-      reference: { transaction: orderId, order: orderId },
+      metadata: c.metadata,
+      reference: { transaction: c.orderId, order: c.orderId },
       redirect: { url: `${appUrl}/billing/return` },
       post: { url: `${appUrl}/api/webhooks/tap` },
     }),

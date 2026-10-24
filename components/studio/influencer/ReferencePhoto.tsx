@@ -11,7 +11,16 @@ export type ReferencePhotoState = { preview: string; token: string | null; faile
  * One reference photo (person, pet, toy, mascot…) the character is made from. Re-encoded to JPEG
  * in the browser (strips EXIF/GPS) and uploaded; the parent only ever holds the signed token.
  */
-export function ReferencePhoto({ value, onChange }: { value: ReferencePhotoState | null; onChange: (next: ReferencePhotoState | null) => void }) {
+export function ReferencePhoto({
+  value,
+  onChange,
+  labels,
+}: {
+  value: ReferencePhotoState | null;
+  onChange: (next: ReferencePhotoState | null) => void;
+  /** Overrides the title/hint (e.g. the product photo in swap mode). */
+  labels?: { title: string; hint: string };
+}) {
   const { t } = useI18n();
   const p = t.builder.photo;
   const input = useRef<HTMLInputElement>(null);
@@ -46,13 +55,13 @@ export function ReferencePhoto({ value, onChange }: { value: ReferencePhotoState
         )}
       </button>
       <div className="min-w-0 text-sm">
-        <p className="font-semibold text-ink-100">{p.title}</p>
+        <p className="font-semibold text-ink-100">{labels?.title ?? p.title}</p>
         {value?.failed ? (
           <p role="alert" className="mt-0.5 text-danger">{p.failed}</p>
         ) : uploading ? (
           <p role="status" className="mt-0.5 text-ink-300">{p.uploading}</p>
         ) : (
-          <p className="mt-0.5 text-xs leading-snug text-ink-500">{p.hint}</p>
+          <p className="mt-0.5 text-xs leading-snug text-ink-500">{labels?.hint ?? p.hint}</p>
         )}
         <button
           type="button"

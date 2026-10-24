@@ -10,4 +10,8 @@ export const NAV = [
 ] as const satisfies readonly NavItem[];
 
 /** Non-studio links shown after the studios in the top nav. */
-export const EXTRA_NAV = [{ href: "/pricing", key: "pricing" }] as const satisfies readonly { href: string; key: keyof Dictionary["nav"] }[];
+export const EXTRA_NAV = [
+  { href: "/blueprints", key: "blueprints" },
+  { href: "/agency", key: "agency" },
+  { href: "/pricing", key: "pricing" },
+] as const satisfies readonly { href: string; key: keyof Dictionary["nav"] }[];

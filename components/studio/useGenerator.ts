@@ -46,6 +46,10 @@ export type TransferInput = {
   resolution: "480p" | "720p" | "1080p";
   prompt: string;
   ratio: AspectRatio;
+  /** "swap": the character + product replace the person and product in the reference video. */
+  mode: "standard" | "swap";
+  /** Signed product photo token (swap mode only). */
+  product?: string;
   /** Client-side estimate; replaced by the server's charged amount once submitted. */
   estimate: number;
 };
@@ -136,11 +140,11 @@ export function useGenerator(workspace: Workspace) {
 
   /** Genjutsu motion transfer: the chosen character images perform the uploaded reference video. */
   const transfer = useCallback(
-    ({ video, characters, photos, resolution, prompt, ratio, estimate }: TransferInput) =>
+    ({ video, characters, photos, resolution, prompt, ratio, estimate, mode, product }: TransferInput) =>
       run({ prompt, kind: "video", ratio, cost: estimate, animatedFrom: characters[0]?.key }, () =>
         api<GenerationJob>("/api/ai/motion-transfer", {
           method: "POST",
-          body: JSON.stringify({ video, characters: characters.map((c) => c.jobId).filter(Boolean), photos, resolution, prompt }),
+          body: JSON.stringify({ video, characters: characters.map((c) => c.jobId).filter(Boolean), photos, resolution, prompt, mode, product: mode === "swap" ? product : undefined }),
         }),
       ),
     [run],

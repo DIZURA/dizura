@@ -10,7 +10,7 @@ export function safeNext(next: unknown, fallback = "/visual-character"): string 
 }
 
 /** Pages that require a signed-in user (enforced in proxy.ts for UX; APIs re-check). */
-export const PROTECTED_PREFIXES = ["/visual-character", "/ads-studio", "/reset-password"] as const;
+export const PROTECTED_PREFIXES = ["/visual-character", "/ads-studio", "/blueprints", "/reset-password"] as const;
 /** Pages a signed-in user shouldn't see. */
 export const GUEST_ONLY = ["/login", "/forgot-password"] as const;
 
