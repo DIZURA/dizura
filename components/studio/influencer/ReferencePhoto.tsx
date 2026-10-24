@@ -3,9 +3,9 @@
 import { useRef } from "react";
 import { useI18n } from "@/components/i18n/I18nProvider";
 import { cn } from "@/components/ui/cn";
-import { toJpeg, uploadPhoto } from "./media";
+import { toJpeg, uploadErrorKind, uploadPhoto } from "./media";
 
-export type ReferencePhotoState = { preview: string; token: string | null; failed: boolean };
+export type ReferencePhotoState = { preview: string; token: string | null; failed: boolean; unavailable?: boolean };
 
 /**
  * One reference photo (person, pet, toy, mascot…) the character is made from. Re-encoded to JPEG
@@ -31,8 +31,11 @@ export function ReferencePhoto({
     if (value) URL.revokeObjectURL(value.preview); // the preview survives unmounts; free it only on replace
     const url = URL.createObjectURL(file);
     onChange({ preview: url, token: null, failed: false });
-    const token = await toJpeg(file).then(uploadPhoto).catch(() => null);
-    onChange({ preview: url, token, failed: token === null });
+    try {
+      onChange({ preview: url, token: await toJpeg(file).then(uploadPhoto), failed: false });
+    } catch (err) {
+      onChange({ preview: url, token: null, failed: true, unavailable: uploadErrorKind(err) === "unavailable" });
+    }
   }
 
   const uploading = value !== null && !value.token && !value.failed;
@@ -57,7 +60,7 @@ export function ReferencePhoto({
       <div className="min-w-0 text-sm">
         <p className="font-semibold text-ink-100">{labels?.title ?? p.title}</p>
         {value?.failed ? (
-          <p role="alert" className="mt-0.5 text-danger">{p.failed}</p>
+          <p role="alert" className="mt-0.5 text-danger">{value.unavailable ? p.unavailable : p.failed}</p>
         ) : uploading ? (
           <p role="status" className="mt-0.5 text-ink-300">{p.uploading}</p>
         ) : (

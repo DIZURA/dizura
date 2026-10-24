@@ -58,6 +58,10 @@ export const BASE_COST_USD = {
   adStandard: 0.05,
   adHigh: 0.3,
   adUltra: 0.7219,
+  /** WAN 3.0 Prime image-to-video (video ads), per second — list price (temporary discounts ignored). */
+  adVideo480p: 0.068,
+  adVideo720p: 0.14,
+  adVideo1080p: 0.28,
   /** One Strategist reply / "Write it for me" draft (Claude, low effort). */
   strategyChat: 0.045,
   /** A full blueprint (four sections). */
@@ -81,6 +85,8 @@ export type PriceList = {
   /** Per second of reference video. */
   motion: Record<GenjutsuResolution, number>;
   ad: Record<AdQuality, number>;
+  /** Video ad, per second of output. */
+  adVideo: Record<GenjutsuResolution, number>;
   chat: number;
   blueprint: number;
   /** Per started 100 characters. */
@@ -94,6 +100,7 @@ export function priceList(c: Costs): PriceList {
     soulId: creditsFor(c.soulId),
     motion: { "480p": creditsFor(c.motion480p), "720p": creditsFor(c.motion720p), "1080p": creditsFor(c.motion1080p) },
     ad: { standard: creditsFor(c.adStandard), high: creditsFor(c.adHigh), ultra: creditsFor(c.adUltra) },
+    adVideo: { "480p": creditsFor(c.adVideo480p), "720p": creditsFor(c.adVideo720p), "1080p": creditsFor(c.adVideo1080p) },
     chat: creditsFor(c.strategyChat),
     blueprint: creditsFor(c.blueprint),
     voicePer100: creditsFor(c.voicePer100Chars),
@@ -171,3 +178,7 @@ export const AD_IMAGE = {
   ultra: { resolution: "4k", quality: "high" },
 } as const satisfies Record<AdQuality, unknown>;
 export const AD_RATIOS = ["1:1", "3:4", "9:16", "16:9"] as const;
+
+/** Video ads (WAN 3.0 Prime image-to-video): length options in seconds; price is `PriceList.adVideo[res]` per second. */
+export const VIDEO_AD = { seconds: [3, 5, 8, 10] as const, defaultSeconds: 5, defaultResolution: "720p" as GenjutsuResolution } as const;
+export const videoAdCost = (seconds: number, resolution: GenjutsuResolution, p: PriceList) => seconds * p.adVideo[resolution];

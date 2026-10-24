@@ -16,7 +16,7 @@ export type WizardInput = {
 
 const FIELDS = ["product", "audience", "market", "budget", "tone"] as const;
 
-/** Goal → business details → confirm (⚡ prices.blueprint). */
+/** Goal → business details → confirm (prices.blueprint credits). */
 export function BlueprintWizard({ busy, error, onCancel, onCreate }: { busy: boolean; error: string | null; onCancel: () => void; onCreate: (input: WizardInput) => void }) {
   const { t, locale } = useI18n();
   const prices = usePrices();

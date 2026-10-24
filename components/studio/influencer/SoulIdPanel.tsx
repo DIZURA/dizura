@@ -248,7 +248,6 @@ export function SoulIdPanel({
           <div className="mt-5 flex flex-wrap items-center gap-3">
             <Button variant="ghost" onClick={() => setOpen(false)}>{t.common.close}</Button>
             <span className="ms-auto inline-flex items-center gap-1 rounded-full border border-ember-500/30 bg-ember-500/10 px-2.5 py-1 text-xs font-semibold text-ember-300">
-              <span aria-hidden>⚡</span>
               <span className="tabular-nums">{nf.format(prices.soulId)}</span>
               <span className="font-normal">{t.gen.credits}</span>
             </span>

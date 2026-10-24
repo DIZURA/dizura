@@ -422,7 +422,6 @@ function StepHeader({ badge, id, title, subtitle, model }: { badge: string; id: 
 function Cost({ value, label }: { value: string; label: string }) {
   return (
     <span className="inline-flex items-center gap-1 rounded-full border border-ember-500/30 bg-ember-500/10 px-2.5 py-1 text-xs font-semibold text-ember-300">
-      <span aria-hidden>⚡</span>
       <span className="tabular-nums">{value}</span>
       <span className="font-normal">{label}</span>
     </span>

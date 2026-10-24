@@ -23,6 +23,7 @@ const GUARD = { min: 0.5, max: 20 };
 const ORDERED: CostKey[][] = [
   ["motion480p", "motion720p", "motion1080p"],
   ["adStandard", "adHigh", "adUltra"],
+  ["adVideo480p", "adVideo720p", "adVideo1080p"],
 ];
 const EMA_WEIGHT = 0.2; // each measured call moves the average 20% towards it
 const CACHE_MS = 5 * 60_000;
@@ -122,6 +123,9 @@ const PROBES: { key: CostKey; model: string; body: Record<string, unknown>; per?
   { key: "motion480p", model: MODELS.motionTransfer, body: { prompt: "", image_urls: [], resolution: "480p", duration: 10 }, per: 10 },
   { key: "motion720p", model: MODELS.motionTransfer, body: { prompt: "", image_urls: [], resolution: "720p", duration: 10 }, per: 10 },
   { key: "motion1080p", model: MODELS.motionTransfer, body: { prompt: "", image_urls: [], resolution: "1080p", duration: 10 }, per: 10 },
+  { key: "adVideo480p", model: MODELS.imageToVideo, body: { prompt: "estimate", aspect_ratio: "9:16", resolution: "480p", duration: 10 }, per: 10 },
+  { key: "adVideo720p", model: MODELS.imageToVideo, body: { prompt: "estimate", aspect_ratio: "9:16", resolution: "720p", duration: 10 }, per: 10 },
+  { key: "adVideo1080p", model: MODELS.imageToVideo, body: { prompt: "estimate", aspect_ratio: "9:16", resolution: "1080p", duration: 10 }, per: 10 },
 ];
 
 /** Refreshes Higgsfield prices (each key at most once a day unless forced). Returns what changed. */

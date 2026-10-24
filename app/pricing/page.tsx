@@ -29,6 +29,7 @@ export default async function PricingPage() {
     { ...p.costs.identity, value: fill(p.costs.identity.value, { n: prices.soulId }), approx: money(prices.soulId) },
     { ...p.costs.motion, value: fill(p.costs.motion.value, { a: m["480p"], b: m["720p"], c: m["1080p"] }), approx: money(m["720p"]) },
     { ...p.costs.ad, value: fill(p.costs.ad.value, { a: prices.ad.standard, b: prices.ad.high, c: prices.ad.ultra }), approx: money(prices.ad.standard) },
+    { ...p.costs.videoAd, value: fill(p.costs.videoAd.value, { a: prices.adVideo["480p"], b: prices.adVideo["720p"], c: prices.adVideo["1080p"] }), approx: money(prices.adVideo["720p"]) },
     { ...p.costs.chat, value: fill(p.costs.chat.value, { n: prices.chat }), approx: money(prices.chat) },
     { ...p.costs.blueprint, value: fill(p.costs.blueprint.value, { n: prices.blueprint }), approx: money(prices.blueprint) },
     { ...p.costs.voice, value: fill(p.costs.voice.value, { n: prices.voicePer100, m: VOICE.minCredits }), approx: money(prices.voicePer100) },

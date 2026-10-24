@@ -26,7 +26,7 @@ export function BillingPlan({ plan: initial, balance }: { plan: SubscriptionView
         <span aria-hidden className="mx-auto grid size-14 place-items-center rounded-2xl bg-mint-500/15 text-2xl text-mint-300">✦</span>
         <h2 className="mt-4 text-xl font-bold">{b.emptyTitle}</h2>
         <p className="mt-2 text-sm text-ink-300">{b.emptyBody}</p>
-        {balance !== null && <p className="mt-4 text-sm text-ember-300">⚡ {b.balance}: {num(balance)}</p>}
+        {balance !== null && <p className="mt-4 text-sm text-ember-300">{b.balance}: {num(balance)}</p>}
         <Link href="/pricing" className={buttonClass("primary", "mt-6 px-8")}>{b.choosePlan}</Link>
       </section>
     );

@@ -151,6 +151,27 @@ export async function submitAdImage(
   return { providerJobId: job.request_id, status: mapStatus(job.status) };
 }
 
+/** Video ad: WAN 3.0 Prime image-to-video from the caller's product photo (first frame). */
+export async function submitAdVideo(
+  input: { prompt: string; imageUrl: string; aspectRatio: string; duration: number; resolution: "480p" | "720p" | "1080p" },
+  idempotencyKey: string,
+): Promise<{ providerJobId: string; status: JobStatus }> {
+  const { base, headers } = auth();
+  const res = await providerFetch("Higgsfield", `${base}/${MODELS.imageToVideo}`, {
+    method: "POST",
+    headers: { ...headers, "idempotency-key": idempotencyKey },
+    body: JSON.stringify({
+      prompt: input.prompt.slice(0, 2000),
+      image_url: input.imageUrl,
+      aspect_ratio: input.aspectRatio,
+      duration: input.duration,
+      resolution: input.resolution,
+    }),
+  });
+  const job = submitSchema.parse(await res.json());
+  return { providerJobId: job.request_id, status: mapStatus(job.status) };
+}
+
 export async function getJob(providerJobId: string): Promise<Pick<GenerationJob, "status" | "outputs" | "error">> {
   if (!/^[A-Za-z0-9_-]{1,128}$/.test(providerJobId)) throw new Error("Invalid Higgsfield request id");
   const { base, headers } = auth();

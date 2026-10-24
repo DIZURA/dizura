@@ -168,7 +168,7 @@ export function VoiceStudio() {
             className="ms-auto inline-flex items-center gap-1.5 rounded-lg border border-mint-500/40 px-3 py-1.5 text-xs font-semibold text-mint-300 transition hover:bg-mint-500/10 disabled:opacity-40"
           >
             <span aria-hidden>✦</span> {writing ? t.strategist.thinking : v.writeForMe}
-            <span className="font-normal text-ember-300">⚡{nf.format(prices.chat)}</span>
+            <span className="font-normal text-ember-300">· {nf.format(prices.chat)} {t.gen.credits}</span>
           </button>
         </div>
       </div>

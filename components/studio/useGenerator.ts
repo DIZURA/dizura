@@ -65,6 +65,17 @@ export type AdInput = {
   estimate: number;
 };
 
+export type AdVideoInput = {
+  /** Signed photo upload token for the product (becomes the first frame). */
+  product: string;
+  motion: string;
+  aspectRatio: AspectRatio;
+  seconds: number;
+  resolution: "480p" | "720p" | "1080p";
+  notes: string;
+  estimate: number;
+};
+
 type PollState = { status: JobStatus; outputs: GeneratedMedia[]; error: string | null; creditsRefunded: boolean };
 
 const MAX_POLLS = 120; // ~15 min at the 10 s ceiling
@@ -159,5 +170,14 @@ export function useGenerator(workspace: Workspace) {
     [run],
   );
 
-  return { creations, error, setError, generate, transfer, ad, busy: creations.some(isBusy) };
+  /** Video ad: WAN 3.0 Prime image-to-video from the caller's own product photo. */
+  const adVideo = useCallback(
+    ({ product, motion, aspectRatio, seconds, resolution, notes, estimate }: AdVideoInput) =>
+      run({ prompt: motion, kind: "video", ratio: aspectRatio, cost: estimate }, () =>
+        api<GenerationJob>("/api/ai/ad-video", { method: "POST", body: JSON.stringify({ product, motion, aspectRatio, seconds, resolution, notes }) }),
+      ),
+    [run],
+  );
+
+  return { creations, error, setError, generate, transfer, ad, adVideo, busy: creations.some(isBusy) };
 }
