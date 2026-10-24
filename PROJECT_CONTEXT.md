@@ -2,7 +2,7 @@
 
 > Source of truth for architecture, decisions, routes and roadmap.
 > **Every session: read this first; update it in the same change as any architectural edit.**
-> Last updated: 2026-10-24 (Option photos v4 — original casting, Higgsfield)
+> Last updated: 2026-10-24 (No free credits — paid plans only; owner test credits)
 
 ## 1. Product
 AI creative studio for GCC brands, Arabic-first (RTL) with English (LTR).
@@ -100,6 +100,7 @@ supabase/migrations/20261022215528_0006_service_role_grants.sql   grant service_
 supabase/migrations/20261023014838_0007_reference_videos_bucket.sql   private `reference-videos` bucket (50 MB, mp4/mov), no client policies (APPLIED)
 supabase/migrations/20261024023212_0009_subscriptions_and_provider_costs.sql   subscriptions (one live per user, RLS select-own) + provider_costs (server-only) (APPLIED)
 supabase/migrations/20261024023322_0010_provider_costs_explicit_policy.sql   explicit deny-all client policy on provider_costs (APPLIED; advisors clean)
+supabase/migrations/20261024082248_0011_no_welcome_credits.sql   welcome trigger kept but its function grants nothing — no free credits (APPLIED; advisors: only the existing leaked-password WARN + unused-index INFO)
 netlify/functions/hourly.mts   Netlify Scheduled Function (@hourly, production only) → POST /api/cron/hourly with CRON_SECRET
 supabase/migrations/20261024014147_0008_agency_suite.sql   blueprints + service_orders (RLS select-own, service_role grants) + private `voiceovers` bucket (APPLIED 2026-10-24; advisors: only INFO unused-index on the new tables + the dashboard-level leaked-password warning)
 scripts/import-examples.mjs  Imports Lovable-designed example JPGs → public/influencer/options/<group>/<id>.webp (256 px) + public/examples/<name>.webp (1280 px) and rewrites both manifests
@@ -224,7 +225,7 @@ Dev/test only: `DEV_STARTING_CREDITS` (read only by the in-memory credit store, 
 - **Supabase → Authentication → URL Configuration** (owner): Site URL `https://sparkly-swan-cf292e.netlify.app` (or custom domain); Redirect URLs: `http://localhost:3000/**`, `https://sparkly-swan-cf292e.netlify.app/**`, `https://*--sparkly-swan-cf292e.netlify.app/**` (single `*` — never `**` before the host, which could match an attacker-controlled host).
 
 ## 7. Credit economy (`lib/credits/pricing.ts` + live `provider_costs`, ADR 51)
-Welcome bonus: **30 credits** on email confirmation (ADR 25).
+Welcome bonus: **none** — new accounts start at 0; credits come only from paid plans (ADR 58).
 Plans (monthly, auto-renew): **Starter** 150 cr — $29 / 110 SAR · **Pro** 500 cr — $79 / 295 SAR · **Agency** 1,500 cr — $210 / 790 SAR. Unused credits roll over.
 Rule: credits = ceil(cost ÷ ($0.14 × 0.97) ÷ 0.4) → ≥ 60% margin on every plan (`npm run margins`).
 At baseline costs: video ad **2 / 3 / 6** cr/s (480p/720p/1080p, 3–10 s) · character image **2** (from a photo 2) · DIZURA ID **47** · motion **6 / 13 / 31** cr/s (480p/720p/1080p, 4–30 s) · ads **1 / 6 / 14** (Standard/High/Ultra) · Strategist message **1** · "Write it for me" **1** · strategy file **6** · voice **1 / 100 chars** (min 2). These move automatically with provider costs.

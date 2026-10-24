@@ -4,7 +4,7 @@ import { SiteFooter } from "@/components/layout/SiteFooter";
 import { TopBar } from "@/components/layout/TopBar";
 import { getCurrentUser } from "@/lib/auth/session";
 import { getPrices } from "@/lib/credits/costs";
-import { creditValue, currencyFor, VOICE, WELCOME_CREDITS } from "@/lib/credits/pricing";
+import { creditValue, currencyFor, VOICE } from "@/lib/credits/pricing";
 import { getI18n } from "@/lib/i18n/server";
 import { subscriptions } from "@/lib/subscriptions/store";
 
@@ -43,7 +43,7 @@ export default async function PricingPage() {
           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-violet-300">{p.eyebrow}</p>
           <h1 className="mt-3 text-balance text-4xl font-black sm:text-5xl">{p.title}</h1>
           <p className="mt-4 text-pretty text-ink-300">{p.subtitle}</p>
-          {!user && <p className="mt-3 text-sm text-ember-300">{fill(p.welcome, { n: WELCOME_CREDITS })}</p>}
+          {!user && <p className="mt-3 text-sm text-ember-300">{p.welcome}</p>}
           <p className="mt-2 text-xs text-ink-500">{p.currencyNote.replace("{c}", currency)}</p>
         </header>
 
